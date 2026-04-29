@@ -234,9 +234,7 @@ function getTheaterBookingUrl(title) {
 }
 
 function getTheaterMarkerImage(title) {
-  const t = String(title || "");
-  if (/CGV/i.test(t)) return "cgv.png";
-  if (/롯데시네마/.test(t)) return "lotte.png";
+  // CGV/롯데시네마도 일반 문화 카테고리 마커를 사용한다.
   return "";
 }
 
