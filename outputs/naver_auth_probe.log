@@ -1,0 +1,13 @@
+time=2026-04-07 14:54:08
+key_id=5im3q2kbhw
+[uri] http://localhost:8080/
+validatev3(ncpClientId) status=200
+cb({"error":{"errorCode":"200","message":"Authentication Failed","details":"Invalid authentication information."}})
+auth(ncpKeyId) status=200
+cb({"result":{"callCount":"0","callSize":"0","apiQuota":"200000","apiKeyInfo":"apiKey:map/webApiGroup"}})
+
+[uri] http://127.0.0.1:8080/
+validatev3(ncpClientId) status=200
+cb({"error":{"errorCode":"200","message":"Authentication Failed","details":"Invalid authentication information."}})
+auth(ncpKeyId) status=200
+cb({"result":{"callCount":"0","callSize":"0","apiQuota":"200000","apiKeyInfo":"apiKey:map/webApiGroup"}})

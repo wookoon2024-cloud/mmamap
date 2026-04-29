@@ -1,0 +1,1258 @@
+﻿
+<!DOCTYPE html>
+<html lang="ko">
+	
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<!-- <title>병역명문가</title> -->
+		<title>예우시설명 검색 - 명문가 예우 - 병역명문가 - 병역명문가</title>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0" />
+		<meta name="robots" content="noindex">
+		
+				<!--  IE9 이상인 경우 표출 시작 -->
+				<link type="text/css" href="/css/temple/sub.css" rel="stylesheet" />
+			
+
+		<link href="/css/jQuery/jquery-ui-1.8.16.custom.css" rel="StyleSheet" type="text/css" />
+
+		<script src="/js/temple/jquery-1.12.4.min.js"></script>
+		<script src="/js/sns_shareNew.js"></script>
+		<script src="/js/temple/jquery.cycle.all.js"></script>
+		<script src="/js/temple/common.js"></script>
+		<script src="/js/temple/main.js"></script>
+		<script src="/js/temple/ui.js"></script>
+		<script src="/js/jquery-ui.min.js"></script>
+		<script src="/js/date.js"></script>
+		<script src="/js/temple/select.js"></script>
+		<script src="/js/temple/base.js"></script>
+
+		<style>
+		#twitter-widget-0 {
+			width: 200px !important;
+		}
+		.selectBox {float:right; margin-right:20px;}
+		</style>
+	</head>
+
+	<body id="root_body">
+		<div id="div_cover"></div>
+		<div id="header" class="wrap clearfix">
+			<!-- header 시작 -->
+			<header>
+				<div id="accessibility">
+					<a href="#container">콘텐츠로 바로가기</a> <a href="#lnb">대메뉴로 바로가기</a>
+				</div>
+				
+				<div id="top_gnb">
+					
+					<!-- 
+					<ul class="top_menu">
+						
+						
+						<li class="on skip_m"><a href="/hall/index.do" target="_self">2024</a></li>
+						<li class=" skip_m"><a href="/hall/2023/index.do" target="_self">2023</a></li>
+						<li class=" skip_m"><a href="/hall/2022/index.do" target="_self">2022</a></li>
+						<li class=" skip_m"><a href="/hall/2021/index.do" target="_self">2021</a></li>
+						
+					</ul>
+					<div id="search_box">
+						<form>
+							<fieldset>
+								<legend>Legend</legend>
+								<div class="select">
+									<span class="ctrl"><span class="arrow"></span></span> <input type="hidden" id=selectYear name="selectYear" />
+									<div class="my_value"></div>
+									<ul class="i_list">
+										<li>
+											<input name="c" class="option" id="c0" type="radio" checked="checked" onclick="fn_yearFunction('')"/>
+											<label for="c0">연도선택</label>
+										</li>
+										
+												<li class="skip skip_t">
+													<input name="c" class="option" id="c1" type="radio" onclick="fn_yearFunction('2024')" title="새창" />
+													<label for="c1">2024</label>
+												</li>
+											
+												<li class="skip skip_t">
+													<input name="c" class="option" id="c2" type="radio" onclick="fn_yearFunction('2023')" title="새창" />
+													<label for="c2">2023</label>
+												</li>
+											
+												<li class="skip skip_t">
+													<input name="c" class="option" id="c3" type="radio" onclick="fn_yearFunction('2022')" title="새창" />
+													<label for="c3">2022</label>
+												</li>
+											
+												<li class="skip skip_t">
+													<input name="c" class="option" id="c4" type="radio" onclick="fn_yearFunction('2021')" title="새창" />
+													<label for="c4">2021</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c5" type="radio" onclick="fn_yearFunction('2020')" title="새창" />
+													<label for="c5">2020</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c6" type="radio" onclick="fn_yearFunction('2019')" title="새창" />
+													<label for="c6">2019</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c7" type="radio" onclick="fn_yearFunction('2018')" title="새창" />
+													<label for="c7">2018</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c8" type="radio" onclick="fn_yearFunction('2017')" title="새창" />
+													<label for="c8">2017</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c9" type="radio" onclick="fn_yearFunction('2016')" title="새창" />
+													<label for="c9">2016</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c10" type="radio" onclick="fn_yearFunction('2015')" title="새창" />
+													<label for="c10">2015</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c11" type="radio" onclick="fn_yearFunction('2014')" title="새창" />
+													<label for="c11">2014</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c12" type="radio" onclick="fn_yearFunction('2013')" title="새창" />
+													<label for="c12">2013</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c13" type="radio" onclick="fn_yearFunction('2012')" title="새창" />
+													<label for="c13">2012</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c14" type="radio" onclick="fn_yearFunction('2011')" title="새창" />
+													<label for="c14">2011</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c15" type="radio" onclick="fn_yearFunction('2010')" title="새창" />
+													<label for="c15">2010</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c16" type="radio" onclick="fn_yearFunction('2009')" title="새창" />
+													<label for="c16">2009</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c17" type="radio" onclick="fn_yearFunction('2008')" title="새창" />
+													<label for="c17">2008</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c18" type="radio" onclick="fn_yearFunction('2007')" title="새창" />
+													<label for="c18">2007</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c19" type="radio" onclick="fn_yearFunction('2006')" title="새창" />
+													<label for="c19">2006</label>
+												</li>
+											
+												<li>
+													<input name="c" class="option" id="c20" type="radio" onclick="fn_yearFunction('2005')" title="새창" />
+													<label for="c20">2005</label>
+												</li>
+											
+									</ul>
+								</div>
+								<input type="image" class="image" src="/images/temple/common/go.gif" onclick="moveBYMMGFirst(); return false;" alt="검색" />
+							</fieldset>
+						</form>
+					</div>
+ -->
+					
+					
+					<ul class="gnb">
+						<li class="skip_m nobg"><a href="/hall/index.do">홈으로</a></li>
+						<li class="skip_m nobg bg"><a href="/index.do">병무청 홈페이지</a></li>
+					</ul>
+					<div class="gnbArea">
+						<P>
+							<button type="button" class="button_site">
+								<img src="/images/syjy/common/gnb_m_add.gif" width="30" height="30" alt="전체매뉴 보기" />
+							</button>
+						</P>
+					</div>
+				</div>
+				<h1 id="logo">
+					<a href="/hall/index.do"><img src="/images/temple/common/logo.gif" width="103" height="59" alt="병역명문가" /></a>
+					
+					
+				</h1>
+			</header>
+			<!-- header 끝 -->
+		</div>
+
+		<div id="w_lnb" class="skip_m">
+			<div class="lnb_2depth_bg"></div>
+			<div class="wrap">
+				<div id="lnb" class="clearfix">
+					<ul id="top1menu" class="clearfix">
+						
+						<li class="li_2024">
+							<a href="/hall/contents.do?mc=mma0003370" target="_self" id="top1m1" accesskey="1">제도 소개</a>
+							<div id="top2m1" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003370"  target="_self">병역명문가 제도</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/gggb/subListAll.do?mc=mma0003373" target="_self" id="top1m2" accesskey="2">병역명문가</a>
+							<div id="top2m2" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/gggb/subListAll.do?mc=mma0003373"  target="_self">전체 리스트</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/board/boardList.do?gesipan_id=541&mc=mma0003488" target="_self" id="top1m3" accesskey="3">행사한마당</a>
+							<div id="top2m3" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/board/boardList.do?mc=mma0003375&amp;gesipan_id=541"  target="_self">시상식 사진</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003376"  target="_self">행사 동영상</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/board/boardList.do?mc=mma0003377&amp;gesipan_id=542"  target="_self">지방청 행사</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/contents.do?mc=mma0003491" target="_self" id="top1m4" accesskey="4">축 사</a>
+							<div id="top2m4" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003491"  target="_self">대통령축사</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003492"  target="_self">국무총리축사</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003493"  target="_self">병무청장식사</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/contents.do?mc=mma0003494" target="_self" id="top1m5" accesskey="5">영상자료</a>
+							<div id="top2m5" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003494"  target="_self">다큐영상</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003495"  target="_self">제도 소개영상</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/board/boardList.do?gesipan_id=543&mc=mma0003496" target="_self" id="top1m6" accesskey="6">언론보도</a>
+							<div id="top2m6" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/board/boardList.do?gesipan_id=543&amp;mc=mma0003496"  target="_self">신문</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/board/boardList.do?gesipan_id=544&amp;mc=mma0003497"  target="_self">방송</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/contents.do?mc=mma0003389" target="_self" id="top1m7" accesskey="7">명문가 예우</a>
+							<div id="top2m7" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/contents.do?mc=mma0003389"  target="_self">선양·예우</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/listsearch.do?mc=mma0003390"  target="_self">예우시설명 검색</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/list.do?mc=mma0003391"  target="_self">예우시설 지도 검색</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/listpart.do?mc=mma0003392"  target="_self">예우시설 업종별 목록</a>
+									
+						</li>
+								
+						<li>
+							<a href="http://www.law.go.kr/lsOrdinAstSc.do?menuId=9&amp;p1=&amp;subMenu=1&amp;nwYn=1&amp;ion=&amp;tabNo=10&amp;query=%EB%B3%91%EC%97%AD%EB%AA%85%EB%AC%B8%EA%B0%80&amp;x=0&amp;y=0#?mc=mma0003393"  target="_self">지자체 조례</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/board/boardList.do?mc=mma0003487&amp;gesipan_id=517"  target="_self">병역명문가 예우시설 안내</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+						<li class="li_2024">
+							<a href="/hall/board/boardList.do?gesipan_id=217&amp;mc=mma0003395" target="_self" id="top1m8" accesskey="8">알림마당</a>
+							<div id="top2m8" class="top2m top_2024">
+								<div>
+									<ul class="clearfix">
+								
+						<li>
+							<a href="/hall/board/boardList.do?mc=mma0003395&amp;gesipan_id=217"  target="_self">공지사항</a>
+									
+						</li>
+								
+						<li>
+							<a href="/hall/board/boardList.do?mc=mma0003396&amp;gesipan_id=218"  target="_self">자주하는질문모음(FAQ)</a>
+									
+						</li>
+								
+									</ul>
+								</div>
+							</div>
+						</li>
+							
+					</ul>
+					<div class="lnb_close">
+						<a href="#container"><img src="/images/temple/common/lnb_depth2_img.gif" alt="닫기" /></a>
+					</div>
+				</div>
+			</div>
+		</div> <!-- id="w_lnb" -->
+
+		<!-- 모바일 메뉴 시작 -->
+		<div class="mobileMenu">
+			<div>
+				<button type="button">닫기</button>
+			</div>
+			<ul>
+				
+				<li class="menu01">
+					<a href="/hall/contents.do?mc=mma0003370">제도 소개</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003370">병역명문가 제도</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/gggb/subListAll.do?mc=mma0003373">병역명문가</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/gggb/subListAll.do?mc=mma0003373">전체 리스트</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/board/boardList.do?gesipan_id=541&mc=mma0003488">행사한마당</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?mc=mma0003375&gesipan_id=541">시상식 사진</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003489">행사 동영상</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?mc=mma0003377&gesipan_id=542">지방청 행사</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/contents.do?mc=mma0003491">축 사</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003491">대통령축사</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003492">국무총리축사</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003493">병무청장식사</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/contents.do?mc=mma0003494">영상자료</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003494">다큐영상</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003495">제도 소개영상</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/board/boardList.do?gesipan_id=543&mc=mma0003496">언론보도</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?gesipan_id=543&mc=mma0003496">신문</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?gesipan_id=544&mc=mma0003497">방송</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/contents.do?mc=mma0003389">명문가 예우</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/contents.do?mc=mma0003389">선양·예우</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/listsearch.do?mc=mma0003390">예우시설명 검색</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/list.do?mc=mma0003391">예우시설 지도 검색</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/listpart.do?mc=mma0003392">예우시설 업종별 목록</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="http://www.law.go.kr/lsOrdinAstSc.do?menuId=9&p1=&subMenu=1&nwYn=1&ion=&tabNo=10&query=%EB%B3%91%EC%97%AD%EB%AA%85%EB%AC%B8%EA%B0%80&x=0&y=0#?mc=mma0003393">지자체 조례</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?mc=mma0003487&gesipan_id=517">병역명문가 예우시설 안내</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu01">
+					<a href="/hall/board/boardList.do?gesipan_id=217&amp;mc=mma0003395">알림마당</a>
+					<ul>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?mc=mma0003395&gesipan_id=217">공지사항</a>
+						</li>
+						
+						<li class="disPlus">
+							<a href="/hall/board/boardList.do?mc=mma0003396&gesipan_id=218">자주하는질문모음(FAQ)</a>
+						</li>
+						
+					</ul>
+				</li>
+					
+				<li class="menu00 syjy"><a href="https://www.mma.go.kr" target="_blank" title="새창으로 이동">병무청 바로가기</a></li>
+			</ul>
+			<div>
+				<button type="button">닫기</button>
+			</div>
+		</div>
+		<!-- 모바일 메뉴 끝 -->
+		<div id="secrion" class="wrap clearfix">
+
+			<div id="path">
+				<p class="clearfix">
+					<a href="#none"><img src="/images/temple/sub/home.gif" width="14" height="14" alt="홈" /></a>
+					병역명문가
+							 &gt;
+						 병역명문가
+							 &gt;
+						 명문가 예우
+							 &gt;
+						 
+								<strong>예우시설명 검색</strong>
+							
+				</p>
+				<ul>
+					<li><a href="javascript:facebook('병무청[예우시설명 검색]');"><img src="/images/temple/sub/facebook.png" width="10" height="18" alt="페이스북" /></a></li>
+					<li><a href="javascript:twitter('병무청[예우시설명 검색]');"><img src="/images/temple/sub/twitter.png" width="24" height="17" alt="트위터" /></a></li>
+					<li class="r">
+						<a href="#none" onclick="window.open('/comm/print.do;jsessionid=PhVmSi7JNzIHclsrIjOeczY2AYm6hpDHoQxQl_8zviIbbRWWUe6M!109654825', 'print', 'width=790, height=700, scrollbars=yes, resizable=no');return false;" target="_blank" title="새창으로 이동">
+							<span>인쇄</span>
+						</a>
+					</li>
+				</ul>
+			</div>
+
+			<div id="container" class="wraps">
+				<!-- side_menu 시작 -->
+				<div class="text_bg">
+					<div id="side">
+						
+						<!-- 첫번째 행 -->
+						<div id="side_title">
+							<h2>
+								<a href="/hall/contents.do?mc=mma0003389">명문가 예우</a><br />
+								<span></span>
+							</h2>
+						</div>
+						<div id="side_menu">
+							<ul>
+								
+								<li>
+													
+									<a href="/hall/contents.do?mc=mma0003389" target="_self">선양·예우</a>
+														
+								</li>
+													
+								<li class="on">
+									<span>
+													
+										<a href="/hall/listsearch.do?mc=mma0003390" target="_self">예우시설명 검색</a>
+														
+									</span>
+
+													
+								</li>
+													
+								<li>
+													
+									<a href="/hall/list.do?mc=mma0003391" target="_self">예우시설 지도 검색</a>
+														
+								</li>
+													
+								<li>
+													
+									<a href="/hall/listpart.do?mc=mma0003392" target="_self">예우시설 업종별 목록</a>
+														
+								</li>
+													
+								<li>
+													
+									<a href="http://www.law.go.kr/lsOrdinAstSc.do?menuId=9&amp;p1=&amp;subMenu=1&amp;nwYn=1&amp;ion=&amp;tabNo=10&amp;query=%EB%B3%91%EC%97%AD%EB%AA%85%EB%AC%B8%EA%B0%80&amp;x=0&amp;y=0#?mc=mma0003393" target="_self">지자체 조례</a>
+														
+								</li>
+													
+								<li>
+													
+									<a href="/hall/board/boardList.do?mc=mma0003487&amp;gesipan_id=517" target="_self">병역명문가 예우시설 안내</a>
+														
+								</li>
+											
+							</ul>
+						</div> <!-- <div id="side_menu"> -->
+					</div> <!-- <div id="side"> -->
+					<!-- side_menu 끝 -->
+
+				 <div id="colgroup">
+					 <div id="sub_head">
+						
+							<h2>예우시설명 검색
+							
+							</h2>
+						
+					 </div>
+					 <!--  탭메뉴 시작 -->
+					 
+					 <!--  탭메뉴 끝 -->
+					 <div id="sub">
+						 <div id="contents">
+							 <!-- 컨탠츠 페이지 시작 -->
+							 
+		<script src="/js/temple/templeUDGiGwan.js"></script>
+
+		<div class="board_box mt20px">
+			<div class="text_center">
+				<input type="hidden" id="map_info_val" name="map_info_val" />
+				<input type="hidden" id="udjiyeok_cd" name="udjiyeok_cd" />
+				<input type="text"  id="udae_ggm" name="udae_ggm" value="" placeholder="예우시설명을 입력하세요." style="width:50%; vertical-align:middle;"/>
+				<span class="button blue small ml10px" style="letter-spacing:2px; font-weight:bold;"><a href="#none" onclick="fn_search()">예우시설 검색</a></span>
+			</div>
+		</div>
+
+		<div style="padding:0 20px 0 20px;">
+			<h3 id="upjong">예우시설 리스트</h3>
+			<div id="areaList" style="padding-left:10px;">
+			</div>
+		</div>
+		
+		
+		<script>
+
+		var local_array_jynm = [ '전국', '서울', '부산울산', '대구경북', '광주전남', '대전충남', '강원', '충북', '전북', '경남', '제주', '인천경기', '경기북부', '강원영동'];
+		var local_array_jycd = ['11', '09', '08', '06', '05', '07', '02', '14', '12', '04', '13', '10', '03', '01'];
+		var local_array_value = [];
+
+		$(document).ready(function(){
+			$("#udae_ggm").keydown(function(event){
+				if(event.keyCode == 13){
+					fn_search();
+				}
+			});
+
+			fn_search();
+
+		});
+
+		function fn_search(){
+
+			var url = "https://open.mma.go.kr/caisGGGS/bymmgPartAjaxJsonCallNew.json";
+
+			var param = "?udjiyeok_cd="+$("#udjiyeok_cd").val()+"&udae_ggm="+$("#udae_ggm").val()+"&callback=?";
+
+			var textCont ="";
+			local_array_value = [];
+			url = url+param;
+			$.getJSON(url, function(d){
+				if(d.success==true){
+					if($("#udjiyeok_cd").val() == ''){
+						// 전국
+						local_array_value.push(d.list11);
+						// 서울
+						local_array_value.push(d.list09);
+						// 부산울산
+						local_array_value.push(d.list08);
+						// 대구경북
+						local_array_value.push(d.list06);
+						// 광주전남
+						local_array_value.push(d.list05);
+						// 대전충남
+						local_array_value.push(d.list07);
+						// 강원
+						local_array_value.push(d.list02);
+						// 충북
+						local_array_value.push(d.list14);
+						// 전북
+						local_array_value.push(d.list12);
+						// 경남
+						local_array_value.push(d.list04);
+						// 제주
+						local_array_value.push(d.list13);
+						// 인천경기
+						local_array_value.push(d.list10);
+						// 경기북부
+						local_array_value.push(d.list03);
+						// 강원영동
+						local_array_value.push(d.list01);
+						
+
+						for(var i=0; i<local_array_value.length; i++){
+							if(local_array_value[i].length != 0){
+								textCont +='<h4 ><span id="button_'+i+'">'+local_array_jynm[i]+'</span></h4>';
+								textCont +='<table class="sp_list" style="margin-top : 0px !important;">';
+								textCont +='<caption>예우기관별 면제 및 할인 정보를 제공합니다.</caption>';
+								textCont +='<colgroup>';
+								/* 2022.06 기타항목 추가  width_50p -> width_33p */
+								textCont +='<col class="width_40p">';
+								textCont +='<col class="width_40p">';
+								/* 2022.06 기타항목 추가  width_34p */
+								textCont +='<col class="width_20p">';
+								textCont +='</colgroup>';
+								textCont +='<thead>';
+								textCont +='<tr>';
+								textCont +='<th style="border:1px solid #d5d5d5;">면제</th>';
+								textCont +='<th style="border:1px solid #d5d5d5;">할인</th>';
+								/* 2022.06 기타항목 추가  */
+								textCont +='<th style="border:1px solid #d5d5d5;">기타</th>';
+								textCont +='</tr>';
+								textCont +='</thead>';
+								textCont +='<tbody>';
+								textCont +='<tr>';
+								textCont +='<td style="border:1px solid #d5d5d5;">';
+
+								var cnt = 0;
+								for(var j=0; j<local_array_value[i].length; j++){
+									if(local_array_value[i][j].udae_gbcd=='01'){
+										if(cnt != 0){
+											textCont +='<br/>';
+										}
+										textCont +='<a href="#n" onclick="udgigwansangseJHPopup('+local_array_value[i][j].mmgudgigwan_cd+')" rel="view_special" class="hand" style="font-size:12px;">';
+										textCont +='<div style="float:left; font-weight:bold;">'+ local_array_value[i][j].udae_ggm +'</div>';
+										textCont +='('+local_array_value[i][j].displayaddr+')';
+										textCont +='</a>';
+										cnt++;
+									}
+								}
+								if(cnt == 0){
+									textCont +='-';
+								}
+								textCont +='<br/>';
+
+								cnt=0;
+
+								textCont +='</td>';
+								textCont +='<td style="border:1px solid #d5d5d5;">';
+								for(var j=0; j<local_array_value[i].length; j++){
+
+									if(local_array_value[i][j].udae_gbcd=='02'){
+										if(cnt != 0){
+											textCont +='<br/>';
+										}
+										textCont +='<a href="#n" onclick="udgigwansangseJHPopup('+local_array_value[i][j].mmgudgigwan_cd+')" rel="view_special" class="hand" style="font-size:12px;">';
+										textCont +='<div style="float:left; font-weight:bold;">'+ local_array_value[i][j].udae_ggm +'</div>';
+										textCont +='('+local_array_value[i][j].displayaddr+')';
+										textCont +='</a>';
+										cnt++;
+									}
+								}
+								if(cnt == 0){
+									textCont +='-';
+								}
+								textCont +='<br/>';
+
+								cnt=0;
+
+								textCont +='</td>';
+
+								/* 2022.06 기타항목 추가  */
+								textCont +='<td style="border:1px solid #d5d5d5;">';
+								for(var j=0; j<local_array_value[i].length; j++){
+
+									if(local_array_value[i][j].udae_gbcd=='03'){
+										if(cnt != 0){
+											textCont +='<br/>';
+										}
+										textCont +='<a href="#n" onclick="udgigwansangseJHPopup('+local_array_value[i][j].mmgudgigwan_cd+')" rel="view_special" class="hand" style="font-size:12px;">';
+										textCont +='<div style="float:left; font-weight:bold;">'+ local_array_value[i][j].udae_ggm +'</div>';
+										textCont +='('+local_array_value[i][j].displayaddr+')';
+										textCont +='</a>';
+										cnt++;
+									}
+								}
+								if(cnt == 0){
+									textCont +='-';
+								}
+								textCont +='<br/>';
+
+								cnt=0;
+
+								textCont +='</td>';
+								//////////
+
+								textCont +='</tr>';
+								textCont +='</tbody>';
+								textCont +='</table>';
+								textCont +='<br/>';
+							}
+						}
+					}else{
+						//textCont +='<h4 ><span id="button_">'+$("#udjiyeok_cd option:selected").html()+'</span></h4>';
+						textCont +='<h4 ><span id="button_">'+$("#udjiyeok_cd option:selected").html()+'</span></h4>';
+						textCont +='<table class="sp_list" style="margin-top : 0px !important;">';
+						textCont +='<caption>예우기관별 면제 및 할인 정보를 제공합니다.</caption>';
+						textCont +='<colgroup>';
+						/* 2022.06 기타항목 추가  width_50p -> width_35p */
+						textCont +='<col class="width_35p">';
+						textCont +='<col class="width_35p">';
+						/* 2022.06 기타항목 추가  width_30p */
+						textCont +='<col class="width_30p">';
+						textCont +='</colgroup>';
+						textCont +='<thead>';
+						textCont +='<tr>';
+						textCont +='<th style="border:1px solid #d5d5d5;">면제</th>';
+						textCont +='<th style="border:1px solid #d5d5d5;">할인</th>';
+						/* 2022.06 기타항목 추가  */
+						textCont +='<th style="border:1px solid #d5d5d5;">기타</th>';
+						textCont +='</tr>';
+						textCont +='</thead>';
+						textCont +='<tbody>';
+						textCont +='<tr>';
+						textCont +='<td style="border:1px solid #d5d5d5;">';
+
+						var cnt = 0;
+						for(var j=0; j<d.list.length; j++){
+							if(d.list[j].udae_gbcd=='01'){
+								if(cnt != 0){
+									textCont +='<br/>';
+								}
+								textCont +='<a href="#n" onclick="udgigwansangseJHPopup('+d.list[j].mmgudgigwan_cd+')" rel="view_special" class="hand">';
+								textCont +='<div style="float:left; font-weight:bold;">'+ d.list[j].udae_ggm +'</div>';
+								textCont +='('+d.list[j].displayaddr+')';
+								textCont +='</a>';
+								cnt++;
+							}
+						}
+						if(cnt == 0){
+							textCont +='-';
+						}
+						textCont +='<br/>';
+
+						cnt=0;
+
+						textCont +='</td>';
+						textCont +='<td style="border:1px solid #d5d5d5;">';
+						for(var j=0; j<d.list.length; j++){
+
+							if(d.list[j].udae_gbcd=='02'){
+								if(cnt != 0){
+									textCont +='<br/>';
+								}
+								textCont +='<a href="#n" onclick="udgigwansangseJHPopup('+d.list[j].mmgudgigwan_cd+')" rel="view_special" class="hand">';
+								textCont +='<div style="float:left; font-weight:bold;">'+ d.list[j].udae_ggm +'</div>';
+								textCont +='('+d.list[j].displayaddr+')';
+								textCont +='</a>';
+								cnt++;
+							}
+						}
+						if(cnt == 0){
+							textCont +='-';
+						}
+						textCont +='<br/>';
+
+						cnt=0;
+
+						textCont +='</td>';
+
+						/* 2022.06 기타항목 추가  */
+						textCont +='<td style="border:1px solid #d5d5d5;">';
+						for(var j=0; j<d.list.length; j++){
+
+							if(d.list[j].udae_gbcd=='03'){
+								if(cnt != 0){
+									textCont +='<br/>';
+								}
+								textCont +='<a href="#n" onclick="udgigwansangseJHPopup('+d.list[j].mmgudgigwan_cd+')" rel="view_special" class="hand">';
+								textCont +='<div style="float:left; font-weight:bold;">'+ d.list[j].udae_ggm +'</div>';
+								textCont +='('+d.list[j].displayaddr+')';
+								textCont +='</a>';
+								cnt++;
+							}
+						}
+						if(cnt == 0){
+							textCont +='-';
+						}
+						textCont +='<br/>';
+
+						cnt=0;
+
+						textCont +='</td>';
+						//////////
+
+						textCont +='</tr>';
+						textCont +='</tbody>';
+						textCont +='</table>';
+						textCont +='<br/>';
+					}
+				}else {
+
+					textCont +='<table class="sp_list" style="margin-top : 0px !important;">';
+					textCont +='<caption>예우기관별 면제 및 할인 정보를 제공합니다.</caption>';
+					textCont +='<colgroup>';
+					textCont +='<col class="width_50p">';
+					textCont +='<col class="width_50p">';
+					textCont +='</colgroup>';
+					textCont +='<thead>';
+					textCont +='<tr>';
+					textCont +='<th style="border:1px solid #d5d5d5;">면제</th>';
+					textCont +='<th style="border:1px solid #d5d5d5;">할인</th>';
+					textCont +='</tr>';
+					textCont +='</thead>';
+					textCont +='<tbody>';
+					textCont +='<tr>';
+					textCont +='<td style="border:1px solid #d5d5d5; text-align:center;" colspan="2">검색된 지원기관이 없습니다.</td>';
+					textCont +='</tr>';
+					textCont +='</tbody>';
+					textCont +='</table>';
+				}
+				$("#areaList").html(textCont);
+
+			});
+
+
+		}
+
+		</script>
+	
+							 <!-- 컨탠츠 페이지 끝 -->
+						 </div>
+						 <!-- container -->
+					 </div>
+				 </div>
+				</div>
+			</div>
+
+		</div>
+
+		<div id="footer_bg">
+			<div id="footer" class="wrap">
+				<h2><img src="/images/temple/common/footer_logo2.gif" alt="병무청" /></h2>
+				<div class="address_box">
+					<address class="skip_m">(우)35208 대전광역시 서구 청사로 189, 정부대전청사 2동 / 대표전화 : 1588-9090</address>
+					<p id="copy">Copyrightⓒ Military Manpower Administration. All Rights Reserved.</p>
+				</div>
+			</div>
+		</div>
+		<div id="accessibility-foot">
+			<ul>
+				<li><a href="#container">콘텐츠로 바로가기</a></li>
+				<li><a href="#lnb">대메뉴로 바로가기</a></li>
+			</ul>
+		</div>
+		<div id="sp_detail"></div>
+
+
+		<script>
+			function moveYear(menu_nm, year) {
+				if(menu_nm.includes('시상식')){
+					switch(year){
+					case '2025': location.href="/hall/board/boardList.do?mc=mma0003488&gesipan_id=541"; break;
+					case '2024': location.href="/hall/board/boardList.do?mc=mma0003498&gesipan_id=513"; break;
+					case '2023': location.href="/hall/board/boardList.do?mc=mma0003499&gesipan_id=508"; break;
+					case '2022': location.href="/hall/board/boardList.do?mc=mma0003543&gesipan_id=471"; break;
+					case '2021': location.href="/hall/board/boardList.do?mc=mma0003544&gesipan_id=395"; break;
+					case '2020': location.href="/hall/board/boardList.do?mc=mma0003545&gesipan_id=357"; break;
+					case '2019': location.href="/hall/board/boardList.do?mc=mma0003546&gesipan_id=333"; break;
+					case '2018': location.href="/hall/board/boardList.do?mc=mma0003547&gesipan_id=310"; break;
+					case '2017': location.href="/hall/board/boardList.do?mc=mma0003548&gesipan_id=298"; break;
+					case '2016': location.href="/hall/board/boardList.do?mc=mma0003549&gesipan_id=288"; break;
+					case '2015': location.href="/hall/board/boardList.do?mc=mma0003551&gesipan_id=211"; break;
+					case '2014': location.href="/hall/board/boardList.do?mc=mma0003552&gesipan_id=470"; break;
+					case '2013': location.href="/hall/board/boardList.do?mc=mma0003555&gesipan_id=546"; break;
+					case '2012': location.href="/hall/board/boardList.do?mc=mma0003556&gesipan_id=547"; break;
+					case '2011': location.href="/hall/board/boardList.do?mc=mma0003558&gesipan_id=473"; break;
+					case '2010': location.href="/hall/board/boardList.do?mc=mma0003560&gesipan_id=548"; break;
+					case '2009': location.href="/hall/board/boardList.do?mc=mma0003562&gesipan_id=475"; break;
+					case '2008': location.href="/hall/board/boardList.do?mc=mma0003564&gesipan_id=476"; break;
+					case '2007': location.href="/hall/board/boardList.do?mc=mma0003567&gesipan_id=477"; break;
+					case '2006': location.href="/hall/board/boardList.do?mc=mma0003568&gesipan_id=478"; break;
+					case '2005': location.href="/hall/board/boardList.do?mc=mma0003570&gesipan_id=479"; break;
+					case '2004': location.href="/hall/board/boardList.do?mc=mma0003572&gesipan_id=480"; break;
+					default: location.href="/hall/board/boardList.do?mc=mma0003488&gesipan_id=541"; break;
+					}
+				}else if(menu_nm.includes('행사 동영상')){
+					switch(year){
+					case '2025': location.href="/hall/contents.do?mc=mma0003489"; break;
+					case '2024': location.href="/hall/contents.do?mc=mma0003688"; break;
+					case '2023': location.href="/hall/contents.do?mc=mma0003689"; break;
+					case '2022': location.href="/hall/contents.do?mc=mma0003690"; break;
+					case '2021': location.href="/hall/contents.do?mc=mma0003691"; break;
+					case '2020': location.href="/hall/contents.do?mc=mma0003692"; break;
+					case '2019': location.href="/hall/contents.do?mc=mma0003693"; break;
+					case '2018': location.href="/hall/contents.do?mc=mma0003694"; break;
+					case '2017': location.href="/hall/contents.do?mc=mma0003695"; break;
+					case '2016': location.href="/hall/contents.do?mc=mma0003696"; break;
+					case '2015': location.href="/hall/contents.do?mc=mma0003697"; break;
+					case '2014': location.href="/hall/contents.do?mc=mma0003698"; break;
+					case '2013': location.href="/hall/contents.do?mc=mma0003699"; break;
+					case '2012': location.href="/hall/contents.do?mc=mma0003700"; break;
+					case '2011': location.href="/hall/contents.do?mc=mma0003701"; break;
+					case '2010': location.href="/hall/contents.do?mc=mma0003702"; break;
+					case '2009': location.href="/hall/contents.do?mc=mma0003703"; break;
+					case '2008': location.href="/hall/contents.do?mc=mma0003704"; break;
+					case '2007': location.href="/hall/contents.do?mc=mma0003705"; break;
+					case '2006': location.href="/hall/contents.do?mc=mma0003706"; break;
+					case '2005': location.href="/hall/contents.do?mc=mma0003707"; break;
+					case '2004': location.href="/hall/contents.do?mc=mma0003708"; break;
+					default: location.href="/hall/contents.do?mc=mma0003489"; break;
+					}
+				}else if(menu_nm.includes('지방청')){
+					switch(year){
+					case '2025': location.href="/hall/board/boardList.do?mc=mma0003490&gesipan_id=542"; break;
+					case '2024': location.href="/hall/board/boardList.do?mc=mma0003550&gesipan_id=514"; break;
+					case '2023': location.href="/hall/board/boardList.do?mc=mma0003553&gesipan_id=509"; break;
+					case '2022': location.href="/hall/board/boardList.do?mc=mma0003554&gesipan_id=472"; break;
+					case '2021': location.href="/hall/board/boardList.do?mc=mma0003557&gesipan_id=396"; break;
+					case '2020': location.href="/hall/board/boardList.do?mc=mma0003559&gesipan_id=358"; break;
+					case '2019': location.href="/hall/board/boardList.do?mc=mma0003561&gesipan_id=334"; break;
+					case '2018': location.href="/hall/board/boardList.do?mc=mma0003563&gesipan_id=311"; break;
+					case '2017': location.href="/hall/board/boardList.do?mc=mma0003565&gesipan_id=299"; break;
+					case '2016': location.href="/hall/board/boardList.do?mc=mma0003566&gesipan_id=286"; break;
+					case '2015': location.href="/hall/board/boardList.do?mc=mma0003569&gesipan_id=213"; break;
+					case '2014': location.href="/hall/board/boardList.do?mc=mma0003571&gesipan_id=481"; break;
+					case '2013': location.href="/hall/board/boardList.do?mc=mma0003573&gesipan_id=482"; break;
+					case '2012': location.href="/hall/board/boardList.do?mc=mma0003574&gesipan_id=483"; break;
+					case '2011': location.href="/hall/board/boardList.do?mc=mma0003575&gesipan_id=484"; break;
+					case '2010': location.href="/hall/board/boardList.do?mc=mma0003576&gesipan_id=485"; break;
+					case '2009': location.href="/hall/board/boardList.do?mc=mma0003577&gesipan_id=486"; break;
+					case '2008': location.href="/hall/board/boardList.do?mc=mma0003578&gesipan_id=487"; break;
+					case '2007': location.href="/hall/board/boardList.do?mc=mma0003579&gesipan_id=488"; break;
+					case '2006': location.href="/hall/board/boardList.do?mc=mma0003580&gesipan_id=489"; break;
+					case '2005': location.href="/hall/board/boardList.do?mc=mma0003581&gesipan_id=490"; break;
+					case '2004': location.href="/hall/board/boardList.do?mc=mma0003582&gesipan_id=377"; break;
+					default: location.href="/hall/board/boardList.do?mc=mma0003490&gesipan_id=542"; break;
+					}
+				}else if(menu_nm.includes('대통령')){
+					switch(year){
+					case '2025': location.href="/hall/contents.do?mc=mma0003491"; break;
+					case '2024': location.href="/hall/contents.do?mc=mma0003667"; break;
+					case '2023': location.href="/hall/contents.do?mc=mma0003668"; break;
+					case '2022': location.href="/hall/contents.do?mc=mma0003669"; break;
+					case '2021': location.href="/hall/contents.do?mc=mma0003670"; break;
+					case '2020': location.href="/hall/contents.do?mc=mma0003671"; break;
+					case '2019': location.href="/hall/contents.do?mc=mma0003672"; break;
+					case '2018': location.href="/hall/contents.do?mc=mma0003673"; break;
+					case '2017': location.href="/hall/contents.do?mc=mma0003674"; break;
+					case '2016': location.href="/hall/contents.do?mc=mma0003675"; break;
+					case '2015': location.href="/hall/contents.do?mc=mma0003676"; break;
+					case '2014': location.href="/hall/contents.do?mc=mma0003677"; break;
+					case '2013': location.href="/hall/contents.do?mc=mma0003678"; break;
+					case '2012': location.href="/hall/contents.do?mc=mma0003679"; break;
+					case '2011': location.href="/hall/contents.do?mc=mma0003680"; break;
+					case '2010': location.href="/hall/contents.do?mc=mma0003681"; break;
+					case '2009': location.href="/hall/contents.do?mc=mma0003682"; break;
+					case '2008': location.href="/hall/contents.do?mc=mma0003683"; break;
+					case '2007': location.href="/hall/contents.do?mc=mma0003684"; break;
+					case '2006': location.href="/hall/contents.do?mc=mma0003685"; break;
+					case '2005': location.href="/hall/contents.do?mc=mma0003686"; break;
+					case '2004': location.href="/hall/contents.do?mc=mma0003687"; break;
+					default: location.href="/hall/contents.do?mc=mma0003491"; break;
+					}
+				}else if(menu_nm.includes('국무총리')){
+					switch(year){
+					case '2025': location.href="/hall/contents.do?mc=mma0003492"; break;
+					case '2024': location.href="/hall/contents.do?mc=mma0003646"; break;
+					case '2023': location.href="/hall/contents.do?mc=mma0003647"; break;
+					case '2022': location.href="/hall/contents.do?mc=mma0003648"; break;
+					case '2021': location.href="/hall/contents.do?mc=mma0003649"; break;
+					case '2020': location.href="/hall/contents.do?mc=mma0003650"; break;
+					case '2019': location.href="/hall/contents.do?mc=mma0003651"; break;
+					case '2018': location.href="/hall/contents.do?mc=mma0003652"; break;
+					case '2017': location.href="/hall/contents.do?mc=mma0003653"; break;
+					case '2016': location.href="/hall/contents.do?mc=mma0003654"; break;
+					case '2015': location.href="/hall/contents.do?mc=mma0003655"; break;
+					case '2014': location.href="/hall/contents.do?mc=mma0003656"; break;
+					case '2013': location.href="/hall/contents.do?mc=mma0003657"; break;
+					case '2012': location.href="/hall/contents.do?mc=mma0003658"; break;
+					case '2011': location.href="/hall/contents.do?mc=mma0003659"; break;
+					case '2010': location.href="/hall/contents.do?mc=mma0003660"; break;
+					case '2009': location.href="/hall/contents.do?mc=mma0003661"; break;
+					case '2008': location.href="/hall/contents.do?mc=mma0003662"; break;
+					case '2007': location.href="/hall/contents.do?mc=mma0003663"; break;
+					case '2006': location.href="/hall/contents.do?mc=mma0003664"; break;
+					case '2005': location.href="/hall/contents.do?mc=mma0003665"; break;
+					case '2004': location.href="/hall/contents.do?mc=mma0003666"; break;
+					default: location.href="/hall/contents.do?mc=mma0003492"; break;
+					}
+				}else if(menu_nm.includes('병무청장식사')){
+					switch(year){
+					case '2025': location.href="/hall/contents.do?mc=mma0003493"; break;
+					case '2024': location.href="/hall/contents.do?mc=mma0003625"; break;
+					case '2023': location.href="/hall/contents.do?mc=mma0003626"; break;
+					case '2022': location.href="/hall/contents.do?mc=mma0003627"; break;
+					case '2021': location.href="/hall/contents.do?mc=mma0003628"; break;
+					case '2020': location.href="/hall/contents.do?mc=mma0003629"; break;
+					case '2019': location.href="/hall/contents.do?mc=mma0003630"; break;
+					case '2018': location.href="/hall/contents.do?mc=mma0003631"; break;
+					case '2017': location.href="/hall/contents.do?mc=mma0003632"; break;
+					case '2016': location.href="/hall/contents.do?mc=mma0003633"; break;
+					case '2015': location.href="/hall/contents.do?mc=mma0003634"; break;
+					case '2014': location.href="/hall/contents.do?mc=mma0003635"; break;
+					case '2013': location.href="/hall/contents.do?mc=mma0003636"; break;
+					case '2012': location.href="/hall/contents.do?mc=mma0003637"; break;
+					case '2011': location.href="/hall/contents.do?mc=mma0003638"; break;
+					case '2010': location.href="/hall/contents.do?mc=mma0003639"; break;
+					case '2009': location.href="/hall/contents.do?mc=mma0003640"; break;
+					case '2008': location.href="/hall/contents.do?mc=mma0003641"; break;
+					case '2007': location.href="/hall/contents.do?mc=mma0003642"; break;
+					case '2006': location.href="/hall/contents.do?mc=mma0003643"; break;
+					case '2005': location.href="/hall/contents.do?mc=mma0003644"; break;
+					case '2004': location.href="/hall/contents.do?mc=mma0003645"; break;
+					default: location.href="/hall/contents.do?mc=mma0003493"; break;
+				}
+			}else if(menu_nm.includes('다큐')){
+					switch(year){
+					case '2025': location.href="/hall/contents.do?mc=mma0003494"; break;
+					case '2024': location.href="/hall/contents.do?mc=mma0003604"; break;
+					case '2023': location.href="/hall/contents.do?mc=mma0003605"; break;
+					case '2022': location.href="/hall/contents.do?mc=mma0003606"; break;
+					case '2021': location.href="/hall/contents.do?mc=mma0003607"; break;
+					case '2020': location.href="/hall/contents.do?mc=mma0003608"; break;
+					case '2019': location.href="/hall/contents.do?mc=mma0003609"; break;
+					case '2018': location.href="/hall/contents.do?mc=mma0003610"; break;
+					case '2017': location.href="/hall/contents.do?mc=mma0003611"; break;
+					case '2016': location.href="/hall/contents.do?mc=mma0003612"; break;
+					case '2015': location.href="/hall/contents.do?mc=mma0003613"; break;
+					case '2014': location.href="/hall/contents.do?mc=mma0003614"; break;
+					case '2013': location.href="/hall/contents.do?mc=mma0003615"; break;
+					case '2012': location.href="/hall/contents.do?mc=mma0003616"; break;
+					case '2011': location.href="/hall/contents.do?mc=mma0003617"; break;
+					case '2010': location.href="/hall/contents.do?mc=mma0003618"; break;
+					case '2009': location.href="/hall/contents.do?mc=mma0003619"; break;
+					case '2008': location.href="/hall/contents.do?mc=mma0003620"; break;
+					case '2007': location.href="/hall/contents.do?mc=mma0003621"; break;
+					case '2006': location.href="/hall/contents.do?mc=mma0003622"; break;
+					case '2005': location.href="/hall/contents.do?mc=mma0003623"; break;
+					case '2004': location.href="/hall/contents.do?mc=mma0003624"; break;
+ 					default: location.href="/hall/contents.do?mc=mma0003494"; break;
+					}
+				}else if(menu_nm.includes('제도 소개영상')){
+					switch(year){
+					case '2025': location.href="/hall/contents.do?mc=mma0003495"; break;
+					case '2024': location.href="/hall/contents.do?mc=mma0003583"; break;
+					case '2023': location.href="/hall/contents.do?mc=mma0003584"; break;
+					case '2022': location.href="/hall/contents.do?mc=mma0003585"; break;
+					case '2021': location.href="/hall/contents.do?mc=mma0003586"; break;
+					case '2020': location.href="/hall/contents.do?mc=mma0003587"; break;
+					case '2019': location.href="/hall/contents.do?mc=mma0003588"; break;
+					case '2018': location.href="/hall/contents.do?mc=mma0003589"; break;
+					case '2017': location.href="/hall/contents.do?mc=mma0003590"; break;
+					case '2016': location.href="/hall/contents.do?mc=mma0003591"; break;
+					case '2015': location.href="/hall/contents.do?mc=mma0003592"; break;
+					case '2014': location.href="/hall/contents.do?mc=mma0003593"; break;
+					case '2013': location.href="/hall/contents.do?mc=mma0003594"; break;
+					case '2012': location.href="/hall/contents.do?mc=mma0003595"; break;
+					case '2011': location.href="/hall/contents.do?mc=mma0003596"; break;
+					case '2010': location.href="/hall/contents.do?mc=mma0003597"; break;
+					case '2009': location.href="/hall/contents.do?mc=mma0003598"; break;
+					case '2008': location.href="/hall/contents.do?mc=mma0003599"; break;
+					case '2007': location.href="/hall/contents.do?mc=mma0003600"; break;
+					case '2006': location.href="/hall/contents.do?mc=mma0003601"; break;
+					case '2005': location.href="/hall/contents.do?mc=mma0003602"; break;
+					case '2004': location.href="/hall/contents.do?mc=mma0003603"; break;
+ 					default: location.href="/hall/contents.do?mc=mma0003495"; break;
+					}
+				}else if(menu_nm.includes('신문')){
+					switch(year){
+					case '2025': location.href="/hall/board/boardList.do?mc=mma0003496&gesipan_id=543"; break;
+					case '2024': location.href="/hall/board/boardList.do?mc=mma0003522&gesipan_id=515"; break;
+					case '2023': location.href="/hall/board/boardList.do?mc=mma0003523&gesipan_id=510"; break;
+					case '2022': location.href="/hall/board/boardList.do?mc=mma0003524&gesipan_id=473"; break;
+					case '2021': location.href="/hall/board/boardList.do?mc=mma0003525&gesipan_id=397"; break;
+					case '2020': location.href="/hall/board/boardList.do?mc=mma0003526&gesipan_id=359"; break;
+					case '2019': location.href="/hall/board/boardList.do?mc=mma0003527&gesipan_id=335"; break;
+					case '2018': location.href="/hall/board/boardList.do?mc=mma0003528&gesipan_id=312"; break;
+					case '2017': location.href="/hall/board/boardList.do?mc=mma0003529&gesipan_id=301"; break;
+					case '2016': location.href="/hall/board/boardList.do?mc=mma0003530&gesipan_id=285"; break;
+					case '2015': location.href="/hall/board/boardList.do?mc=mma0003531&gesipan_id=214"; break;
+					case '2014': location.href="/hall/board/boardList.do?mc=mma0003532&gesipan_id=549"; break;
+					case '2013': location.href="/hall/board/boardList.do?mc=mma0003533&gesipan_id=550"; break;
+					case '2012': location.href="/hall/board/boardList.do?mc=mma0003534&gesipan_id=551"; break;	
+					case '2011': location.href="/hall/board/boardList.do?mc=mma0003535&gesipan_id=552"; break;
+					case '2010': location.href="/hall/board/boardList.do?mc=mma0003536&gesipan_id=553"; break;
+					case '2009': location.href="/hall/board/boardList.do?mc=mma0003537&gesipan_id=554"; break;
+					case '2008': location.href="/hall/board/boardList.do?mc=mma0003538&gesipan_id=555"; break;
+					case '2007': location.href="/hall/board/boardList.do?mc=mma0003539&gesipan_id=556"; break;
+					case '2006': location.href="/hall/board/boardList.do?mc=mma0003540&gesipan_id=557"; break;
+					case '2005': location.href="/hall/board/boardList.do?mc=mma0003541&gesipan_id=558"; break;
+					case '2004': location.href="/hall/board/boardList.do?mc=mma0003542&gesipan_id=559"; break;
+					default: location.href="/hall/board/boardList.do?mc=mma0003496&gesipan_id=543"; break;
+					}
+				}else if(menu_nm.includes('방송')){
+					switch(year){
+					//운영
+					case '2025': location.href="/hall/board/boardList.do?mc=mma0003497&gesipan_id=544"; break;
+					case '2024': location.href="/hall/board/boardList.do?mc=mma0003500&gesipan_id=516"; break;
+					case '2023': location.href="/hall/board/boardList.do?mc=mma0003501&gesipan_id=511"; break;
+					case '2022': location.href="/hall/board/boardList.do?mc=mma0003502&gesipan_id=474"; break;
+					case '2021': location.href="/hall/board/boardList.do?mc=mma0003503&gesipan_id=398"; break;
+					case '2020': location.href="/hall/board/boardList.do?mc=mma0003504&gesipan_id=360"; break;
+					case '2019': location.href="/hall/board/boardList.do?mc=mma0003505&gesipan_id=336"; break;
+					case '2018': location.href="/hall/board/boardList.do?mc=mma0003506&gesipan_id=313"; break;
+					case '2017': location.href="/hall/board/boardList.do?mc=mma0003507&gesipan_id=300"; break;
+					case '2016': location.href="/hall/board/boardList.do?mc=mma0003508&gesipan_id=560"; break;
+					case '2015': location.href="/hall/board/boardList.do?mc=mma0003509&gesipan_id=215"; break;
+					case '2014': location.href="/hall/board/boardList.do?mc=mma0003510&gesipan_id=561"; break;
+					case '2013': location.href="/hall/board/boardList.do?mc=mma0003511&gesipan_id=562"; break;
+					case '2012': location.href="/hall/board/boardList.do?mc=mma0003512&gesipan_id=563"; break;
+					case '2011': location.href="/hall/board/boardList.do?mc=mma0003514&gesipan_id=564"; break;
+					case '2010': location.href="/hall/board/boardList.do?mc=mma0003515&gesipan_id=565"; break;
+					case '2009': location.href="/hall/board/boardList.do?mc=mma0003516&gesipan_id=566"; break;
+					case '2008': location.href="/hall/board/boardList.do?mc=mma0003517&gesipan_id=567"; break;
+					case '2007': location.href="/hall/board/boardList.do?mc=mma0003518&gesipan_id=568"; break;
+					case '2006': location.href="/hall/board/boardList.do?mc=mma0003519&gesipan_id=569"; break;
+					case '2005': location.href="/hall/board/boardList.do?mc=mma0003520&gesipan_id=570"; break;
+					case '2004': location.href="/hall/board/boardList.do?mc=mma0003521&gesipan_id=571"; break;
+					default: location.href="/hall/board/boardList.do?mc=mma0003497&gesipan_id=544"; break;
+					}
+				}
+			}
+		</script>
+		<script src="/js/logAnalysis.js?version=1.1"></script>
+		<script>
+			   try{ statsServer.execute('mma0003390'); }catch (e){}
+		</script>
+	</body>
+</html>
