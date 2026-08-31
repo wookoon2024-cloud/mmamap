@@ -353,13 +353,13 @@ async function bootstrap() {
 
   const map = new naver.maps.Map("map", {
     center: new naver.maps.LatLng(37.5665, 126.978),
-    zoom: 16,
+    zoom: 14,
     mapTypeId: naver.maps.MapTypeId.NORMAL,
   });
   window.naverMap = map;
 
   const defaultCenter = new naver.maps.LatLng(37.5665, 126.978);
-  const defaultZoom = 16;
+  const defaultZoom = 14;
 
   const res = await fetch(DATA_URL);
   const data = await res.json();
@@ -2068,10 +2068,16 @@ async function bootstrap() {
       .map(([id, point]) => ({ id, point }))
       .filter((row) => pointMatchRegion(row.point, selectedRegion));
 
-    return allRows
+    const clickedRows = allRows
       .map((row) => ({ ...row, score: getClickCount(row.id) }))
       .filter((row) => row.score > 0)
       .sort((a, b) => b.score - a.score || a.point.title.localeCompare(b.point.title, "ko"));
+
+    if (clickedRows.length > 0) return clickedRows;
+
+    return allRows
+      .slice(0, 30)
+      .map((row, idx) => ({ ...row, score: Math.max(1, 35 - idx) }));
   };
 
   const buildRankAudienceFilters = () => {
@@ -2379,26 +2385,9 @@ async function bootstrap() {
 
   const renderVisibleMarkers = () => {
     const bounds = map.getBounds();
-    const isBoundsEmpty = !bounds || 
-      (typeof bounds.hasLatLng !== "function") || 
-      (bounds.getNE().lat() === bounds.getSW().lat() && bounds.getNE().lng() === bounds.getSW().lng());
-
-    if (isBoundsEmpty) {
-      if (!initialBoundsListener) {
-        initialBoundsListener = true;
-        naver.maps.Event.once(map, "bounds_changed", () => {
-          initialBoundsListener = null;
-          renderVisibleMarkers();
-        });
-      }
-      return;
-    }
     const visible = [];
     const selectedBeforeRender = selectedFacilityId;
     const MAX_MARKERS = 700;
-
-    const searchInput = document.getElementById("sidebarSearchInput");
-    const keyword = searchInput ? searchInput.value.trim().toLowerCase() : "";
 
     for (const p of points) {
       if (visible.length >= MAX_MARKERS) break;
@@ -2409,7 +2398,9 @@ async function bootstrap() {
       }
       if (!pointMatchRegion(p, selectedRegion)) continue;
       const pos = new naver.maps.LatLng(p.lat, p.lng);
-      if (bounds.hasLatLng(pos)) visible.push({ ...p, pos });
+      if (!bounds || typeof bounds.hasLatLng !== "function" || bounds.hasLatLng(pos)) {
+        visible.push({ ...p, pos });
+      }
     }
 
     renderedMarkers.forEach((m) => m.setMap(null));
@@ -2684,17 +2675,37 @@ async function bootstrap() {
     if (!query) return;
     const lowerQuery = query.toLowerCase();
 
-    // 1. 100% Exact Match: Check if any store name matches the query exactly
-    const exactTarget = points.find((p) => (p.title || "").toLowerCase() === lowerQuery);
-    if (exactTarget) {
-      const key = getFacilityKey(exactTarget);
+    // 1. Exact or partial store title match
+    const titleMatch = points.find((p) => (p.title || "").toLowerCase() === lowerQuery) ||
+                       points.find((p) => (p.title || "").toLowerCase().includes(lowerQuery));
+    if (titleMatch) {
+      const key = getFacilityKey(titleMatch);
       if (key) {
         focusFacility(key);
         return;
       }
     }
 
-    // 2. Address Geocoding: If no exact store match, check if it matches an address/region
+    // 2. Address / Region / Category / Benefit match
+    const matchedStores = points.filter((p) => 
+      (p.address || "").toLowerCase().includes(lowerQuery) || 
+      (p.region || "").toLowerCase().includes(lowerQuery) ||
+      (p.category || "").toLowerCase().includes(lowerQuery) ||
+      (p.subtitle || "").toLowerCase().includes(lowerQuery) ||
+      (p.benefit || "").toLowerCase().includes(lowerQuery)
+    );
+
+    if (matchedStores.length > 0) {
+      const avgLat = matchedStores.reduce((sum, p) => sum + p.lat, 0) / matchedStores.length;
+      const avgLng = matchedStores.reduce((sum, p) => sum + p.lng, 0) / matchedStores.length;
+      map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
+      map.setZoom(matchedStores.length === 1 ? 16 : 14, true);
+      updateZoomLabel();
+      scheduleRender();
+      return;
+    }
+
+    // 3. Fallback to Naver Geocoder if available
     if (window.naver && naver.maps && naver.maps.Service && naver.maps.Service.geocode) {
       naver.maps.Service.geocode({ query }, (status, response) => {
         if (status === naver.maps.Service.Status.OK && response.v2 && response.v2.addresses.length > 0) {
@@ -2703,26 +2714,9 @@ async function bootstrap() {
           map.setCenter(pos);
           map.setZoom(14, true);
           updateZoomLabel();
-        } else {
-          // 3. Partial Match Fallback: If not an address, search for stores containing the query
-          const partialTarget = points.find((p) => (p.title || "").toLowerCase().includes(lowerQuery));
-          if (partialTarget) {
-            const key = getFacilityKey(partialTarget);
-            if (key) {
-              focusFacility(key);
-            }
-          }
+          scheduleRender();
         }
       });
-    } else {
-      // Fallback if Geocoder is not loaded yet
-      const partialTarget = points.find((p) => (p.title || "").toLowerCase().includes(lowerQuery));
-      if (partialTarget) {
-        const key = getFacilityKey(partialTarget);
-        if (key) {
-          focusFacility(key);
-        }
-      }
     }
   };
 
