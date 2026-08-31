@@ -1764,7 +1764,18 @@ async function bootstrap() {
 
     const nearby = getNearbyStores(point, 5);
 
-    const tplTitle = tplName === "poster" ? "포스터" : (tplName === "table_stand" ? "스탠드" : "도어행거");
+  let currentPrintBlobUrl = null;
+
+  const renderPrintTemplate = async (point, tplName) => {
+    const container = document.getElementById("printCanvasContainer");
+    if (!container) return;
+
+    if (currentPrintBlobUrl) {
+      URL.revokeObjectURL(currentPrintBlobUrl);
+      currentPrintBlobUrl = null;
+    }
+
+    const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
     const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
     const facilityId = point.facilityId || point.id || "";
     const widthPx = tplName === "poster" ? 420 : (tplName === "table_stand" ? 280 : 240);
@@ -1772,24 +1783,58 @@ async function bootstrap() {
 
     container.innerHTML = `
       <div class="tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
-        <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 1; padding: 20px; text-align: center;">
-          <div class="print-loading-spinner" style="width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-          <div id="printStepLog" style="font-size: 14px; font-weight: 700; color: #334155; font-family: sans-serif;">${tplTitle} 맞춤 시안을 생성 중입니다...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #64748b; font-family: monospace;">[1/3] 가맹점 혜택 및 QR 데이터 구성 중</div>
+        <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
+          <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
+          <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: sans-serif;">${tplTitle} 생성 중...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/3] 서버(Render) 연결 요청 중...</div>
         </div>
-        <img src="/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
+        <img id="printResultImg" 
              alt="${tplTitle} 인쇄 시안" 
-             style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block; object-fit: contain;" 
-             onload="this.previousElementSibling.style.display='none';" 
-             onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:14px;\\'>이미지 생성 중 일시적 지연이 발생했습니다.<br><span style=\\'font-size:12px;color:#64748b;\\'>서버 재시도 요청 중...</span><br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;${tplName}&quot;)\\' style=\\'margin-top:10px;padding:6px 16px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;\\'>다시 시도</button></div>';" />
+             style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 5; display: none; object-fit: contain;" />
       </div>
     `;
 
     const subLog = document.getElementById("printSubLog");
-    if (subLog) {
-      setTimeout(() => { if (subLog) subLog.textContent = "[2/3] 고화질 그래픽 렌더링 중..."; }, 1200);
-      setTimeout(() => { if (subLog) subLog.textContent = "[3/3] 최종 인쇄용 이미지 완성 중..."; }, 2500);
-    }
+    const loadingWrap = document.getElementById("printLoadingWrap");
+    const resultImg = document.getElementById("printResultImg");
+
+    const updateLog = (msg) => {
+      if (subLog) subLog.textContent = msg;
+      console.log(`[PrintModal Log] ${msg}`);
+    };
+
+    try {
+      updateLog(`[1/3] 서버(Render) 데이터 요청 중... (${facilityId})`);
+      const targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      
+      const startTime = performance.now();
+      const res = await fetch(targetUrl);
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status} (${errText || res.statusText || "서버 오류"}) [${elapsed}초]`);
+      }
+      
+      updateLog(`[2/3] 이미지 수신 완료 (${elapsed}초, ${(res.headers.get("content-length") ? (res.headers.get("content-length")/1024).toFixed(1) + " KB" : "")}) 렌더링 중...`);
+      const blob = await res.blob();
+      currentPrintBlobUrl = URL.createObjectURL(blob);
+      
+      resultImg.onload = () => {
+        updateLog(`[3/3] 렌더링 완료 (${(blob.size / 1024).toFixed(1)} KB)`);
+        if (loadingWrap) loadingWrap.style.display = "none";
+        if (resultImg) resultImg.style.display = "block";
+      };
+      resultImg.src = currentPrintBlobUrl;
+    } catch (err) {
+      console.error("[PrintModal Error]", err);
+      if (loadingWrap) {
+        loadingWrap.innerHTML = `
+          <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 8px;">홍보물 생성 오류</div>
+          <div style="font-size: 12px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 12px;">${err.message || err}</div>
+          <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
+        `;
+      }
   };
 
   const openPrintModal = (point) => {
