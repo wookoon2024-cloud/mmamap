@@ -1732,18 +1732,11 @@ async function bootstrap() {
     if (tplName === "poster") {
       container.innerHTML = `
         <div class="print-sheet poster-sheet" style="width: 440px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 14px 14px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
-          <!-- Top Header with Official MMA Logo and Title -->
+          <!-- Top Header with Original MMA Logo Image and Title -->
           <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 2px;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <svg width="22" height="22" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
-                <path d="M50,4 A46,46 0 0,1 50,96 A23,23 0 0,1 50,50 A23,23 0 0,0 50,4 Z" fill="#0047A0"/>
-                <path d="M50,96 A46,46 0 0,1 50,4 A23,23 0 0,1 50,50 A23,23 0 0,0 50,96 Z" fill="#CD2E3A"/>
-              </svg>
-              <span style="font-size: 13px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">병무청</span>
-            </div>
+            <img src="./img/mma_logo.png?v=2" alt="병무청" style="height: 24px; width: auto; object-fit: contain;" />
             <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
-            <div style="width: 50px;"></div>
+            <div style="width: 60px;"></div>
           </div>
           
           <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 10px 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
@@ -1757,7 +1750,7 @@ async function bootstrap() {
 
           <div style="background: #ffffff; border-radius: 10px; border: 1px solid #E2E8F0; overflow: hidden;">
             <div style="background: #DFD7CB; padding: 5px 10px; font-size: 11px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
-              <span>주변 나라사랑가게 (반경 1km)</span>
+              <span style="font-size: 11px; font-weight: 800;">주변 나라사랑가게 (반경 1km)</span>
               <span style="font-size: 10px; font-weight: 600; color: #64748B;">총 ${nearby.length}곳</span>
             </div>
             <div style="display: flex; flex-direction: column;">
@@ -1794,9 +1787,14 @@ async function bootstrap() {
       }, 50);
     } else if (tplName === "table_stand") {
       container.innerHTML = `
-        <div class="print-sheet stand-sheet" style="width: 360px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
+        <div class="print-sheet stand-sheet" style="width: 360px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
           <div style="font-size: 10px; color: #94A3B8; border-bottom: 1px dashed #94A3B8; padding-bottom: 4px;">아크릴 스탠드 규격 가이드선 (10cm × 15cm)</div>
-          <div style="font-size: 13px; font-weight: 800; color: #1E3A8A;">대한민국 병무청 | ★ 나라사랑가게 ★</div>
+          
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <img src="./img/mma_logo.png?v=2" alt="병무청" style="height: 22px; width: auto; object-fit: contain; margin: 0 auto;" />
+            <div style="font-size: 12px; font-weight: 800; color: #1E3A8A; margin-top: 2px;">나라사랑가게 상생 네트워크</div>
+          </div>
+
           <div style="font-size: 22px; font-weight: 900; color: #0F172A;">${escapeHtml(storeTitle)}</div>
           <div>
             <span style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 14px; padding: 6px 18px; border-radius: 20px;">${escapeHtml(benefitText)}</span>
@@ -1814,12 +1812,16 @@ async function bootstrap() {
       `;
     } else if (tplName === "door_hanger") {
       container.innerHTML = `
-        <div class="print-sheet hanger-sheet" style="width: 300px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
+        <div class="print-sheet hanger-sheet" style="width: 300px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
+          <!-- Door Hole Guide -->
           <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-            <div style="width: 60px; height: 60px; border-radius: 50%; border: 2px dashed #64748B; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #64748B; margin: 0 auto;">문고리 거치선</div>
+            <div style="width: 60px; height: 60px; border-radius: 50%; border: 2px dashed #64748B; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #64748B; margin: 0 auto;">문고리 거치선 (지름 8cm)</div>
             <div style="width: 1px; height: 12px; border-left: 2px dashed #64748B;"></div>
           </div>
-          <div style="font-size: 12px; font-weight: 800; color: #1E3A8A;">대한민국 병무청 | 나라사랑가게</div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px;">
+            <img src="./img/mma_logo.png?v=2" alt="병무청" style="height: 20px; width: auto; object-fit: contain; margin: 0 auto;" />
+            <div style="font-size: 11px; font-weight: 800; color: #1E3A8A; margin-top: 2px;">나라사랑가게</div>
+          </div>
           <div style="font-size: 11px; color: #64748B;">환영합니다</div>
           <div style="font-size: 20px; font-weight: 900; color: #0F172A;">${escapeHtml(storeTitle)}</div>
           <div>

@@ -191,8 +191,22 @@ def draw_table_stand(store, map_path):
         draw.line([(x, 32), (x + 8, 32)], fill="#94A3B8", width=2)
     draw.text((p_width // 2, 16), "아크릴 스탠드 규격 가이드선 (10cm × 15cm)", fill="#94A3B8", font=font_footer, anchor="mm")
 
-    # 2. Header text
-    draw.text((p_width // 2, 96), "대한민국 병무청 | ★ 나라사랑가게 ★", fill="#1E3A8A", font=font_header_text, anchor="mm")
+    # 2. Header Logo & text
+    logo_path = BASE_DIR / "web" / "img" / "mma_logo.png"
+    if not logo_path.exists():
+        logo_path = BASE_DIR / "img" / "mma_logo.png"
+    if logo_path.exists():
+        try:
+            logo_img = Image.open(logo_path).convert("RGBA")
+            logo_resized = logo_img.resize((120, 42), Image.Resampling.LANCZOS)
+            stand.paste(logo_resized, ((p_width - 120) // 2, 48), logo_resized)
+        except Exception as e:
+            print("Logo paste error:", e)
+            draw.text((p_width // 2, 68), "대한민국 병무청", fill="#1E3A8A", font=font_header_text, anchor="mm")
+    else:
+        draw.text((p_width // 2, 68), "대한민국 병무청", fill="#1E3A8A", font=font_header_text, anchor="mm")
+
+    draw.text((p_width // 2, 106), "나라사랑가게 상생 네트워크", fill="#1E3A8A", font=font_header_text, anchor="mm")
 
     # 3. Store Name (Centered)
     draw.text((p_width // 2, 185), store['name'], fill="#0F172A", font=font_title, anchor="mm")

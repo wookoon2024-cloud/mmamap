@@ -204,6 +204,18 @@ def draw_poster(store, neighbors, map_path):
     font_body = get_font(font_path, 18, is_bold=False)
     font_mini = get_font(font_bold_path, 14, is_bold=True)
 
+    # Logo
+    logo_path = BASE_DIR / "web" / "img" / "mma_logo.png"
+    if not logo_path.exists():
+        logo_path = BASE_DIR / "img" / "mma_logo.png"
+    if logo_path.exists():
+        try:
+            logo_img = Image.open(logo_path).convert("RGBA")
+            logo_resized = logo_img.resize((150, 52), Image.Resampling.LANCZOS)
+            pamphlet.paste(logo_resized, (70, 52), logo_resized)
+        except Exception as e:
+            print("Logo paste error:", e)
+
     # Title centered
     draw.text((p_width // 2, 78), "나라사랑가게 상생 지도", fill="#1E1E1E", font=font_title, anchor="mm")
     
