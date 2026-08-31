@@ -1789,49 +1789,56 @@ async function bootstrap() {
 
     if (tplName === "poster") {
       container.innerHTML = `
-        <div class="print-sheet poster-sheet" style="width: 480px; min-height: 680px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 24px 20px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
+        <div class="print-sheet poster-sheet" style="width: 480px; min-height: 720px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 22px 18px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
           <div style="text-align: center; font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">대한민국 병무청 × 나라사랑가게 상생 지도</div>
           
-          <div style="background: #ffffff; border: 2px solid #DED7CB; border-radius: 14px; padding: 16px 14px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
-            <div style="font-size: 22px; font-weight: 900; color: #0F172A; margin-bottom: 6px;">${escapeHtml(storeTitle)}</div>
-            <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 14px; padding: 6px 16px; border-radius: 20px; margin-bottom: 6px;">${escapeHtml(benefitText)}</div>
+          <div style="background: #ffffff; border: 2px solid #DED7CB; border-radius: 14px; padding: 14px 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+            <div style="font-size: 21px; font-weight: 900; color: #0F172A; margin-bottom: 5px;">${escapeHtml(storeTitle)}</div>
+            <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 13px; padding: 5px 14px; border-radius: 20px; margin-bottom: 5px;">${escapeHtml(benefitText)}</div>
             <div style="font-size: 11px; color: #475569; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
           </div>
 
-          <div style="background: #ffffff; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 12px 14px; font-size: 11px; color: #334155;">
-            <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 4px; font-size: 12px;">📍 가맹점 위치 및 오시는 길</div>
-            <div style="color: #475569; margin-bottom: 2px;">• <strong>주소:</strong> ${escapeHtml(addressText)}</div>
-            <div style="color: #475569;">• <strong>전화:</strong> ${escapeHtml(phoneText || "매장 문의")}</div>
-          </div>
+          <!-- Real Interactive Naver Map -->
+          <div id="posterMapDiv" style="width: 100%; height: 240px; border-radius: 12px; overflow: hidden; border: 2px solid #CBD5E1; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative; z-index: 1;"></div>
 
           <div style="background: #ffffff; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden;">
-            <div style="background: #DFD7CB; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
+            <div style="background: #DFD7CB; padding: 7px 12px; font-size: 11px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
               <span>주변 나라사랑가게 (반경 1km)</span>
-              <span style="font-size: 11px; font-weight: 600; color: #64748B;">총 ${nearby.length}곳</span>
+              <span style="font-size: 10px; font-weight: 600; color: #64748B;">총 ${nearby.length}곳</span>
             </div>
             <div style="display: flex; flex-direction: column;">
-              ${nearby.map((n, i) => `
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid #F1F5F9; font-size: 11px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
-                  <div style="display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden;">
-                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 10px; font-weight: bold;">${i + 1}</span>
-                    <span style="font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${escapeHtml(n.title)}</span>
+              ${nearby.map((item, i) => {
+                const n = item.point || {};
+                const distText = item.distKm < 1 ? Math.round(item.distKm * 1000) + 'm' : item.distKm.toFixed(1) + 'km';
+                const nBenefit = cleanBenefit(n.benefit).slice(0, 18);
+                return `
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #F1F5F9; font-size: 11px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
+                    <div style="display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden;">
+                      <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 10px; font-weight: bold;">${i + 1}</span>
+                      <span style="font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${escapeHtml(n.title || "가맹점")}</span>
+                    </div>
+                    <div style="font-size: 10px; color: #0284C7; font-weight: 700; margin: 0 6px; text-align: right;">${escapeHtml(nBenefit)}</div>
+                    <div style="font-size: 10px; color: #64748B; white-space: nowrap; font-weight: 600;">${distText}</div>
                   </div>
-                  <div style="font-size: 10px; color: #0284C7; font-weight: 700; margin: 0 6px; text-align: right;">${escapeHtml(cleanBenefit(n.benefit)).slice(0, 18)}</div>
-                  <div style="font-size: 10px; color: #64748B; white-space: nowrap;">${n.dist < 1000 ? Math.round(n.dist) + 'm' : (n.dist / 1000).toFixed(1) + 'km'}</div>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
           </div>
 
-          <div style="margin-top: auto; display: flex; align-items: center; gap: 14px; background: #ffffff; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 10px 14px;">
-            <img src="${qrImgUrl}" alt="QR" style="width: 60px; height: 60px; border-radius: 6px; border: 1px solid #CBD5E1;" />
-            <div style="flex: 1; font-size: 11px;">
+          <div style="margin-top: auto; display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 8px 12px;">
+            <img src="${qrImgUrl}" alt="QR" style="width: 56px; height: 56px; border-radius: 6px; border: 1px solid #CBD5E1;" />
+            <div style="flex: 1; font-size: 10px;">
               <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 2px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
               <div style="color: #64748B; font-size: 10px; line-height: 1.3;">가맹점 상세 혜택과 주변 연계 혜택을 모바일에서 즉시 확인하실 수 있습니다.</div>
             </div>
           </div>
         </div>
       `;
+
+      // Initialize real Naver Map with radius circles and pins
+      setTimeout(() => {
+        initPosterMap(point, nearby);
+      }, 50);
     } else if (tplName === "table_stand") {
       container.innerHTML = `
         <div class="print-sheet stand-sheet" style="width: 360px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
@@ -2854,6 +2861,13 @@ async function bootstrap() {
   }
 
   renderVisibleMarkers();
+
+  // Background Render Server Wake-up Ping
+  try {
+    fetch("https://mmamap-backend-docker.onrender.com/api/health", { mode: "no-cors" }).then(() => {
+      addDebugLog("[System] Render 클라우드 백엔드 활성화(Wake-up) 완료", "info");
+    }).catch(() => {});
+  } catch (_e) {}
 }
 
 bootstrap().catch((e) => {
