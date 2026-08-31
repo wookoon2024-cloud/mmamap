@@ -322,7 +322,7 @@ function loadNaverMapScript() {
       return;
     }
     const script = document.createElement("script");
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}&submodules=geocoder`;
     script.async = true;
     script.onload = resolve;
     script.onerror = () => reject(new Error("Naver SDK load failed"));
@@ -2047,30 +2047,12 @@ async function bootstrap() {
   const getRankingRows = () => {
     const allRows = [...pointByFacilityKey.entries()]
       .map(([id, point]) => ({ id, point }))
-      .filter((row) => pointMatchAudience(row.point, rankingAudience))
       .filter((row) => pointMatchRegion(row.point, selectedRegion));
 
-    if (rankingTab === "popular") {
-      return allRows
-        .map((row) => ({ ...row, score: getClickCount(row.id) }))
-        .filter((row) => row.score > 0)
-        .sort((a, b) => b.score - a.score || a.point.title.localeCompare(b.point.title, "ko"));
-    }
-
-    if (rankingTab === "likes") {
-      return allRows
-        .map((row) => ({ ...row, score: getLikeCount(row.id) }))
-        .filter((row) => row.score > 0)
-        .sort((a, b) => b.score - a.score || a.point.title.localeCompare(b.point.title, "ko"));
-    }
-
-    if (rankingTab === "favorites") {
-      return allRows
-        .map((row) => ({ ...row, score: getFavoriteCount(row.id) }))
-        .filter((row) => row.score > 0)
-        .sort((a, b) => b.score - a.score || a.point.title.localeCompare(b.point.title, "ko"));
-    }
-    return [];
+    return allRows
+      .map((row) => ({ ...row, score: getClickCount(row.id) }))
+      .filter((row) => row.score > 0)
+      .sort((a, b) => b.score - a.score || a.point.title.localeCompare(b.point.title, "ko"));
   };
 
   const buildRankAudienceFilters = () => {
@@ -2320,15 +2302,8 @@ async function bootstrap() {
   const updateLegendTabUi = () => {
     if (legendTabCategoryEl) legendTabCategoryEl.classList.toggle("active", activeLegendTab === "category");
     if (legendTabAudienceEl) legendTabAudienceEl.classList.toggle("active", activeLegendTab === "audience");
-    if (legendEl && audienceLegendEl) {
-      if (activeLegendTab === "audience") {
-        legendEl.classList.add("hiddenLegend");
-        audienceLegendEl.classList.remove("hiddenLegend");
-      } else {
-        legendEl.classList.remove("hiddenLegend");
-        audienceLegendEl.classList.add("hiddenLegend");
-      }
-    }
+    if (legendEl) legendEl.classList.remove("hiddenLegend");
+    if (audienceLegendEl) audienceLegendEl.classList.remove("hiddenLegend");
   };
 
   const buildLegend = () => {
@@ -2389,6 +2364,9 @@ async function bootstrap() {
     const selectedBeforeRender = selectedFacilityId;
     const MAX_MARKERS = 700;
 
+    const searchInput = document.getElementById("sidebarSearchInput");
+    const keyword = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
     for (const p of points) {
       if (visible.length >= MAX_MARKERS) break;
       if (selectedCategory && toCategoryLabel(p.category || "") !== selectedCategory) continue;
@@ -2397,6 +2375,13 @@ async function bootstrap() {
         if (!aud.includes(selectedAudience)) continue;
       }
       if (!pointMatchRegion(p, selectedRegion)) continue;
+      if (keyword) {
+        const titleMatch = (p.title || "").toLowerCase().includes(keyword);
+        const subMatch = (p.subtitle || "").toLowerCase().includes(keyword);
+        const catMatch = (p.category || "").toLowerCase().includes(keyword);
+        const addrMatch = (p.address || "").toLowerCase().includes(keyword);
+        if (!titleMatch && !subMatch && !catMatch && !addrMatch) continue;
+      }
       const pos = new naver.maps.LatLng(p.lat, p.lng);
       if (bounds.hasLatLng(pos)) visible.push({ ...p, pos });
     }
@@ -2498,6 +2483,8 @@ async function bootstrap() {
     });
   }
 
+  const brandLogoEl = document.getElementById("brandLogo");
+  if (brandLogoEl) brandLogoEl.addEventListener("click", () => { window.location.reload(); });
   if (profileBtn) profileBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleFavoritesPanel(); });
   if (favoritesPanel) favoritesPanel.addEventListener("click", (e) => e.stopPropagation());
   if (hubMegaEl) {
@@ -2649,6 +2636,80 @@ async function bootstrap() {
 
   naver.maps.Event.addListener(map, "zoom_changed", updateZoomLabel);
   naver.maps.Event.addListener(map, "idle", scheduleRender);
+
+  // Sidebar toggle listener for collapsible sidebar
+  const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
+  const legendBar = document.querySelector(".legendBar");
+  if (sidebarToggleBtn && legendBar) {
+    sidebarToggleBtn.addEventListener("click", () => {
+      legendBar.classList.toggle("collapsed");
+      sidebarToggleBtn.classList.toggle("collapsed");
+      const span = sidebarToggleBtn.querySelector("span");
+      if (legendBar.classList.contains("collapsed")) {
+        span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+      } else {
+        span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
+      }
+    });
+  }
+
+  // Sidebar real-time search box handler
+  const performKeywordSearch = (query) => {
+    if (!query) return;
+    const lowerQuery = query.toLowerCase();
+
+    // 1. 100% Exact Match: Check if any store name matches the query exactly
+    const exactTarget = points.find((p) => (p.title || "").toLowerCase() === lowerQuery);
+    if (exactTarget) {
+      const key = getFacilityKey(exactTarget);
+      if (key) {
+        focusFacility(key);
+        return;
+      }
+    }
+
+    // 2. Address Geocoding: If no exact store match, check if it matches an address/region
+    if (window.naver && naver.maps && naver.maps.Service && naver.maps.Service.geocode) {
+      naver.maps.Service.geocode({ query }, (status, response) => {
+        if (status === naver.maps.Service.Status.OK && response.v2 && response.v2.addresses.length > 0) {
+          const address = response.v2.addresses[0];
+          const pos = new naver.maps.LatLng(address.y, address.x);
+          map.setCenter(pos);
+          map.setZoom(14, true);
+          updateZoomLabel();
+        } else {
+          // 3. Partial Match Fallback: If not an address, search for stores containing the query
+          const partialTarget = points.find((p) => (p.title || "").toLowerCase().includes(lowerQuery));
+          if (partialTarget) {
+            const key = getFacilityKey(partialTarget);
+            if (key) {
+              focusFacility(key);
+            }
+          }
+        }
+      });
+    } else {
+      // Fallback if Geocoder is not loaded yet
+      const partialTarget = points.find((p) => (p.title || "").toLowerCase().includes(lowerQuery));
+      if (partialTarget) {
+        const key = getFacilityKey(partialTarget);
+        if (key) {
+          focusFacility(key);
+        }
+      }
+    }
+  };
+
+  const sidebarSearchInput = document.getElementById("sidebarSearchInput");
+  if (sidebarSearchInput) {
+    sidebarSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        performKeywordSearch(e.target.value.trim());
+        scheduleRender();
+      }
+    });
+  }
+
   renderVisibleMarkers();
 }
 
