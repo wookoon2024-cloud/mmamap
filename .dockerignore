@@ -1,0 +1,11 @@
+.git
+.github
+.gemini
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+outputs/poster_cache/*
+outputs/stand_cache/*
+outputs/hanger_cache/*
