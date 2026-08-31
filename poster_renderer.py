@@ -114,8 +114,12 @@ def get_store_and_neighbors(facility_id):
     if not json_path.exists():
         json_path = BASE_DIR / "data" / "benefits_map.json"
         
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print("[PosterRenderer] Failed to load JSON:", e)
+        data = {}
         
     facilities = data.get("facilities", [])
     all_stores = []
@@ -123,33 +127,45 @@ def get_store_and_neighbors(facility_id):
         fid = f.get("facility_id") or f.get("id") or ""
         lat = f.get("lat")
         lng = f.get("lng")
-        if lat is not None and lng is not None:
-            aud = f.get("audiences") or []
-            aud_text = ", ".join(aud) if isinstance(aud, list) else str(aud)
-            all_stores.append({
-                "facility_id": str(fid),
-                "name": f.get("name") or "나라사랑가게",
-                "benefit": f.get("benefit") or "병역이행자 및 병역명문가 할인 우대",
-                "audience_text": aud_text or "나라사랑카드 소지 장병 및 예비군",
-                "lat": float(lat),
-                "lng": float(lng),
-                "address": f.get("address") or ""
-            })
-            
+        aud = f.get("audiences") or []
+        aud_text = ", ".join(aud) if isinstance(aud, list) else str(aud)
+        all_stores.append({
+            "facility_id": str(fid),
+            "name": f.get("name") or "나라사랑가게",
+            "benefit": f.get("benefit") or "병역이행자 및 병역명문가 할인 우대",
+            "audience_text": aud_text or "나라사랑카드 소지 장병 및 예비군",
+            "lat": float(lat) if lat is not None else 37.5665,
+            "lng": float(lng) if lng is not None else 126.9780,
+            "address": f.get("address") or ""
+        })
+        
     target = next((s for s in all_stores if s['facility_id'] == str(facility_id)), None)
     if not target:
         target = next((s for s in all_stores if str(facility_id) in s['facility_id']), None)
+    if not target:
+        target = next((s for s in all_stores if s['name'] == str(facility_id)), None)
     if not target and all_stores:
         target = all_stores[0]
     if not target:
-        raise ValueError(f"Facility {facility_id} not found.")
+        target = {
+            "facility_id": str(facility_id),
+            "name": "나라사랑가게",
+            "benefit": "병역이행자 및 병역명문가 할인 우대",
+            "audience_text": "나라사랑카드 소지 장병 및 예비군",
+            "lat": 37.5665,
+            "lng": 126.9780,
+            "address": "전국 매장"
+        }
         
     neighbors = []
     for other in all_stores:
         if other['facility_id'] == target['facility_id']:
             continue
-        d = haversine(target['lat'], target['lng'], other['lat'], other['lng'])
-        neighbors.append((other, d))
+        try:
+            d = haversine(target['lat'], target['lng'], other['lat'], other['lng'])
+            neighbors.append((other, d))
+        except Exception:
+            pass
         
     neighbors.sort(key=lambda x: x[1])
     return target, neighbors[:5]

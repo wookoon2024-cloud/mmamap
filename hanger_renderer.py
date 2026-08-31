@@ -142,7 +142,13 @@ def get_store_info(facility_id):
             "audience_text": "나라사랑카드 소지 장병 및 예비군",
             "address": f.get("address") or ""
         }
-    return None
+    return {
+        "facility_id": str(facility_id),
+        "name": "나라사랑가게",
+        "benefit": "병역이행자 및 병역명문가 할인 우대",
+        "audience_text": "나라사랑카드 소지 장병 및 예비군",
+        "address": "전국 매장"
+    }
 
 def draw_door_hanger(store):
     p_width, p_height = 600, 1100

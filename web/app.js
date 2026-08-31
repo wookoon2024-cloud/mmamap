@@ -1746,6 +1746,23 @@ async function bootstrap() {
 
   let currentPrintBlobUrl = null;
 
+  const addDebugLog = (msg, type = "info") => {
+    console.log(`[MMAMap Debug] ${msg}`);
+    const list = document.getElementById("liveDebugLogList");
+    if (!list) return;
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const row = document.createElement("div");
+    let color = "#38bdf8";
+    if (type === "success") color = "#4ade80";
+    if (type === "error") color = "#f87171";
+    if (type === "warn") color = "#fbbf24";
+    row.style.color = color;
+    row.textContent = `[${timeStr}] ${msg}`;
+    list.appendChild(row);
+    list.scrollTop = list.scrollHeight;
+  };
+
   const renderPrintTemplate = async (point, tplName = "poster") => {
     const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
     if (!container) return;
@@ -1778,14 +1795,14 @@ async function bootstrap() {
     const loadingWrap = document.getElementById("printLoadingWrap");
     const resultImg = document.getElementById("printResultImg");
 
-    const updateLog = (msg) => {
+    const updateLog = (msg, type = "info") => {
       if (subLog) subLog.textContent = msg;
-      console.log(`[PrintModal Log] ${msg}`);
+      addDebugLog(msg, type);
     };
 
     try {
-      updateLog(`[1/3] 서버(Render) 데이터 요청 중... (${facilityId})`);
       const targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      updateLog(`[1/3] 서버(Render) 데이터 요청 전송 ➔ ${endpoint} (${facilityId})`, "info");
       
       const startTime = performance.now();
       const res = await fetch(targetUrl);
@@ -1793,17 +1810,24 @@ async function bootstrap() {
       
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status} (${errText || res.statusText || "서버 오류"}) [${elapsed}초]`);
+        const errDetail = `HTTP ${res.status} (${errText || res.statusText || "서버 오류"}) [${elapsed}초]`;
+        updateLog(`[오류] ${errDetail}`, "error");
+        throw new Error(errDetail);
       }
       
-      updateLog(`[2/3] 이미지 수신 완료 (${elapsed}초, ${(res.headers.get("content-length") ? (res.headers.get("content-length")/1024).toFixed(1) + " KB" : "")}) 렌더링 중...`);
       const blob = await res.blob();
+      const sizeKb = (blob.size / 1024).toFixed(1);
+      updateLog(`[2/3] 이미지 수신 완료 (${elapsed}초, ${sizeKb} KB) ➔ 브라우저 렌더링 중...`, "info");
+      
       currentPrintBlobUrl = URL.createObjectURL(blob);
       
       resultImg.onload = () => {
-        updateLog(`[3/3] 렌더링 완료 (${(blob.size / 1024).toFixed(1)} KB)`);
+        updateLog(`[3/3] 렌더링 완료! (${sizeKb} KB)`, "success");
         if (loadingWrap) loadingWrap.style.display = "none";
         if (resultImg) resultImg.style.display = "block";
+      };
+      resultImg.onerror = () => {
+        updateLog(`[오류] 브라우저 이미지 디코딩 실패`, "error");
       };
       resultImg.src = currentPrintBlobUrl;
     } catch (err) {
