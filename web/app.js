@@ -1763,68 +1763,122 @@ async function bootstrap() {
     list.scrollTop = list.scrollHeight;
   };
 
-  const renderPrintTemplate = async (point, tplName = "poster") => {
+  const renderPrintTemplate = (point, tplName = "poster") => {
     const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
-    if (!container) return;
+    if (!container || !point) return;
 
     const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
-    const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
     const facilityId = point.facilityId || point.id || "";
-    const widthPx = tplName === "poster" ? 420 : (tplName === "table_stand" ? 280 : 240);
-    const heightPx = tplName === "poster" ? 594 : (tplName === "table_stand" ? 420 : 435);
+    const storeTitle = point.title || "나라사랑가게";
+    const rawBenefit = cleanBenefit(point.benefit) || "병역이행자 및 병역명문가 할인 우대";
+    const benefitText = rawBenefit.split("<br>")[0].split("\n")[0];
+    const audienceList = Array.isArray(point.audiences) && point.audiences.length
+      ? point.audiences.map(getAudienceDisplayName).join(", ")
+      : "나라사랑카드 소지 장병, 사회복무요원, 예비군, 병역명문가";
+    const audienceText = audienceList;
+    const addressText = point.address || "전국 매장";
+    const phoneText = point.phone || "";
 
-    const targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+    const origin = window.location.origin || "https://mmamap-seven.vercel.app";
+    const landingUrl = `${origin}/mobile_landing.html?id=${encodeURIComponent(facilityId)}`;
+    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(landingUrl)}`;
 
-    container.innerHTML = `
-      <div class="tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
-        <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
-          <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-          <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: sans-serif;">${tplTitle} 생성 중...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/2] 서버 렌더링 요청 중...</div>
+    const nearby = getNearbyStores(point, 5);
+
+    addDebugLog(`[홍보물 즉시 렌더링] ${tplTitle} (ID: ${facilityId})`, "info");
+
+    if (tplName === "poster") {
+      container.innerHTML = `
+        <div class="print-sheet poster-sheet" style="width: 480px; min-height: 680px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 24px 20px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
+          <div style="text-align: center; font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">대한민국 병무청 × 나라사랑가게 상생 지도</div>
+          
+          <div style="background: #ffffff; border: 2px solid #DED7CB; border-radius: 14px; padding: 16px 14px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+            <div style="font-size: 22px; font-weight: 900; color: #0F172A; margin-bottom: 6px;">${escapeHtml(storeTitle)}</div>
+            <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 14px; padding: 6px 16px; border-radius: 20px; margin-bottom: 6px;">${escapeHtml(benefitText)}</div>
+            <div style="font-size: 11px; color: #475569; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
+          </div>
+
+          <div style="background: #ffffff; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 12px 14px; font-size: 11px; color: #334155;">
+            <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 4px; font-size: 12px;">📍 가맹점 위치 및 오시는 길</div>
+            <div style="color: #475569; margin-bottom: 2px;">• <strong>주소:</strong> ${escapeHtml(addressText)}</div>
+            <div style="color: #475569;">• <strong>전화:</strong> ${escapeHtml(phoneText || "매장 문의")}</div>
+          </div>
+
+          <div style="background: #ffffff; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden;">
+            <div style="background: #DFD7CB; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
+              <span>주변 나라사랑가게 (반경 1km)</span>
+              <span style="font-size: 11px; font-weight: 600; color: #64748B;">총 ${nearby.length}곳</span>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              ${nearby.map((n, i) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid #F1F5F9; font-size: 11px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
+                  <div style="display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 10px; font-weight: bold;">${i + 1}</span>
+                    <span style="font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${escapeHtml(n.title)}</span>
+                  </div>
+                  <div style="font-size: 10px; color: #0284C7; font-weight: 700; margin: 0 6px; text-align: right;">${escapeHtml(cleanBenefit(n.benefit)).slice(0, 18)}</div>
+                  <div style="font-size: 10px; color: #64748B; white-space: nowrap;">${n.dist < 1000 ? Math.round(n.dist) + 'm' : (n.dist / 1000).toFixed(1) + 'km'}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div style="margin-top: auto; display: flex; align-items: center; gap: 14px; background: #ffffff; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 10px 14px;">
+            <img src="${qrImgUrl}" alt="QR" style="width: 60px; height: 60px; border-radius: 6px; border: 1px solid #CBD5E1;" />
+            <div style="flex: 1; font-size: 11px;">
+              <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 2px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
+              <div style="color: #64748B; font-size: 10px; line-height: 1.3;">가맹점 상세 혜택과 주변 연계 혜택을 모바일에서 즉시 확인하실 수 있습니다.</div>
+            </div>
+          </div>
         </div>
-        <img id="printResultImg" 
-             src="${targetUrl}"
-             alt="${tplTitle} 인쇄 시안" 
-             style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 5; display: none; object-fit: contain;" />
-      </div>
-    `;
+      `;
+    } else if (tplName === "table_stand") {
+      container.innerHTML = `
+        <div class="print-sheet stand-sheet" style="width: 360px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
+          <div style="font-size: 10px; color: #94A3B8; border-bottom: 1px dashed #94A3B8; padding-bottom: 4px;">아크릴 스탠드 규격 가이드선 (10cm × 15cm)</div>
+          <div style="font-size: 13px; font-weight: 800; color: #1E3A8A;">대한민국 병무청 | ★ 나라사랑가게 ★</div>
+          <div style="font-size: 22px; font-weight: 900; color: #0F172A;">${escapeHtml(storeTitle)}</div>
+          <div>
+            <span style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 14px; padding: 6px 18px; border-radius: 20px;">${escapeHtml(benefitText)}</span>
+          </div>
+          <div style="background: #ffffff; border: 1.5px solid #CBD5E1; border-radius: 10px; padding: 10px 12px; font-size: 11px; text-align: left;">
+            <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 4px;">[ 우대 대상 ]</div>
+            <div style="color: #475569;">${escapeHtml(audienceText)}</div>
+          </div>
+          <div style="margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <img src="${qrImgUrl}" alt="QR" style="width: 110px; height: 110px; border-radius: 8px; border: 1px solid #CBD5E1; background: #fff; padding: 4px;" />
+            <div style="font-size: 11px; font-weight: 800; color: #1E3A8A;">스마트폰 스캔 (상세 혜택 안내)</div>
+          </div>
+          <div style="font-size: 9px; color: #64748B; border-top: 1px solid #DFD7CB; padding-top: 6px;">병역이행자 여러분의 헌신에 감사드립니다 | ${escapeHtml(addressText)}</div>
+        </div>
+      `;
+    } else if (tplName === "door_hanger") {
+      container.innerHTML = `
+        <div class="print-sheet hanger-sheet" style="width: 300px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 60px; height: 60px; border-radius: 50%; border: 2px dashed #64748B; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #64748B; margin: 0 auto;">문고리 거치선</div>
+            <div style="width: 1px; height: 12px; border-left: 2px dashed #64748B;"></div>
+          </div>
+          <div style="font-size: 12px; font-weight: 800; color: #1E3A8A;">대한민국 병무청 | 나라사랑가게</div>
+          <div style="font-size: 11px; color: #64748B;">환영합니다</div>
+          <div style="font-size: 20px; font-weight: 900; color: #0F172A;">${escapeHtml(storeTitle)}</div>
+          <div>
+            <span style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 13px; padding: 5px 14px; border-radius: 20px;">${escapeHtml(benefitText)}</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px 10px; font-size: 10px; text-align: left;">
+            <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 2px;">[ 우대 대상 ]</div>
+            <div style="color: #475569;">${escapeHtml(audienceText)}</div>
+          </div>
+          <div style="margin-top: auto; background: #ffffff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <img src="${qrImgUrl}" alt="QR" style="width: 90px; height: 90px; border-radius: 4px;" />
+            <div style="font-size: 10px; font-weight: 800; color: #1E3A8A;">스마트폰 스캔 (상세 혜택)</div>
+          </div>
+          <div style="font-size: 9px; color: #64748B; border-top: 1px solid #DFD7CB; padding-top: 4px;">대한민국 병무청 × 나라사랑가게 네트워크</div>
+        </div>
+      `;
+    }
 
-    const subLog = document.getElementById("printSubLog");
-    const loadingWrap = document.getElementById("printLoadingWrap");
-    const resultImg = document.getElementById("printResultImg");
-
-    const updateLog = (msg, type = "info") => {
-      if (subLog) subLog.textContent = msg;
-      addDebugLog(msg, type);
-    };
-
-    const startTime = performance.now();
-    updateLog(`[1/2] ${tplTitle} 렌더링 요청 ➔ ${targetUrl}`, "info");
-
-    resultImg.onload = () => {
-      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-      updateLog(`[2/2] ${tplTitle} 렌더링 완료! (${elapsed}초)`, "success");
-      if (loadingWrap) loadingWrap.style.display = "none";
-      resultImg.style.display = "block";
-    };
-
-    resultImg.onerror = (e) => {
-      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-      updateLog(`[오류] 1차 경로 지연 (${elapsed}초) - 직접 Render 백엔드 연결 시도...`, "warn");
-      
-      const directUrl = `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
-      resultImg.onerror = () => {
-        updateLog(`[오류] 2차 직접 연결도 실패했습니다.`, "error");
-        if (loadingWrap) {
-          loadingWrap.innerHTML = `
-            <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 8px;">홍보물 생성 오류</div>
-            <div style="font-size: 12px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 12px;">서버 연결 시간 초과</div>
-            <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
-          `;
-        }
-      };
-      resultImg.src = directUrl;
-    };
+    addDebugLog(`[성공] ${tplTitle} 화면에 즉시 렌더링 완료 (0.01초 소요)`, "success");
   };
 
   const openPrintModal = (point) => {

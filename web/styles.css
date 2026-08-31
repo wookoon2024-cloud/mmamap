@@ -3521,3 +3521,29 @@ button:active {
   font-weight: bold;
 }
 
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printTemplateContainer,
+  #printTemplateContainer * {
+    visibility: visible;
+  }
+  #printTemplateContainer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 650px !important;
+    page-break-inside: avoid;
+  }
+}
+
