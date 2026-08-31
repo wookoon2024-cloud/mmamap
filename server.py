@@ -46,7 +46,75 @@ def verify_password_hash(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(legacy, h)
 
 
+def get_db_url() -> str:
+    return os.environ.get("DATABASE_URL")
+
+
+class PostgresConnWrapper:
+    def __init__(self, db_url):
+        import psycopg2
+        import psycopg2.extras
+        self.conn = psycopg2.connect(db_url, sslmode="require")
+        
+    def execute(self, sql, params=None):
+        sql_pg = sql.replace('?', '%s')
+        cur = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        try:
+            cur.execute(sql_pg, params)
+            return cur
+        except Exception:
+            self.conn.rollback()
+            raise
+            
+    def commit(self):
+        self.conn.commit()
+        
+    def close(self):
+        self.conn.close()
+
+
+class SQLiteConnWrapper:
+    def __init__(self, db_path):
+        self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row
+        
+    def execute(self, sql, params=None):
+        if params is None:
+            return self.conn.execute(sql)
+        return self.conn.execute(sql, params)
+        
+    def commit(self):
+        self.conn.commit()
+        
+    def close(self):
+        self.conn.close()
+
+
 def init_review_table(db_path: Path) -> None:
+    db_url = get_db_url()
+    if db_url:
+        import psycopg2
+        conn = psycopg2.connect(db_url, sslmode="require")
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS review_posts (
+                      id VARCHAR(255) PRIMARY KEY,
+                      author VARCHAR(255) NOT NULL DEFAULT '',
+                      content TEXT NOT NULL,
+                      password_hash VARCHAR(255) NOT NULL,
+                      created_at BIGINT NOT NULL,
+                      updated_at BIGINT
+                    )
+                    """
+                )
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_review_posts_created_at ON review_posts (created_at DESC)")
+                conn.commit()
+        finally:
+            conn.close()
+        return
+
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     try:
@@ -69,6 +137,55 @@ def init_review_table(db_path: Path) -> None:
 
 
 def init_engagement_tables(db_path: Path) -> None:
+    db_url = get_db_url()
+    if db_url:
+        import psycopg2
+        conn = psycopg2.connect(db_url, sslmode="require")
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS facility_click_events (
+                      event_id SERIAL PRIMARY KEY,
+                      facility_id VARCHAR(255) NOT NULL,
+                      client_token VARCHAR(255) NOT NULL,
+                      created_at BIGINT NOT NULL
+                    )
+                    """
+                )
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_click_facility ON facility_click_events (facility_id)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_click_client ON facility_click_events (client_token)")
+
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS facility_action_states (
+                      client_token VARCHAR(255) NOT NULL,
+                      facility_id VARCHAR(255) NOT NULL,
+                      action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('like', 'favorite')),
+                      active INTEGER NOT NULL CHECK (active IN (0, 1)),
+                      updated_at BIGINT NOT NULL,
+                      PRIMARY KEY (client_token, facility_id, action_type)
+                    )
+                    """
+                )
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_action_facility_type ON facility_action_states (facility_id, action_type)")
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_action_client_type ON facility_action_states (client_token, action_type)")
+                
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS qr_scan_events (
+                      event_id SERIAL PRIMARY KEY,
+                      facility_id VARCHAR(255) NOT NULL,
+                      created_at BIGINT NOT NULL
+                    )
+                    """
+                )
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_qr_facility ON qr_scan_events (facility_id)")
+                conn.commit()
+        finally:
+            conn.close()
+        return
+
     conn = sqlite3.connect(db_path)
     try:
         conn.execute(
@@ -121,10 +238,11 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(WEB_DIR), **kwargs)
 
-    def _db(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+    def _db(self):
+        db_url = get_db_url()
+        if db_url:
+            return PostgresConnWrapper(db_url)
+        return SQLiteConnWrapper(self.db_path)
 
     def _json(self, status: int, payload: dict) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
