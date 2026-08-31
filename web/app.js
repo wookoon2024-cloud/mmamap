@@ -2482,14 +2482,12 @@ async function bootstrap() {
       const selectedPoint = visible.find((v) => getFacilityKey(v) === selectedBeforeRender);
       if (
         selectedPoint &&
-        !isMarkerRepositioning &&
         detailPanelEl &&
         !detailPanelEl.classList.contains("hidden") &&
         selectedDetailAnchor
       ) {
         placeDetailPanelAboveMarker(selectedDetailAnchor, selectedDetailScreenPoint);
       }
-      else if (!selectedPoint && !isMarkerRepositioning) closeDetailPanel();
     }
   };
 
