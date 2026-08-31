@@ -2375,13 +2375,6 @@ async function bootstrap() {
         if (!aud.includes(selectedAudience)) continue;
       }
       if (!pointMatchRegion(p, selectedRegion)) continue;
-      if (keyword) {
-        const titleMatch = (p.title || "").toLowerCase().includes(keyword);
-        const subMatch = (p.subtitle || "").toLowerCase().includes(keyword);
-        const catMatch = (p.category || "").toLowerCase().includes(keyword);
-        const addrMatch = (p.address || "").toLowerCase().includes(keyword);
-        if (!titleMatch && !subMatch && !catMatch && !addrMatch) continue;
-      }
       const pos = new naver.maps.LatLng(p.lat, p.lng);
       if (bounds.hasLatLng(pos)) visible.push({ ...p, pos });
     }
