@@ -1775,7 +1775,8 @@ async function bootstrap() {
           <img src="/api/print_poster?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
                alt="A4 홍보 포스터" 
                style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
-               onload="this.previousElementSibling.style.display='none';" />
+               onload="this.previousElementSibling.style.display='none';" 
+               onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:14px;\\'>이미지 생성 중 일시적 오류가 발생했습니다.<br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;poster&quot;)\\' style=\\'margin-top:8px;padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;\\'>다시 시도</button></div>';" />
         </div>
       `;
     } else if (tplName === "table_stand") {
@@ -1789,7 +1790,8 @@ async function bootstrap() {
           <img src="/api/print_stand?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
                alt="미니 테이블 스탠드 시안" 
                style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
-               onload="this.previousElementSibling.style.display='none';" />
+               onload="this.previousElementSibling.style.display='none';" 
+               onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:13px;\\'>생성 중 오류 발생<br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;table_stand&quot;)\\' style=\\'margin-top:8px;padding:4px 10px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;\\'>다시 시도</button></div>';" />
         </div>
       `;
     } else if (tplName === "door_hanger") {
@@ -1803,7 +1805,8 @@ async function bootstrap() {
           <img src="/api/print_hanger?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
                alt="도어행거 시안" 
                style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
-               onload="this.previousElementSibling.style.display='none';" />
+               onload="this.previousElementSibling.style.display='none';" 
+               onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:13px;\\'>생성 중 오류 발생<br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;door_hanger&quot;)\\' style=\\'margin-top:8px;padding:4px 10px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;\\'>다시 시도</button></div>';" />
         </div>
       `;
     }

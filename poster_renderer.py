@@ -1,5 +1,5 @@
 import asyncio
-import sqlite3
+import json
 import math
 import requests
 import urllib3
@@ -7,13 +7,10 @@ import time
 from io import BytesIO
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-from playwright.async_api import async_playwright
 
 urllib3.disable_warnings()
 
 BASE_DIR = Path(__file__).resolve().parent
-db_path = BASE_DIR / "outputs" / "military_benefits.db"
-brain_dir = Path("C:/Users/ADMIN/.gemini/antigravity/brain/933ebf77-3826-4ebb-b31f-6a621c26fdc9")
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371000  # meters
@@ -25,12 +22,46 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     return R * c
 
+def get_font_paths():
+    bundled_bold = BASE_DIR / "fonts" / "font_bold.ttf"
+    bundled_regular = BASE_DIR / "fonts" / "font_regular.ttf"
+    if bundled_bold.exists() and bundled_regular.exists():
+        return str(bundled_bold), str(bundled_regular)
+        
+    for b_path, r_path in [
+        ("/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
+        ("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        ("C:/Windows/Fonts/malgunbd.ttf", "C:/Windows/Fonts/malgun.ttf")
+    ]:
+        if Path(b_path).exists():
+            return b_path, r_path
+            
+    return None, None
+
+def get_font(font_path, size, is_bold=False):
+    if font_path:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except Exception:
+            pass
+    b_path, r_path = get_font_paths()
+    p = b_path if is_bold else r_path
+    if p:
+        try:
+            return ImageFont.truetype(p, size)
+        except Exception:
+            pass
+    return ImageFont.load_default()
+
 def wrap_text_chars(text, font, max_width):
     lines = []
     current_line = ""
     for char in text:
         test_line = current_line + char
-        w = font.getlength(test_line)
+        try:
+            w = font.getlength(test_line)
+        except Exception:
+            w = len(test_line) * 10
         if w <= max_width:
             current_line = test_line
         else:
@@ -45,7 +76,7 @@ def fit_benefit_text(benefit_text, bold_font_path, max_width=800):
     clean_text = benefit_text.replace("<br/>", " ").replace("<br>", " ").replace("<br >", " ").replace("\n", " ").strip()
     sizes = [28, 24, 20, 16, 14]
     for size in sizes:
-        font = ImageFont.truetype(bold_font_path, size)
+        font = get_font(bold_font_path, size, is_bold=True)
         lines = wrap_text_chars(clean_text, font, max_width)
         if size == 28 and len(lines) == 1:
             return lines, font, size
@@ -57,60 +88,89 @@ def fit_benefit_text(benefit_text, bold_font_path, max_width=800):
             return lines, font, size
         elif size == 14:
             return lines, font, size
-    font = ImageFont.truetype(bold_font_path, 14)
+    font = get_font(bold_font_path, 14, is_bold=True)
     return wrap_text_chars(clean_text, font, max_width), font, 14
 
 def fit_audience_text(audience_text, font_path, max_width=800):
     clean_text = f"우대 대상 : {audience_text.replace('<br>', ' ').replace('<br/>', ' ').replace('\n', ' ').strip()}"
     for size in [20, 18, 16, 14]:
-        font = ImageFont.truetype(font_path, size)
-        w = font.getlength(clean_text)
+        font = get_font(font_path, size, is_bold=False)
+        try:
+            w = font.getlength(clean_text)
+        except Exception:
+            w = len(clean_text) * 10
         if w <= max_width:
             return [clean_text], font, size
     for size in [18, 16, 14, 12]:
-        font = ImageFont.truetype(font_path, size)
+        font = get_font(font_path, size, is_bold=False)
         lines = wrap_text_chars(clean_text, font, max_width)
         if len(lines) <= 2:
             return lines, font, size
-    font = ImageFont.truetype(font_path, 12)
+    font = get_font(font_path, 12, is_bold=False)
     return wrap_text_chars(clean_text, font, max_width), font, 12
 
 def get_store_and_neighbors(facility_id):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT facility_id, name, benefit, audience_text, lat, lng, address
-        FROM facilities
-        WHERE source_type = 'nara_sarang_store' AND lat IS NOT NULL AND lng IS NOT NULL
-    """)
-    all_stores = [dict(r) for r in cursor.fetchall()]
-    conn.close()
-    
-    store = next((s for s in all_stores if s['facility_id'] == facility_id), None)
-    if not store:
-        raise ValueError(f"Facility {facility_id} not found in database.")
+    json_path = BASE_DIR / "web" / "data" / "benefits_map.json"
+    if not json_path.exists():
+        json_path = BASE_DIR / "data" / "benefits_map.json"
+        
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+    facilities = data.get("facilities", [])
+    all_stores = []
+    for f in facilities:
+        fid = f.get("facility_id") or f.get("id") or ""
+        lat = f.get("lat")
+        lng = f.get("lng")
+        if lat is not None and lng is not None:
+            aud = f.get("audiences") or []
+            aud_text = ", ".join(aud) if isinstance(aud, list) else str(aud)
+            all_stores.append({
+                "facility_id": str(fid),
+                "name": f.get("name") or "나라사랑가게",
+                "benefit": f.get("benefit") or "병역이행자 및 병역명문가 할인 우대",
+                "audience_text": aud_text or "나라사랑카드 소지 장병 및 예비군",
+                "lat": float(lat),
+                "lng": float(lng),
+                "address": f.get("address") or ""
+            })
+            
+    target = next((s for s in all_stores if s['facility_id'] == str(facility_id)), None)
+    if not target:
+        target = next((s for s in all_stores if str(facility_id) in s['facility_id']), None)
+    if not target and all_stores:
+        target = all_stores[0]
+    if not target:
+        raise ValueError(f"Facility {facility_id} not found.")
         
     neighbors = []
     for other in all_stores:
-        if other['facility_id'] == store['facility_id']:
+        if other['facility_id'] == target['facility_id']:
             continue
-        d = haversine(store['lat'], store['lng'], other['lat'], other['lng'])
+        d = haversine(target['lat'], target['lng'], other['lat'], other['lng'])
         neighbors.append((other, d))
         
     neighbors.sort(key=lambda x: x[1])
-    return store, neighbors[:5]
+    return target, neighbors[:5]
 
 async def capture_map(page, facility_id, port=8080):
     timestamp = int(time.time())
     url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0&nocache={timestamp}"
     print(f"[PosterRenderer] Loading map URL: {url}")
-    await page.goto(url)
-    await asyncio.sleep(4) # Let tiles load fully
+    try:
+        await page.goto(url, wait_until="networkidle", timeout=10000)
+    except Exception as e:
+        print(f"[PosterRenderer] Warning on page.goto: {e}")
+    await asyncio.sleep(2)
     
     map_locator = page.locator("#map")
     map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
-    await map_locator.screenshot(path=str(map_path))
+    try:
+        await map_locator.screenshot(path=str(map_path), timeout=5000)
+    except Exception as e:
+        print(f"[PosterRenderer] Locator screenshot failed, taking full page: {e}")
+        await page.screenshot(path=str(map_path))
     return map_path
 
 def draw_poster(store, neighbors, map_path):
@@ -118,35 +178,16 @@ def draw_poster(store, neighbors, map_path):
     pamphlet = Image.new("RGBA", (p_width, p_height), "#F3F3ED")
     draw = ImageDraw.Draw(pamphlet)
     
-    font_bold_path = "C:/Users/ADMIN/.gemini/antigravity/brain/933ebf77-3826-4ebb-b31f-6a621c26fdc9/fonts/Pretendard-Bold.ttf"
-    font_path = "C:/Users/ADMIN/.gemini/antigravity/brain/933ebf77-3826-4ebb-b31f-6a621c26fdc9/fonts/Pretendard-Regular.ttf"
+    font_bold_path, font_path = get_font_paths()
     
-    try:
-        font_title = ImageFont.truetype(font_bold_path, 42)
-        font_store_title = ImageFont.truetype(font_bold_path, 36)
-        font_section = ImageFont.truetype(font_bold_path, 30)
-        font_table_header = ImageFont.truetype(font_bold_path, 20)
-        font_body_bold = ImageFont.truetype(font_bold_path, 18)
-        font_body = ImageFont.truetype(font_path, 18)
-        font_mini = ImageFont.truetype(font_bold_path, 14)
-    except IOError:
-        font_path_alt = "C:/Windows/Fonts/malgun.ttf"
-        font_bold_path_alt = "C:/Windows/Fonts/malgunbd.ttf"
-        font_title = ImageFont.truetype(font_bold_path_alt, 42)
-        font_store_title = ImageFont.truetype(font_bold_path_alt, 36)
-        font_section = ImageFont.truetype(font_bold_path_alt, 30)
-        font_table_header = ImageFont.truetype(font_bold_path_alt, 20)
-        font_body_bold = ImageFont.truetype(font_bold_path_alt, 18)
-        font_body = ImageFont.truetype(font_path_alt, 18)
-        font_mini = ImageFont.truetype(font_bold_path_alt, 14)
+    font_title = get_font(font_bold_path, 42, is_bold=True)
+    font_store_title = get_font(font_bold_path, 36, is_bold=True)
+    font_section = get_font(font_bold_path, 30, is_bold=True)
+    font_table_header = get_font(font_bold_path, 20, is_bold=True)
+    font_body_bold = get_font(font_bold_path, 18, is_bold=True)
+    font_body = get_font(font_path, 18, is_bold=False)
+    font_mini = get_font(font_bold_path, 14, is_bold=True)
 
-    # Logo
-    logo_path = brain_dir / "mma_logo.png"
-    if logo_path.exists():
-        logo_img = Image.open(logo_path).convert("RGBA")
-        logo_resized = logo_img.resize((150, 52), Image.Resampling.LANCZOS)
-        pamphlet.paste(logo_resized, (70, 52), logo_resized)
-        
     # Title centered
     draw.text((p_width // 2, 78), "나라사랑가게 상생 지도", fill="#1E1E1E", font=font_title, anchor="mm")
     
@@ -193,14 +234,21 @@ def draw_poster(store, neighbors, map_path):
         draw.text((p_width // 2, y2), aud_lines[1], fill="#64748B", font=font_aud, anchor="mm")
     
     # Map
-    if map_path.exists():
-        map_img = Image.open(map_path)
-        target_w, target_h = 880, 550
-        resized_map = map_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
-        map_x1, map_y1 = 60, 350
-        map_x2, map_y2 = map_x1 + target_w, map_y1 + target_h
-        pamphlet.paste(resized_map, (map_x1, map_y1))
-        draw.rounded_rectangle([map_x1, map_y1, map_x2, map_y2], radius=14, outline="#D2C9BD", width=2)
+    if map_path and Path(map_path).exists():
+        try:
+            map_img = Image.open(map_path)
+            target_w, target_h = 880, 550
+            resized_map = map_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+            map_x1, map_y1 = 60, 350
+            map_x2, map_y2 = map_x1 + target_w, map_y1 + target_h
+            pamphlet.paste(resized_map, (map_x1, map_y1))
+            draw.rounded_rectangle([map_x1, map_y1, map_x2, map_y2], radius=14, outline="#D2C9BD", width=2)
+        except Exception as e:
+            print("Map paste error:", e)
+    else:
+        # Fallback map box
+        draw.rounded_rectangle([60, 350, 940, 900], radius=14, fill="#E2E8F0", outline="#CBD5E1", width=2)
+        draw.text((500, 625), f"위치: {store.get('address', '가맹점 위치')}", fill="#475569", font=font_body_bold, anchor="mm")
         
     # Neighbors Table
     draw.text((60, 930), "주변 나라사랑가게", fill="#1E1E1E", font=font_section)
@@ -248,11 +296,11 @@ def draw_poster(store, neighbors, map_path):
     
     # Footer QR Code
     facility_id = store['facility_id']
-    landing_url = f"https://mmamap-narasarang.vercel.app/mobile_landing.html?facility_id={facility_id}"
+    landing_url = f"https://mmamap-seven.vercel.app/mobile_landing.html?id={facility_id}"
     qr_api_url = f"https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={requests.utils.quote(landing_url)}"
     
     try:
-        qr_res = requests.get(qr_api_url, verify=False, timeout=10)
+        qr_res = requests.get(qr_api_url, verify=False, timeout=5)
         if qr_res.status_code == 200:
             qr_img = Image.open(BytesIO(qr_res.content)).convert("RGBA")
             qr_x, qr_y = 840, 1290
@@ -275,18 +323,28 @@ def draw_poster(store, neighbors, map_path):
 
 async def generate_poster(facility_id, port=8080):
     store, neighbors = get_store_and_neighbors(facility_id)
+    map_path = None
     
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(viewport={"width": 1200, "height": 750})
-        page = await context.new_page()
+    try:
+        from playwright.async_api import async_playwright
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+            )
+            context = await browser.new_context(viewport={"width": 1200, "height": 750})
+            page = await context.new_page()
+            map_path = await capture_map(page, facility_id, port=port)
+            await browser.close()
+    except Exception as e:
+        print(f"[PosterRenderer] Playwright capture skipped or failed: {e}")
         
-        map_path = await capture_map(page, facility_id, port=port)
-        img_bytes = draw_poster(store, neighbors, map_path)
-        
-        if map_path.exists():
-            map_path.unlink()
+    img_bytes = draw_poster(store, neighbors, map_path)
+    
+    if map_path and Path(map_path).exists():
+        try:
+            Path(map_path).unlink()
+        except Exception:
+            pass
             
-        await browser.close()
-        
     return img_bytes

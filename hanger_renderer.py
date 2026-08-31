@@ -1,4 +1,4 @@
-import sqlite3
+import json
 import math
 import requests
 import urllib3
@@ -9,15 +9,47 @@ from PIL import Image, ImageDraw, ImageFont
 urllib3.disable_warnings()
 
 BASE_DIR = Path(__file__).resolve().parent
-db_path = BASE_DIR / "outputs" / "military_benefits.db"
-brain_dir = Path("C:/Users/ADMIN/.gemini/antigravity/brain/933ebf77-3826-4ebb-b31f-6a621c26fdc9")
+
+def get_font_paths():
+    bundled_bold = BASE_DIR / "fonts" / "font_bold.ttf"
+    bundled_regular = BASE_DIR / "fonts" / "font_regular.ttf"
+    if bundled_bold.exists() and bundled_regular.exists():
+        return str(bundled_bold), str(bundled_regular)
+        
+    for b_path, r_path in [
+        ("/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
+        ("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        ("C:/Windows/Fonts/malgunbd.ttf", "C:/Windows/Fonts/malgun.ttf")
+    ]:
+        if Path(b_path).exists():
+            return b_path, r_path
+            
+    return None, None
+
+def get_font(font_path, size, is_bold=False):
+    if font_path:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except Exception:
+            pass
+    b_path, r_path = get_font_paths()
+    p = b_path if is_bold else r_path
+    if p:
+        try:
+            return ImageFont.truetype(p, size)
+        except Exception:
+            pass
+    return ImageFont.load_default()
 
 def wrap_text_chars(text, font, max_width):
     lines = []
     current_line = ""
     for char in text:
         test_line = current_line + char
-        w = font.getlength(test_line)
+        try:
+            w = font.getlength(test_line)
+        except Exception:
+            w = len(test_line) * 10
         if w <= max_width:
             current_line = test_line
         else:
@@ -29,26 +61,25 @@ def wrap_text_chars(text, font, max_width):
     return lines
 
 def fit_hanger_audience_text(audience_text, font_path, max_width=480):
-    # Try single line first
     for size in [16, 14, 12]:
-        font = ImageFont.truetype(font_path, size)
-        w = font.getlength(audience_text)
+        font = get_font(font_path, size, is_bold=False)
+        try:
+            w = font.getlength(audience_text)
+        except Exception:
+            w = len(audience_text) * 10
         if w <= max_width:
             return [audience_text], font, size
-    # Try wrapping to 2 lines
     for size in [14, 12, 11]:
-        font = ImageFont.truetype(font_path, size)
+        font = get_font(font_path, size, is_bold=False)
         lines = wrap_text_chars(audience_text, font, max_width)
         if len(lines) <= 2:
             return lines, font, size
-    # Try wrapping to 3 lines
     for size in [12, 11, 10]:
-        font = ImageFont.truetype(font_path, size)
+        font = get_font(font_path, size, is_bold=False)
         lines = wrap_text_chars(audience_text, font, max_width)
         if len(lines) <= 3:
             return lines, font, size
-    # Absolute fallback
-    font = ImageFont.truetype(font_path, 10)
+    font = get_font(font_path, 10, is_bold=False)
     return wrap_text_chars(audience_text, font, max_width), font, 10
 
 def parse_benefit_field(benefit_raw):
@@ -59,7 +90,6 @@ def parse_benefit_field(benefit_raw):
     parts = [p.strip() for p in text.split("<br>") if p.strip()]
     
     benefit_content = parts[0] if len(parts) > 0 else "혜택 정보 없음"
-    
     benefit_target = ""
     proof = ""
     
@@ -83,67 +113,61 @@ def parse_benefit_field(benefit_raw):
     return benefit_content, benefit_target, proof
 
 def get_store_info(facility_id):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT facility_id, name, benefit, audience_text, address
-        FROM facilities
-        WHERE facility_id = ?
-    """, (facility_id,))
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        return dict(row)
+    json_path = BASE_DIR / "web" / "data" / "benefits_map.json"
+    if not json_path.exists():
+        json_path = BASE_DIR / "data" / "benefits_map.json"
+        
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+    facilities = data.get("facilities", [])
+    for f in facilities:
+        fid = f.get("facility_id") or f.get("id") or ""
+        if str(fid) == str(facility_id) or str(facility_id) in str(fid):
+            aud = f.get("audiences") or []
+            aud_text = ", ".join(aud) if isinstance(aud, list) else str(aud)
+            return {
+                "facility_id": str(fid),
+                "name": f.get("name") or "나라사랑가게",
+                "benefit": f.get("benefit") or "병역이행자 및 병역명문가 할인 우대",
+                "audience_text": aud_text or "나라사랑카드 소지 장병 및 예비군",
+                "address": f.get("address") or ""
+            }
+    if facilities:
+        f = facilities[0]
+        return {
+            "facility_id": str(f.get("facility_id") or "store"),
+            "name": f.get("name") or "나라사랑가게",
+            "benefit": f.get("benefit") or "병역이행자 및 병역명문가 할인 우대",
+            "audience_text": "나라사랑카드 소지 장병 및 예비군",
+            "address": f.get("address") or ""
+        }
     return None
 
 def draw_door_hanger(store):
-    # Hanger Canvas aspect ratio (600x1100 px)
     p_width, p_height = 600, 1100
     hanger = Image.new("RGBA", (p_width, p_height), "#F3F3ED")
     draw = ImageDraw.Draw(hanger)
     
-    font_bold_path = "C:/Users/ADMIN/.gemini/antigravity/brain/933ebf77-3826-4ebb-b31f-6a621c26fdc9/fonts/Pretendard-Bold.ttf"
-    font_path = "C:/Users/ADMIN/.gemini/antigravity/brain/933ebf77-3826-4ebb-b31f-6a621c26fdc9/fonts/Pretendard-Regular.ttf"
+    font_bold_path, font_path = get_font_paths()
     
-    try:
-        font_header_sub = ImageFont.truetype(font_bold_path, 16)
-        font_welcome = ImageFont.truetype(font_bold_path, 22)
-        font_title = ImageFont.truetype(font_bold_path, 36)
-        font_badge_text = ImageFont.truetype(font_bold_path, 18)
-        font_label = ImageFont.truetype(font_bold_path, 14)
-        font_scan_title = ImageFont.truetype(font_bold_path, 13)
-        font_footer = ImageFont.truetype(font_bold_path, 12)
-    except IOError:
-        font_path_alt = "C:/Windows/Fonts/malgun.ttf"
-        font_bold_path_alt = "C:/Windows/Fonts/malgunbd.ttf"
-        font_header_sub = ImageFont.truetype(font_bold_path_alt, 16)
-        font_welcome = ImageFont.truetype(font_bold_path_alt, 22)
-        font_title = ImageFont.truetype(font_bold_path_alt, 36)
-        font_badge_text = ImageFont.truetype(font_bold_path_alt, 18)
-        font_label = ImageFont.truetype(font_bold_path_alt, 14)
-        font_scan_title = ImageFont.truetype(font_bold_path_alt, 13)
-        font_footer = ImageFont.truetype(font_bold_path_alt, 12)
+    font_header_sub = get_font(font_bold_path, 16, is_bold=True)
+    font_welcome = get_font(font_bold_path, 22, is_bold=True)
+    font_title = get_font(font_bold_path, 36, is_bold=True)
+    font_badge_text = get_font(font_bold_path, 18, is_bold=True)
+    font_label = get_font(font_bold_path, 14, is_bold=True)
+    font_scan_title = get_font(font_bold_path, 13, is_bold=True)
+    font_footer = get_font(font_bold_path, 12, is_bold=True)
 
     # 1. Door Hanger Hole
     hole_cx, hole_cy, hole_r = 300, 150, 80
-    # Draw dashed circle
     draw.ellipse([hole_cx - hole_r, hole_cy - hole_r, hole_cx + hole_r, hole_cy + hole_r], outline="#64748B", width=2)
-    # Draw cut slit
     for y in range(0, hole_cy - hole_r, 10):
          draw.line([(hole_cx, y), (hole_cx, y + 6)], fill="#64748B", width=2)
     draw.text((hole_cx, hole_cy + hole_r + 20), "문고리 거치선 (지름 8cm)", fill="#64748B", font=font_footer, anchor="mm")
 
-    # 2. Logo + Header
-    logo_path = brain_dir / "mma_logo.png"
-    if logo_path.exists():
-        logo_img = Image.open(logo_path).convert("RGBA")
-        logo_resized = logo_img.resize((100, 35), Image.Resampling.LANCZOS)
-        logo_x = (p_width - 100) // 2
-        hanger.paste(logo_resized, (logo_x, 280), logo_resized)
-        draw.text((p_width // 2, 330), "나라사랑가게", fill="#1E3A8A", font=font_header_sub, anchor="mm")
-    else:
-        draw.text((p_width // 2, 330), "대한민국 병무청 | 나라사랑가게", fill="#1E3A8A", font=font_header_sub, anchor="mm")
+    # 2. Header
+    draw.text((p_width // 2, 330), "대한민국 병무청 | 나라사랑가게", fill="#1E3A8A", font=font_header_sub, anchor="mm")
 
     # 3. Welcome + Store Name
     draw.text((p_width // 2, 380), "환영합니다", fill="#64748B", font=font_welcome, anchor="mm")
@@ -153,7 +177,11 @@ def draw_door_hanger(store):
     benefit_content, benefit_target, _ = parse_benefit_field(store['benefit'])
 
     # 5. Benefit Capsule Badge
-    badge_w = int(font_badge_text.getlength(benefit_content)) + 40
+    try:
+        w_text = font_badge_text.getlength(benefit_content)
+    except Exception:
+        w_text = len(benefit_content) * 12
+    badge_w = int(w_text) + 40
     badge_w = min(badge_w, 520)
     badge_h = 50
     badge_x1 = (p_width - badge_w) // 2
@@ -169,7 +197,6 @@ def draw_door_hanger(store):
     
     aud_lines, font_aud, aud_size = fit_hanger_audience_text(benefit_target, font_path, max_width=480)
     aud_line_h = aud_size * 1.35
-    total_aud_h = len(aud_lines) * aud_line_h
     start_aud_y = 605
     
     for idx, line in enumerate(aud_lines):
@@ -180,9 +207,8 @@ def draw_door_hanger(store):
     qr_card_x1, qr_card_y1, qr_card_x2, qr_card_y2 = 160, 715, 440, 985
     draw.rounded_rectangle([qr_card_x1, qr_card_y1, qr_card_x2, qr_card_y2], radius=16, fill="#FFFFFF", outline="#E2E8F0", width=2)
     
-    # QR Image
     facility_id = store['facility_id']
-    landing_url = f"https://mmamap-narasarang.vercel.app/mobile_landing.html?facility_id={facility_id}"
+    landing_url = f"https://mmamap-seven.vercel.app/mobile_landing.html?id={facility_id}"
     qr_api_url = f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={requests.utils.quote(landing_url)}"
     
     qr_w, qr_h = 160, 160
@@ -190,7 +216,7 @@ def draw_door_hanger(store):
     qr_y = 740
     
     try:
-        qr_res = requests.get(qr_api_url, verify=False, timeout=10)
+        qr_res = requests.get(qr_api_url, verify=False, timeout=5)
         if qr_res.status_code == 200:
             qr_img = Image.open(BytesIO(qr_res.content)).convert("RGBA")
             hanger.paste(qr_img, (qr_x, qr_y), qr_img)
@@ -198,7 +224,6 @@ def draw_door_hanger(store):
     except Exception as e:
         print("QR download failed:", e)
 
-    # QR Scan Info Subtext
     draw.text((300, 945), "스마트폰 스캔 (상세 혜택)", fill="#1E3A8A", font=font_scan_title, anchor="mm")
 
     # 8. Footer Section
@@ -206,7 +231,12 @@ def draw_door_hanger(store):
     draw.line([(50, 1010), (550, 1010)], fill="#DFD7CB", width=2)
     draw.text((p_width // 2, 1050), footer_text, fill="#64748B", font=font_footer, anchor="mm")
 
-    # Return bytes
     output_buf = BytesIO()
     hanger.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
+
+def generate_hanger(facility_id):
+    store = get_store_info(facility_id)
+    if not store:
+        raise ValueError(f"Facility {facility_id} not found.")
+    return draw_door_hanger(store)
