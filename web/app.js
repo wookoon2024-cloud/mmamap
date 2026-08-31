@@ -2409,16 +2409,18 @@ async function bootstrap() {
         el = document.createElement("div");
         el.id = "debugStatusBadge";
         el.style.position = "fixed";
-        el.style.bottom = "24px";
-        el.style.right = "85px";
-        el.style.background = "rgba(15, 23, 42, 0.85)";
+        el.style.bottom = "6px";
+        el.style.right = "135px";
+        el.style.background = "#0f172a";
         el.style.color = "#38bdf8";
         el.style.zIndex = "10000";
-        el.style.padding = "3px 8px";
+        el.style.padding = "2px 8px";
         el.style.fontSize = "11px";
         el.style.fontFamily = "monospace";
-        el.style.borderRadius = "4px";
+        el.style.borderRadius = "3px";
+        el.style.border = "1px solid #334155";
         el.style.pointerEvents = "none";
+        el.style.fontWeight = "bold";
         document.body.appendChild(el);
       }
       el.textContent = msg;
@@ -2603,15 +2605,19 @@ async function bootstrap() {
   updateLegendTabUi();
   buildRankAudienceFilters();
   renderHubNav();
-  try {
-    await loadEngagementSnapshot();
-  } catch (_err) {
-    // ignore and continue with empty engagement state
-  }
   renderFavoritesPanel();
   renderRankPanel();
   renderNewStorePanel();
+  renderVisibleMarkers();
   openIntroPopup();
+
+  // Background fetch for user engagements (non-blocking)
+  loadEngagementSnapshot()
+    .then(() => {
+      renderFavoritesPanel();
+      renderRankPanel();
+    })
+    .catch(() => {});
 
   const closePrintBtn = document.getElementById("closePrintModalBtn");
   if (closePrintBtn) closePrintBtn.addEventListener("click", closePrintModal);
