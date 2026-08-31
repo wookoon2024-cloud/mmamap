@@ -1585,8 +1585,8 @@ async function bootstrap() {
       <div class="print-sheet tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
         <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
           <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-          <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안을 생성 중입니다...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/2] 고화질 그래픽 렌더링 요청 중...</div>
+          <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안 생성 중...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/2] 렌더링 서버 요청 시작...</div>
         </div>
         <img id="printResultImg" 
              alt="${tplTitle} 인쇄 시안" 
@@ -1603,44 +1603,69 @@ async function bootstrap() {
       addDebugLog(msg, type);
     };
 
+    const startTime = performance.now();
+    let timerInterval = setInterval(() => {
+      const curElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+      if (subLog && loadingWrap && loadingWrap.style.display !== "none") {
+        subLog.textContent = `[1/2] 서버 응답 대기 중... (${curElapsed}초 경과)`;
+      }
+    }, 500);
+
     try {
-      updateLog(`[1/2] ${tplTitle} 렌더링 요청 전송 (${facilityId})`, "info");
+      updateLog(`[1/2] ${tplTitle} 렌더링 요청 전송 (ID: ${facilityId})`, "info");
       
-      let targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      const primaryUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      const renderDirectUrl = `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
       
-      const startTime = performance.now();
+      let targetUrl = primaryUrl;
       let res;
+      
       try {
+        updateLog(`[시도 1] ${isLocal ? "로컬 서버" : "Vercel 프록시"} 호출: ${targetUrl}`, "info");
         res = await fetch(targetUrl);
-      } catch (err) {
-        // Fallback to direct Render backend if local /api route is not available
-        targetUrl = `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
-        updateLog(`[재시도] Render 서버 직접 연결: ${targetUrl}`, "warn");
-        res = await fetch(targetUrl);
+        if (!res.ok && !isLocal) {
+          throw new Error(`Proxy HTTP ${res.status}`);
+        }
+      } catch (proxyErr) {
+        if (!isLocal) {
+          targetUrl = renderDirectUrl;
+          updateLog(`[시도 2] Render 백엔드 직접 연결 시도: ${targetUrl} (사유: ${proxyErr.message})`, "warn");
+          res = await fetch(targetUrl);
+        } else {
+          throw proxyErr;
+        }
       }
 
+      clearInterval(timerInterval);
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
       
       if (!res || !res.ok) {
-        throw new Error(`HTTP ${res ? res.status : "Error"} (${res ? res.statusText : "연결 실패"}) [${elapsed}초]`);
+        const errText = await (res ? res.text().catch(() => "") : "");
+        throw new Error(`HTTP ${res ? res.status : "Error"} (${errText || res.statusText || "서버 응답 오류"}) [${elapsed}초]`);
       }
       
       const blob = await res.blob();
       currentPrintBlobUrl = URL.createObjectURL(blob);
       
       resultImg.onload = () => {
-        updateLog(`[2/2] ${tplTitle} 렌더링 완료 (${elapsed}초, ${(blob.size / 1024).toFixed(1)} KB)`, "success");
+        updateLog(`[2/2] ${tplTitle} 완성 (${elapsed}초, ${(blob.size / 1024).toFixed(1)} KB)`, "success");
         if (loadingWrap) loadingWrap.style.display = "none";
         if (resultImg) resultImg.style.display = "block";
       };
       resultImg.src = currentPrintBlobUrl;
     } catch (err) {
+      clearInterval(timerInterval);
       console.error("[PrintModal Error]", err);
-      updateLog(`[오류] 홍보물 생성 실패: ${err.message}`, "error");
+      const totalElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      updateLog(`[오류] 홍보물 생성 실패 (${totalElapsed}초): ${err.message}`, "error");
       if (loadingWrap) {
         loadingWrap.innerHTML = `
-          <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 8px;">홍보물 생성 일시 지연</div>
-          <div style="font-size: 12px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 12px;">${err.message || err}</div>
+          <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 6px;">홍보물 생성 오류 (${totalElapsed}초)</div>
+          <div style="font-size: 11px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 10px; text-align: left;">
+            <div><b>상세 내용:</b> ${escapeHtml(err.message || String(err))}</div>
+            <div style="margin-top: 4px; color: #7f1d1d; font-size: 10px;">※ Render 서버가 절전 모드인 경우 첫 요청 시 약 30~50초가 소요될 수 있습니다.</div>
+          </div>
           <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
         `;
       }

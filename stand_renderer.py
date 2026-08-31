@@ -292,5 +292,40 @@ def generate_stand(facility_id, port=8080):
     store = get_store_info(facility_id)
     if not store:
         raise ValueError(f"Facility {facility_id} not found.")
-    img_bytes = draw_table_stand(store, map_path=None)
+    
+    map_path = None
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+            )
+            page = browser.new_page(viewport={"width": 680, "height": 440})
+            url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
+            try:
+                page.goto(url, wait_until="networkidle", timeout=8000)
+            except Exception as e:
+                print(f"[StandRenderer] Warning on page.goto: {e}")
+            time.sleep(2)
+            
+            map_locator = page.locator("#map")
+            map_path = BASE_DIR / f"temp_map_stand_{facility_id}.png"
+            try:
+                map_locator.screenshot(path=str(map_path), timeout=5000)
+            except Exception as e:
+                print(f"[StandRenderer] Locator screenshot failed: {e}")
+                page.screenshot(path=str(map_path))
+            browser.close()
+    except Exception as e:
+        print(f"[StandRenderer] Playwright capture error: {e}")
+
+    img_bytes = draw_table_stand(store, map_path=map_path)
+    
+    if map_path and Path(map_path).exists():
+        try:
+            Path(map_path).unlink()
+        except Exception:
+            pass
+            
     return img_bytes

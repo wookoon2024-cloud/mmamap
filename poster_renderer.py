@@ -351,5 +351,40 @@ def draw_poster(store, neighbors, map_path):
 
 def generate_poster(facility_id, port=8080):
     store, neighbors = get_store_and_neighbors(facility_id)
-    img_bytes = draw_poster(store, neighbors, map_path=None)
+    map_path = None
+    
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+            )
+            page = browser.new_page(viewport={"width": 880, "height": 550})
+            url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
+            try:
+                page.goto(url, wait_until="networkidle", timeout=8000)
+            except Exception as e:
+                print(f"[PosterRenderer] Warning on page.goto: {e}")
+            time.sleep(2)
+            
+            map_locator = page.locator("#map")
+            map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
+            try:
+                map_locator.screenshot(path=str(map_path), timeout=5000)
+            except Exception as e:
+                print(f"[PosterRenderer] Locator screenshot failed: {e}")
+                page.screenshot(path=str(map_path))
+            browser.close()
+    except Exception as e:
+        print(f"[PosterRenderer] Playwright capture error: {e}")
+
+    img_bytes = draw_poster(store, neighbors, map_path)
+    
+    if map_path and Path(map_path).exists():
+        try:
+            Path(map_path).unlink()
+        except Exception:
+            pass
+            
     return img_bytes
