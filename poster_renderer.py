@@ -23,6 +23,11 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 def get_font_paths():
+    pretendard_bold = BASE_DIR / "fonts" / "Pretendard-Bold.otf"
+    pretendard_regular = BASE_DIR / "fonts" / "Pretendard-Regular.otf"
+    if pretendard_bold.exists() and pretendard_regular.exists():
+        return str(pretendard_bold), str(pretendard_regular)
+        
     bundled_bold = BASE_DIR / "fonts" / "font_bold.ttf"
     bundled_regular = BASE_DIR / "fonts" / "font_regular.ttf"
     if bundled_bold.exists() and bundled_regular.exists():
