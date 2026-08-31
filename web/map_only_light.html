@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나라사랑가게 상생 지도 - 라이트 테마</title>
+  <script src="/config.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700&display=swap');
+    
+    html, body, #map {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #f2f2ec;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    
+    /* Premium Main Store Marker (80px) - Highest z-index */
+    .marker-main {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      background-image: url('/img/blue_pin.png?v=2');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      z-index: 9999;
+    }
+    
+    /* Center Main Label positioned ABOVE the pin with a pointing tail, avoiding overlaps! */
+    .marker-main-label {
+      position: absolute;
+      bottom: 84px; /* Positioned above the pin */
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1e3a8a;
+      color: #ffffff;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      padding: 8px 24px;
+      border-radius: 30px;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(30, 58, 138, 0.4);
+      z-index: 9999;
+    }
+    /* Navy pointing tail for the main store label */
+    .marker-main-label::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: #1e3a8a transparent transparent;
+      display: block;
+      width: 0;
+      z-index: 9999;
+    }
+    
+    /* Premium Neighbor Gold Pin Marker (68px) */
+    .marker-neighbor {
+      position: relative;
+      width: 68px;
+      height: 68px;
+      background-image: url('/img/gold_pin.png?v=2');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      z-index: 100;
+    }
+    
+    /* Speech Bubble style Tooltip Box - Font size 20px, Warm beige border */
+    .marker-neighbor-label {
+      position: absolute;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 20px;
+      font-weight: 500;
+      line-height: 1.6;
+      padding: 14px 22px;
+      border-radius: 14px;
+      border: 2px solid #d2c9bd;
+      white-space: nowrap;
+      box-shadow: 0 10px 25px rgba(210, 201, 189, 0.5);
+      text-align: left;
+      z-index: 100;
+    }
+    
+    /* Position A: TOP (Centered above the pin, arrow at bottom) */
+    .label-top {
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .label-top::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: #ffffff transparent transparent;
+      display: block;
+      width: 0;
+    }
+    .label-top::before {
+      content: '';
+      position: absolute;
+      bottom: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 12px 12px 0;
+      border-style: solid;
+      border-color: #d2c9bd transparent transparent;
+      display: block;
+      width: 0;
+      z-index: -1;
+    }
+    
+    /* Position B: RIGHT (To the right of the pin, arrow on the left) */
+    .label-right {
+      left: 80px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .label-right::after {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 10px 10px 10px 0;
+      border-style: solid;
+      border-color: transparent #ffffff transparent transparent;
+      display: block;
+      width: 0;
+    }
+    .label-right::before {
+      content: '';
+      position: absolute;
+      left: -13px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 12px 12px 12px 0;
+      border-style: solid;
+      border-color: transparent #d2c9bd transparent transparent;
+      display: block;
+      width: 0;
+      z-index: -1;
+    }
+    
+    /* Position C: LEFT (To the left of the pin, arrow on the right) */
+    .label-left {
+      right: 80px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .label-left::after {
+      content: '';
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 10px 0 10px 10px;
+      border-style: solid;
+      border-color: transparent transparent transparent #ffffff;
+      display: block;
+      width: 0;
+    }
+    .label-left::before {
+      content: '';
+      position: absolute;
+      right: -13px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 12px 0 12px 12px;
+      border-style: solid;
+      border-color: transparent transparent transparent #d2c9bd;
+      display: block;
+      width: 0;
+      z-index: -1;
+    }
+    
+    /* Position D: BOTTOM (Centered below the pin, arrow on top) */
+    .label-bottom {
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .label-bottom::after {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 0 10px 10px;
+      border-style: solid;
+      border-color: transparent transparent #ffffff;
+      display: block;
+      width: 0;
+    }
+    .label-bottom::before {
+      content: '';
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 0 12px 12px;
+      border-style: solid;
+      border-color: transparent transparent #d2c9bd;
+      display: block;
+      width: 0;
+      z-index: -1;
+    }
+    
+    .label-item {
+      margin: 4px 0;
+    }
+
+    /* Extra secondary pins within bounds (without bubbles, slightly smaller, semi-transparent) */
+    .marker-extra-pin {
+      width: 48px;
+      height: 48px;
+      background-image: url('/img/gold_pin.png?v=2');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.8;
+    }
+    
+    /* Distance Ring Labels style (white pill, dark blue text, royal blue border) */
+    .distance-label {
+      background-color: #ffffff;
+      color: #1e3a8a;
+      border: 2px solid #2563eb;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function formatDistance(dist) {
+      if (dist >= 1000) {
+        return (dist / 1000).toFixed(1) + "km";
+      }
+      return Math.round(dist) + "m";
+    }
+
+    // Helper functions for 2D speech bubble bounding box calculations
+    function getBubbleDims(group) {
+      const w = group.length > 1 ? 300 : 240;
+      const h = 50 + (group.length - 1) * 30;
+      return { w: w + 24, h: h + 24 };
+    }
+
+    function getBubbleBox(m, dir, dims) {
+      const w = dims.w;
+      const h = dims.h;
+      let x1, y1, x2, y2;
+      
+      if (dir === "top") {
+        x1 = m.avgX - w / 2;
+        y1 = m.avgY - 80 - h;
+        x2 = m.avgX + w / 2;
+        y2 = m.avgY - 80;
+      } else if (dir === "bottom") {
+        x1 = m.avgX - w / 2;
+        y1 = m.avgY + 80;
+        x2 = m.avgX + w / 2;
+        y2 = m.avgY + 80 + h;
+      } else if (dir === "left") {
+        x1 = m.avgX - 80 - w;
+        y1 = m.avgY - h / 2;
+        x2 = m.avgX - 80;
+        y2 = m.avgY + h / 2;
+      } else if (dir === "right") {
+        x1 = m.avgX + 80;
+        y1 = m.avgY - h / 2;
+        x2 = m.avgX + 80 + w;
+        y2 = m.avgY + h / 2;
+      }
+      return { x1, y1, x2, y2 };
+    }
+
+    function getPinBox(m) {
+      return {
+        x1: m.avgX - 34,
+        y1: m.avgY - 34,
+        x2: m.avgX + 34,
+        y2: m.avgY + 34
+      };
+    }
+
+    function intersect(b1, b2) {
+      return !(b1.x2 < b2.x1 || b1.x1 > b2.x2 || b1.y2 < b2.y1 || b1.y1 > b2.y2);
+    }
+
+    function loadMapScript() {
+      return new Promise((resolve, reject) => {
+        const keyId = window.APP_CONFIG.naverMap.keyId;
+        if (!keyId) {
+          reject(new Error("Naver API Key missing"));
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}`;
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Naver Map Script load failed"));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function init() {
+      try {
+        console.log("init started");
+        await loadMapScript();
+        console.log("Naver Maps script loaded");
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get("facility_id") || "nara_3218";
+        
+        const res = await fetch("/data/benefits_map.json");
+        const data = await res.json();
+        const facilities = data.facilities || [];
+        window.facilities = facilities;
+        
+        const target = facilities.find(f => f.facility_id === targetId || f.id === targetId);
+        if (!target || !target.lat || !target.lng) {
+          alert("대상 매장 정보나 위경도 좌표를 찾을 수 없습니다.");
+          return;
+        }
+        
+        const center = new naver.maps.LatLng(target.lat, target.lng);
+        const map = new naver.maps.Map("map", {
+          center: center,
+          zoom: 17,
+          mapTypeId: naver.maps.MapTypeId.NORMAL,
+          zoomControl: false
+        });
+        window.map = map;
+        console.log("Main marker added");
+        
+        // Render concentric rings if parameter rings=1 is set
+        const drawRings = urlParams.get("rings") === "1";
+        const isClean = urlParams.get("clean") === "1";
+        if (drawRings) {
+          console.log("Drawing concentric rings around central store");
+          
+          // Outer & Inner circles
+          new naver.maps.Circle({
+            map: map,
+            center: center,
+            radius: 500,
+            fillColor: '#2563eb',
+            fillOpacity: 0.05,
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.6,
+            strokeWeight: 4,
+            strokeStyle: 'dash'
+          });
+          
+          new naver.maps.Circle({
+            map: map,
+            center: center,
+            radius: 1000,
+            fillColor: '#2563eb',
+            fillOpacity: 0.02,
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.5,
+            strokeWeight: 4,
+            strokeStyle: 'dash'
+          });
+          
+          // Calculate coordinates for due East along the circles to place labels
+          const radLat = center.lat() * Math.PI / 180;
+          const metersPerDegLng = 111300 * Math.cos(radLat);
+          const lngOffset500 = 500 / metersPerDegLng;
+          const lngOffset1000 = 1000 / metersPerDegLng;
+          
+          const pos500 = new naver.maps.LatLng(center.lat(), center.lng() + lngOffset500);
+          const pos1000 = new naver.maps.LatLng(center.lat(), center.lng() + lngOffset1000);
+          
+          // Add distance label markers
+          new naver.maps.Marker({
+            position: pos500,
+            map: map,
+            zIndex: 999,
+            icon: {
+              content: '<div class="distance-label">500m</div>',
+              anchor: new naver.maps.Point(34, 15)
+            }
+          });
+          
+          new naver.maps.Marker({
+            position: pos1000,
+            map: map,
+            zIndex: 999,
+            icon: {
+              content: '<div class="distance-label">1km</div>',
+              anchor: new naver.maps.Point(34, 15)
+            }
+          });
+        }
+        
+        if (isClean) {
+          new naver.maps.Marker({
+            position: center,
+            map: map,
+            zIndex: 9999,
+            icon: {
+              content: `
+                <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%); font-family: 'Noto Sans KR', sans-serif;">
+                  <div style="background:#1e3a8a;color:#ffffff;font-size:16px;font-weight:900;padding:5px 12px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;">
+                    ${target.name}
+                  </div>
+                  <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid #1e3a8a;"></div>
+                  <div style="width:10px;height:10px;background:#1e3a8a;border:2px solid #fff;border-radius:50%;margin-top:-2px;"></div>
+                </div>
+              `,
+              anchor: new naver.maps.Point(0, 0)
+            }
+          });
+        } else {
+          new naver.maps.Marker({
+            position: center,
+            map: map,
+            zIndex: 9999,
+            icon: {
+              content: `
+                <div class="marker-main">
+                  <div class="marker-main-label">${target.name}</div>
+                </div>
+              `,
+              anchor: new naver.maps.Point(40, 40)
+            }
+          });
+        }
+        
+        // Find the 5 nearest neighbor stores globally by sorting by distance
+        let neighbors = facilities
+          .filter(f => f.facility_id !== targetId && f.id !== targetId && f.lat && f.lng && f.source_type === "nara_sarang_store")
+          .map(f => {
+            const dist = getDistance(target.lat, target.lng, f.lat, f.lng);
+            return { item: f, distance: dist };
+          });
+        neighbors.sort((a, b) => a.distance - b.distance);
+        neighbors = neighbors.slice(0, 5);
+        window.neighbors = neighbors;
+        console.log("Filtered neighbors count:", neighbors.length);
+        
+        const indexedNeighbors = neighbors.map((n, idx) => ({
+          ...n,
+          index: idx + 1
+        }));
+        
+        if (isClean) {
+          console.log("Clean mode: fitting bounds to the 1000m circle boundaries");
+          const latRad = target.lat * Math.PI / 180;
+          const dLat1000 = 1000 / 111300;
+          const dLng1000 = 1000 / (111300 * Math.cos(latRad));
+          const swCoord = new naver.maps.LatLng(target.lat - dLat1000, target.lng - dLng1000);
+          const neCoord = new naver.maps.LatLng(target.lat + dLat1000, target.lng + dLng1000);
+          const bounds1000 = new naver.maps.LatLngBounds(swCoord, neCoord);
+          map.fitBounds(bounds1000, {
+            top: 40,
+            right: 40,
+            bottom: 40,
+            left: 40
+          });
+        } else {
+          // Calculate symmetric bounds around target center to guarantee target is exactly in the center!
+          let maxDLat = 0;
+          let maxDLng = 0;
+          neighbors.forEach(n => {
+            const dLat = Math.abs(n.item.lat - target.lat);
+            const dLng = Math.abs(n.item.lng - target.lng);
+            if (dLat > maxDLat) maxDLat = dLat;
+            if (dLng > maxDLng) maxDLng = dLng;
+          });
+          
+          // Create symmetric LatLngBounds centered on main store
+          const swCoord = new naver.maps.LatLng(target.lat - maxDLat, target.lng - maxDLng);
+          const neCoord = new naver.maps.LatLng(target.lat + maxDLat, target.lng + maxDLng);
+          const symmetricBounds = new naver.maps.LatLngBounds(swCoord, neCoord);
+          
+          // Set the initial bounds centered on the main store
+          if (neighbors.length > 0) {
+            console.log("Calling fitBounds with symmetric bounds centered at main store");
+            map.fitBounds(symmetricBounds, {
+              top: 120,
+              right: 120,
+              bottom: 120,
+              left: 120
+            });
+          }
+        }
+        
+        // Function to solve layout for the current zoom/bounds projection
+        function solveLayout() {
+          const projection = map.getProjection();
+          if (!projection) return null;
+          
+          const mainPixel = projection.fromCoordToOffset(center);
+          const mainPinBox = { x1: mainPixel.x - 40, y1: mainPixel.y - 40, x2: mainPixel.x + 40, y2: mainPixel.y + 40 };
+          const mainLabelBox = { x1: mainPixel.x - 150, y1: mainPixel.y - 134, x2: mainPixel.x + 150, y2: mainPixel.y - 84 };
+          
+          const neighborPixels = indexedNeighbors.map(n => {
+            const coord = new naver.maps.LatLng(n.item.lat, n.item.lng);
+            const pixel = projection.fromCoordToOffset(coord);
+            return {
+              ...n,
+              coord: coord,
+              x: pixel.x,
+              y: pixel.y
+            };
+          });
+          
+          const pixelGroupThreshold = 60;
+          const groupedNeighbors = [];
+          
+          neighborPixels.forEach(n => {
+            let foundGroup = null;
+            for (const group of groupedNeighbors) {
+              const dx = group[0].x - n.x;
+              const dy = group[0].y - n.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < pixelGroupThreshold) {
+                foundGroup = group;
+                break;
+              }
+            }
+            if (foundGroup) {
+              foundGroup.push(n);
+            } else {
+              groupedNeighbors.push([n]);
+            }
+          });
+          
+          groupedNeighbors.forEach(group => {
+            group.avgDistance = group.reduce((sum, g) => sum + g.distance, 0) / group.length;
+            group.avgX = group.reduce((sum, g) => sum + g.x, 0) / group.length;
+            group.avgY = group.reduce((sum, g) => sum + g.y, 0) / group.length;
+          });
+          groupedNeighbors.sort((a, b) => a.avgDistance - b.avgDistance);
+          
+          const groupCandidates = groupedNeighbors.map((group, idx) => {
+            const dims = getBubbleDims(group);
+            
+            const dx = group.avgX - mainPixel.x;
+            const dy = group.avgY - mainPixel.y;
+            const angleRad = Math.atan2(-dy, dx);
+            const angleDeg = angleRad * 180 / Math.PI;
+            
+            let preferredDir = "top";
+            let disallowedDir = "bottom";
+            if (angleDeg >= -45 && angleDeg <= 45) {
+              preferredDir = "right";
+              disallowedDir = "left";
+            } else if (angleDeg > 45 && angleDeg < 135) {
+              preferredDir = "top";
+              disallowedDir = "bottom";
+            } else if (angleDeg >= 135 || angleDeg <= -135) {
+              preferredDir = "left";
+              disallowedDir = "right";
+            } else {
+              preferredDir = "bottom";
+              disallowedDir = "top";
+            }
+            
+            const allDirs = ["top", "bottom", "left", "right"];
+            const allowed = [preferredDir];
+            allDirs.forEach(d => {
+              if (d !== preferredDir && d !== disallowedDir) {
+                allowed.push(d);
+              }
+            });
+            allowed.push(disallowedDir);
+            
+            return {
+              group: group,
+              dims: dims,
+              avgX: group.avgX,
+              avgY: group.avgY,
+              allowed: allowed,
+              disallowed: disallowedDir,
+              index: idx
+            };
+          });
+          
+          let bestAssignment = null;
+          let minPenalty = Infinity;
+          
+          function evaluate(dirs) {
+            let penalty = 0;
+            const boxes = [];
+            
+            for (let i = 0; i < groupCandidates.length; i++) {
+              const cand = groupCandidates[i];
+              const dir = dirs[i];
+              const box = getBubbleBox(cand, dir, cand.dims);
+              boxes.push(box);
+              
+              // 1. Boundary check: penalty +100000 per violation (Hard constraint)
+              const mapWidth = 1200;
+              const mapHeight = 750;
+              const borderPadding = 30; // 30px boundary safety padding
+              if (box.x1 < borderPadding || box.x2 > mapWidth - borderPadding || 
+                  box.y1 < borderPadding || box.y2 > mapHeight - borderPadding) {
+                penalty += 100000;
+              }
+              
+              // 2. Main store collision: penalty +50000
+              if (intersect(box, mainPinBox) || intersect(box, mainLabelBox)) {
+                penalty += 50000;
+              }
+              
+              // 3. Collision with other group pins: penalty +20000
+              for (let j = 0; j < groupCandidates.length; j++) {
+                if (i === j) continue;
+                const otherPinBox = getPinBox(groupCandidates[j]);
+                if (intersect(box, otherPinBox)) {
+                  penalty += 20000;
+                }
+              }
+              
+              // 4. Direction preference penalty
+              const prefIdx = cand.allowed.indexOf(dir);
+              penalty += prefIdx * 100;
+              if (dir === cand.disallowed) {
+                penalty += 500;
+              }
+            }
+            
+            // 5. Overlap between bubbles: penalty +100000 (Hard constraint)
+            for (let i = 0; i < boxes.length; i++) {
+              for (let j = i + 1; j < boxes.length; j++) {
+                if (intersect(boxes[i], boxes[j])) {
+                  penalty += 100000;
+                }
+              }
+            }
+            
+            return penalty;
+          }
+          
+          function solve(index, currentDirs) {
+            if (index === groupCandidates.length) {
+              const p = evaluate(currentDirs);
+              if (p < minPenalty) {
+                minPenalty = p;
+                bestAssignment = [...currentDirs];
+              }
+              return;
+            }
+            
+            const cand = groupCandidates[index];
+            for (const dir of cand.allowed) {
+              currentDirs.push(dir);
+              solve(index + 1, currentDirs);
+              currentDirs.pop();
+            }
+          }
+          
+          solve(0, []);
+          return { bestAssignment, minPenalty, groupCandidates, projection };
+        }
+        
+        let extraMarkers = [];
+        function updateExtraMarkers() {
+          if (isClean) return;
+          extraMarkers.forEach(m => m.setMap(null));
+          extraMarkers = [];
+          
+          const bounds = map.getBounds();
+          if (!bounds) return;
+          
+          facilities.forEach(f => {
+            if (f.facility_id === targetId) return;
+            if (neighbors.some(n => n.item.facility_id === f.facility_id)) return;
+            
+            if (!f.lat || !f.lng || f.source_type !== "nara_sarang_store") return;
+            
+            const latlng = new naver.maps.LatLng(f.lat, f.lng);
+            if (bounds.hasLatLng(latlng)) {
+              const marker = new naver.maps.Marker({
+                position: latlng,
+                map: map,
+                zIndex: 50,
+                icon: {
+                  content: `<div class="marker-extra-pin"></div>`,
+                  anchor: new naver.maps.Point(24, 24)
+                }
+              });
+              extraMarkers.push(marker);
+            }
+          });
+          console.log("Drawn extra markers count:", extraMarkers.length);
+        }
+
+        if (!isClean) {
+          // Execute layout solver and trigger zoom-out loop if overlaps/boundary violations occur
+          let solution = solveLayout();
+          let zoomAdjustCount = 0;
+          
+          while (solution && solution.minPenalty >= 100000 && zoomAdjustCount < 3) {
+            console.log("Boundary violation or bubble overlap detected. Zooming out. Current Zoom: " + map.getZoom());
+            map.setZoom(map.getZoom() - 1);
+            zoomAdjustCount++;
+            solution = solveLayout();
+          }
+          
+          if (solution) {
+            console.log("Final layout solved. Min penalty: " + solution.minPenalty);
+            const { bestAssignment, groupCandidates, projection } = solution;
+            
+            groupCandidates.forEach((cand, idx) => {
+              const chosenDir = bestAssignment[idx];
+              const groupPos = projection.fromOffsetToCoord(new naver.maps.Point(cand.avgX, cand.avgY));
+              const positionClass = "label-" + chosenDir;
+              
+              const labelItemsHtml = cand.group.map(g => 
+                `<div class="label-item">
+                   <span style="font-weight: 700; color: #0f172a;">${g.item.name}</span> 
+                   <span style="font-weight: 400; color: #64748b;">(${formatDistance(g.distance)})</span>
+                 </div>`
+              ).join("");
+              
+              const labelHtml = `
+                <div class="marker-neighbor-label ${positionClass}">
+                  ${labelItemsHtml}
+                </div>
+              `;
+              
+              new naver.maps.Marker({
+                position: groupPos,
+                map: map,
+                zIndex: 100,
+                icon: {
+                  content: `
+                    <div class="marker-neighbor">
+                      ${labelHtml}
+                    </div>
+                  `,
+                  anchor: new naver.maps.Point(34, 34)
+                }
+              });
+              console.log(`Marker Group ${idx} drawn successfully at`, groupPos, "chosenDir:", chosenDir);
+            });
+          }
+
+          // Register bounds_changed event listener BEFORE calling fitBounds so bounds_changed will capture fitBounds updates!
+          naver.maps.Event.addListener(map, 'bounds_changed', updateExtraMarkers);
+          updateExtraMarkers();
+        }
+        
+      } catch (err) {
+        console.error("Map initialization error:", err);
+      }
+    }
+    
+    window.onload = init;
+  </script>
+</body>
+</html>

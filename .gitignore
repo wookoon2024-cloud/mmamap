@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+outputs/hanger_cache/
+outputs/poster_cache/
+outputs/stand_cache/
+outputs/server_stdout.log
+outputs/server_stderr.log
+outputs/bg_err.log
+outputs/bg_out.log
+outputs/naver_auth_probe.log
+outputs/jQuery*
+outputs/outputs.zip
+outputs/unknown_region_*
+.DS_Store
+.venv/
+venv/
+env/

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>군필지도</title>
-    <link rel="stylesheet" href="./styles.css?v=4.1" />
+    <link rel="stylesheet" href="./styles2.css?v=11.0" />
   </head>
   <body>
     <div id="map"></div>
@@ -39,21 +39,37 @@
     </section>
 
     <div class="legendBar">
-      <div class="legendTabRow">
-        <button id="legendTabCategory" class="legendTabBtn active" type="button">상점 분류</button>
-        <button id="legendTabAudience" class="legendTabBtn" type="button">대상자 구분</button>
-        <div class="legendRegionWrap">
-          <label for="regionSelect" class="legendRegionLabel">지역</label>
-          <select id="regionSelect" class="legendRegionSelect" aria-label="지역 선택">
-            <option value="">전체지역</option>
-          </select>
-        </div>
+      <div class="sidebarSearchWrap">
+        <input type="text" id="sidebarSearchInput" placeholder="상점명, 혜택, 주소 검색..." aria-label="상점 검색" />
       </div>
-      <div id="categoryLegend" class="categoryLegend"></div>
-      <div id="audienceLegend" class="audienceLegend hiddenLegend"></div>
-    </div>
+      
+      <!-- Region Selector at the top -->
+      <div class="legendRegionWrap">
+        <label for="regionSelect" class="legendRegionLabel">지역</label>
+        <select id="regionSelect" class="legendRegionSelect" aria-label="지역 선택">
+          <option value="">전체지역</option>
+        </select>
+      </div>
 
-    <div class="profileMenuWrap">
+      <!-- Section: Store Categories -->
+      <div class="sidebarSectionTitle">상점 분류</div>
+      <div id="categoryLegend" class="categoryLegend"></div>
+
+      <!-- Section: Audience Categories -->
+      <div class="sidebarSectionTitle">대상자 구분</div>
+      <div id="audienceLegend" class="audienceLegend"></div>
+      
+      <!-- New Store Panel nested at the bottom of the sidebar -->
+      <aside id="newStorePanel" class="newStorePanel" aria-label="신규 등록 스토어">
+        <div class="newStoreHead">
+          신규 등록된 스토어 <strong id="newStoreTotalCount">0</strong>개
+        </div>
+        <div class="newStoreRollWrap">
+          <div id="newStoreRollTrack" class="newStoreRollTrack"></div>
+        </div>
+      </aside>
+
+      <!-- Data Status Panel nested below New Store Panel in the sidebar -->
       <div id="sourceStatsBox" class="sourceStatsBox">
         <div class="sourceStatsTitle">데이터 현황</div>
         <div class="sourceStatsTicker">
@@ -64,21 +80,20 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Toggle button placed outside sidebar for layout stability -->
+    <button id="sidebarToggleBtn" class="sidebarToggleBtn" type="button" aria-label="필터 사이드바 토글">
+      <span><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></span>
+    </button>
+
+    <div class="profileMenuWrap">
       <button id="profileBtn" class="profileBtn" type="button" aria-label="즐겨찾기 메뉴"></button>
       <div id="favoritesPanel" class="favoritesPanel hidden">
         <div class="favoritesHeader">즐겨찾기 목록</div>
         <div id="favoritesList" class="favoritesList"></div>
       </div>
     </div>
-
-    <aside id="newStorePanel" class="newStorePanel" aria-label="신규 등록 스토어">
-      <div class="newStoreHead">
-        신규 등록된 스토어 <strong id="newStoreTotalCount">0</strong>개
-      </div>
-      <div class="newStoreRollWrap">
-        <div id="newStoreRollTrack" class="newStoreRollTrack"></div>
-      </div>
-    </aside>
 
     <div id="rankPanel" class="rankPanel collapsed">
       <div class="rankHead">
@@ -146,6 +161,6 @@
     </div>
 
     <script src="./config.js?v=2.7"></script>
-    <script src="./app.js?v=3.9"></script>
+    <script src="./app2.js?v=9.0"></script>
   </body>
 </html>

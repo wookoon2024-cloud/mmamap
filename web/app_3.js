@@ -11,7 +11,7 @@ const APP_DATA_LAST_UPDATED = "2026-04-08";
 const HUB_MENU_TREE = [
   {
     key: "benefit_map",
-    label: "서비스안내",
+    label: "군필지도",
     children: [
       {
         key: "map_use_guide",
@@ -306,7 +306,7 @@ function getAudienceDisplayName(name) {
   if (/\uB3D9\uC6D0\uD6C8\uB828/.test(s)) return "예비군";
   if (/\uC608\uBE44\uAD70/.test(s)) return "예비군";
   if (/\uD604\uC5ED/.test(s)) return "현역병";
-  if (/\uC0AC\uD68C\uBCF5\uBB34/.test(s)) return "사회복무";
+  if (/\uC0AC\uD68C\uBCF5\uBB34/.test(s)) return "사회복무요원";
   return name;
 }
 
@@ -1748,11 +1748,8 @@ async function bootstrap() {
     if (tplName === "poster") {
       const facilityId = point.facilityId || point.id || "";
       container.innerHTML = `
-        <div class="tpl-poster-img-only" style="position: relative; width: 420px; height: 594px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
-          <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1;">
-            <div class="print-loading-spinner" style="width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-            <div style="font-size: 15px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">포스터 이미지를 생성 중입니다... (약 3~4초 소요)</div>
-          </div>
+        <div class="tpl-poster-img-only" style="position: relative; width: 595px; height: 842px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
+          <div style="position: absolute; font-size: 16px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">포스터 이미지를 생성 중입니다... (약 3~4초 소요)</div>
           <img src="/api/print_poster?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
                alt="A4 홍보 포스터" 
                style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
@@ -1762,11 +1759,8 @@ async function bootstrap() {
     } else if (tplName === "table_stand") {
       const facilityId = point.facilityId || point.id || "";
       container.innerHTML = `
-        <div class="tpl-stand-img-only" style="position: relative; width: 280px; height: 420px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
-          <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1;">
-            <div class="print-loading-spinner" style="width: 32px; height: 32px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-            <div style="font-size: 13px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">스탠드 시안을 생성 중입니다...</div>
-          </div>
+        <div class="tpl-stand-img-only" style="position: relative; width: 360px; height: 540px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
+          <div style="position: absolute; font-size: 14px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">스탠드 시안을 생성 중입니다...</div>
           <img src="/api/print_stand?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
                alt="미니 테이블 스탠드 시안" 
                style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
@@ -1776,11 +1770,8 @@ async function bootstrap() {
     } else if (tplName === "door_hanger") {
       const facilityId = point.facilityId || point.id || "";
       container.innerHTML = `
-        <div class="tpl-hanger-img-only" style="position: relative; width: 240px; height: 435px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
-          <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1;">
-            <div class="print-loading-spinner" style="width: 32px; height: 32px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-            <div style="font-size: 13px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">도어행거 시안을 생성 중입니다...</div>
-          </div>
+        <div class="tpl-hanger-img-only" style="position: relative; width: 320px; height: 580px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
+          <div style="position: absolute; font-size: 14px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">도어행거 시안을 생성 중입니다...</div>
           <img src="/api/print_hanger?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
                alt="도어행거 시안" 
                style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
@@ -1806,11 +1797,6 @@ async function bootstrap() {
     const actionBtn = document.getElementById("doPrintBtn");
     if (actionBtn) {
       actionBtn.textContent = "이미지 다운로드";
-    }
-
-    const guideEl = document.getElementById("printGuideContent");
-    if (guideEl) {
-      guideEl.textContent = "가맹점 출입구나 카운터 주변에 부착하여 방문하는 대상자(현역병, 사회복무, 병역명문가 등)가 혜택을 즉시 알아볼 수 있도록 홍보하는 용도로 활용됩니다.";
     }
 
     renderPrintTemplate(point, currentPrintTemplate);
@@ -1875,16 +1861,16 @@ async function bootstrap() {
           <div class="detailTitle">${title}</div>
           <div class="detailSubTitle">${subtitleLine}</div>
         </div>
-        <button id="closeDetailPanelBtn" class="detailCloseBtn" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <button id="closeDetailPanelBtn" class="detailCloseBtn" type="button">×</button>
       </div>
       <div class="detailMeta">
-        <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> <span>${address}</span></div>
-        <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> <span>${telHref ? `<a href="tel:${escapeHtml(telHref)}">${safePhone}</a>` : safePhone}</span></div>
+        <div>📍 ${address}</div>
+        <div>📞 ${telHref ? `<a href="tel:${escapeHtml(telHref)}">${safePhone}</a>` : safePhone}</div>
       </div>
       <div class="detailFavRow">
-        <button id="detailLikeBtn" class="detailIconBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="좋아요"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg></button>
-        <button id="detailFavBtn" class="detailIconBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="즐겨찾기"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
-        <button id="detailPrintBtn" class="detailPrintBtn" type="button" title="맞춤 홍보물/상생지도 인쇄">홍보물 인쇄</button>
+        <button id="detailLikeBtn" class="detailIconBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="좋아요"><span class="iconGlyph" aria-hidden="true">❤</span></button>
+        <button id="detailFavBtn" class="detailIconBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="즐겨찾기"><span class="iconGlyph" aria-hidden="true">★</span></button>
+        <button id="detailPrintBtn" class="detailPrintBtn" type="button" title="맞춤 홍보물/상생지도 인쇄">🖨️ 홍보물 인쇄</button>
         ${bookingBtnHtml}
       </div>
       <div class="detailDivider"></div>
@@ -1964,9 +1950,9 @@ async function bootstrap() {
     if (img) {
       return {
         url: `./img/${img}`,
-        size: new naver.maps.Size(56, 56),
-        scaledSize: new naver.maps.Size(56, 56),
-        anchor: new naver.maps.Point(28, 28),
+        size: new naver.maps.Size(70, 70),
+        scaledSize: new naver.maps.Size(70, 70),
+        anchor: new naver.maps.Point(35, 35),
       };
     }
     const color = colorFromText(label);
@@ -1981,9 +1967,9 @@ async function bootstrap() {
     if (specialImg) {
       return {
         url: `./img/${specialImg}`,
-        size: new naver.maps.Size(68, 68),
-        scaledSize: new naver.maps.Size(68, 68),
-        anchor: new naver.maps.Point(34, 34),
+        size: new naver.maps.Size(84, 84),
+        scaledSize: new naver.maps.Size(84, 84),
+        anchor: new naver.maps.Point(42, 42),
       };
     }
     return getMarkerIcon(point?.category || "");
@@ -2472,7 +2458,7 @@ async function bootstrap() {
 
   const zoomLevelBtn = document.getElementById("btnZoomLevel");
   const updateZoomLabel = () => {
-    if (zoomLevelBtn) zoomLevelBtn.textContent = map.getZoom();
+    if (zoomLevelBtn) zoomLevelBtn.textContent = `${map.getZoom()}단계`;
   };
   updateZoomLabel();
 
@@ -2630,17 +2616,6 @@ async function bootstrap() {
       const actionBtn = document.getElementById("doPrintBtn");
       if (actionBtn) {
         actionBtn.textContent = "이미지 다운로드";
-      }
-
-      const guideEl = document.getElementById("printGuideContent");
-      if (guideEl) {
-        if (currentPrintTemplate === "poster") {
-          guideEl.textContent = "가맹점 출입구나 카운터 주변에 부착하여 방문하는 대상자(현역병, 사회복무, 병역명문가 등)가 혜택을 즉시 알아볼 수 있도록 홍보하는 용도로 활용됩니다.";
-        } else if (currentPrintTemplate === "table_stand") {
-          guideEl.textContent = "테이블, 매대, 또는 안내 데스크 위에 올려두어 결제나 대기 중인 대상자들에게 자연스럽게 할인 및 혜택 정보를 전달하는 데 적합합니다.";
-        } else if (currentPrintTemplate === "door_hanger") {
-          guideEl.textContent = "문고리, 차량 사이드미러, 혹은 손잡이 등에 걸어두어 이동 경로 상에서 간편하게 홍보물을 접하고 모바일 QR을 스캔할 수 있도록 유도합니다.";
-        }
       }
       
       if (currentPrintPoint) renderPrintTemplate(currentPrintPoint, currentPrintTemplate);

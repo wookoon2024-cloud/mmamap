@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -97,6 +98,18 @@ def init_engagement_tables(db_path: Path) -> None:
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_action_facility_type ON facility_action_states (facility_id, action_type)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_action_client_type ON facility_action_states (client_token, action_type)")
+        
+        # QR Code Scan Tracking Table
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS qr_scan_events (
+              event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              facility_id TEXT NOT NULL,
+              created_at INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_qr_facility ON qr_scan_events (facility_id)")
         conn.commit()
     finally:
         conn.close()
@@ -118,6 +131,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
 
@@ -155,7 +169,197 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return ("toggle", "")
         return ("other", "")
 
+    def _handle_qr_scan(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        facility_id = (q.get("facility_id") or [""])[0]
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
+            return
+        conn = self._db()
+        try:
+            conn.execute(
+                "INSERT INTO qr_scan_events (facility_id, created_at) VALUES (?, ?)",
+                (facility_id, now_ms())
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    def _handle_qr_stats(self):
+        conn = self._db()
+        try:
+            rows = conn.execute(
+                """
+                SELECT facility_id, COUNT(*) AS scan_count 
+                FROM qr_scan_events 
+                GROUP BY facility_id 
+                ORDER BY scan_count DESC
+                """
+            ).fetchall()
+            stats = [{"facilityId": r["facility_id"], "scanCount": r["scan_count"]} for r in rows]
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "stats": stats})
+
+    def _handle_print_poster(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        facility_id = (q.get("facility_id") or [""])[0]
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
+            return
+        
+        # Check cache folder first
+        cache_dir = BASE_DIR / "outputs" / "poster_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / f"poster_{facility_id}.png"
+        
+        if cache_path.exists():
+            print(f"[Server] Serving cached poster for {facility_id}")
+            with open(cache_path, "rb") as f:
+                img_bytes = f.read()
+        else:
+            print(f"[Server] Rendering poster dynamically for {facility_id}")
+            import asyncio
+            from poster_renderer import generate_poster
+            
+            try:
+                port = 8080
+                if hasattr(self.server, "server_port"):
+                    port = self.server.server_port
+                
+                # Run the renderer in an event loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                img_bytes = loop.run_until_complete(generate_poster(facility_id, port=port))
+                loop.close()
+                
+                # Cache it
+                with open(cache_path, "wb") as f:
+                    f.write(img_bytes)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+                return
+                
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(img_bytes)))
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.end_headers()
+        self.wfile.write(img_bytes)
+
+    def _handle_print_stand(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        facility_id = (q.get("facility_id") or [""])[0]
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
+            return
+        
+        # Check cache folder first
+        cache_dir = BASE_DIR / "outputs" / "stand_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / f"stand_{facility_id}.png"
+        
+        if cache_path.exists():
+            print(f"[Server] Serving cached stand for {facility_id}")
+            with open(cache_path, "rb") as f:
+                img_bytes = f.read()
+        else:
+            print(f"[Server] Rendering stand dynamically for {facility_id}")
+            from stand_renderer import generate_stand
+            
+            try:
+                port = 8080
+                if hasattr(self.server, "server_port"):
+                    port = self.server.server_port
+                elif hasattr(self.server, "server_address"):
+                    port = self.server.server_address[1]
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                img_bytes = loop.run_until_complete(generate_stand(facility_id, port=port))
+                loop.close()
+                
+                # Cache it
+                with open(cache_path, "wb") as f:
+                    f.write(img_bytes)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+                return
+                
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(img_bytes)))
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.end_headers()
+        self.wfile.write(img_bytes)
+
+    def _handle_print_hanger(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        facility_id = (q.get("facility_id") or [""])[0]
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
+            return
+        
+        # Check cache folder first
+        cache_dir = BASE_DIR / "outputs" / "hanger_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / f"hanger_{facility_id}.png"
+        
+        if cache_path.exists():
+            print(f"[Server] Serving cached hanger for {facility_id}")
+            with open(cache_path, "rb") as f:
+                img_bytes = f.read()
+        else:
+            print(f"[Server] Rendering hanger dynamically for {facility_id}")
+            from hanger_renderer import draw_door_hanger, get_store_info
+            
+            try:
+                store = get_store_info(facility_id)
+                if not store:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "Store not found"})
+                    return
+                img_bytes = draw_door_hanger(store)
+                
+                # Cache it
+                with open(cache_path, "wb") as f:
+                    f.write(img_bytes)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+                return
+                
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(img_bytes)))
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.end_headers()
+        self.wfile.write(img_bytes)
+
     def do_GET(self):
+        parsed_url = urlparse(self.path)
+        if parsed_url.path == "/api/print_hanger":
+            self._handle_print_hanger()
+            return
+        if parsed_url.path == "/api/print_stand":
+            self._handle_print_stand()
+            return
+        if parsed_url.path == "/api/print_poster":
+            self._handle_print_poster()
+            return
+        if parsed_url.path == "/api/qr_scan":
+            self._handle_qr_scan()
+            return
+        if parsed_url.path == "/api/qr_stats":
+            self._handle_qr_stats()
+            return
+
         route_type, review_id = self._parse_review_path()
         engagement_route, _ = self._parse_engagement_path()
         if route_type == "collection":
@@ -167,7 +371,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         if engagement_route == "snapshot":
             self._handle_engagement_snapshot()
             return
-        if urlparse(self.path).path == "/api/health":
+        if parsed_url.path == "/api/health":
             self._json(HTTPStatus.OK, {"ok": True})
             return
         super().do_GET()
@@ -538,9 +742,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
 
 def main():
+    port_env = os.environ.get("PORT")
+    default_port = int(port_env) if port_env else 8080
+
     parser = argparse.ArgumentParser(description="MMAMap web + review/engagement API server")
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--port", type=int, default=default_port)
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH))
     args = parser.parse_args()
 

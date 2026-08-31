@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나라사랑가게 상생지도 모바일 안내</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f1f5f9;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    header {
+      width: 100%;
+      background-color: #1e3a8a;
+      color: #ffffff;
+      padding: 18px 0;
+      text-align: center;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .container {
+      width: 90%;
+      max-width: 480px;
+      margin: 20px 0;
+      box-sizing: border-box;
+    }
+    
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .store-badge {
+      background-color: #eff6ff;
+      color: #2563eb;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 12px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+    
+    .store-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 16px 0;
+    }
+    
+    .info-row {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid #f1f5f9;
+      padding: 12px 0;
+    }
+    
+    .info-row:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+    
+    .info-label {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    .info-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.5;
+    }
+    
+    .benefit-highlight {
+      color: #ef4444;
+      font-size: 15px;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin: 0 0 14px 0;
+      border-left: 4px solid #1e3a8a;
+      padding-left: 8px;
+    }
+    
+    .desc-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #475569;
+      margin: 0;
+    }
+    
+    /* Nearby list premium layout styles */
+    .nearby-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .nearby-item:last-child {
+      border-bottom: none;
+    }
+    .nearby-info {
+      flex: 1;
+      padding-right: 12px;
+    }
+    .nearby-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .nearby-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .nearby-category {
+      font-size: 11px;
+      background-color: #f1f5f9;
+      color: #64748b;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .nearby-benefit {
+      font-size: 13px;
+      color: #ef4444;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .nearby-dist {
+      font-size: 14px;
+      color: #1e3a8a;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 14px 0;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      text-align: center;
+      display: block;
+      text-decoration: none;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+      transition: background-color 0.2s;
+    }
+    
+    .btn-primary {
+      background-color: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+    
+    .btn-primary:active {
+      background-color: #1d4ed8;
+    }
+    
+    .btn-accent {
+      background-color: #059669;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+    
+    .btn-accent:active {
+      background-color: #047857;
+    }
+    
+    .btn-secondary {
+      background-color: #ffffff;
+      color: #1e293b;
+      border: 1.5px solid #cbd5e1;
+    }
+    
+    .btn-secondary:active {
+      background-color: #f8fafc;
+    }
+    
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 20px;
+      padding-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <header>나라사랑가게 상생지도 모바일 안내</header>
+  
+  <div class="container">
+    <!-- Current Store Details Section -->
+    <div class="card" id="store-card" style="display:none;">
+      <span class="store-badge">나라사랑 협력업체</span>
+      <h2 class="store-name" id="name-placeholder">로딩 중...</h2>
+      
+      <div class="info-row">
+        <span class="info-label">제공 우대 혜택</span>
+        <span class="info-value benefit-highlight" id="benefit-placeholder">-</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">할인 대상자 (우대 대상)</span>
+        <span class="info-value" id="audience-placeholder">-</span>
+      </div>
+      
+      <div class="info-row" id="address-row">
+        <span class="info-label">매장 주소</span>
+        <span class="info-value" style="font-weight: 500;" id="address-placeholder">-</span>
+      </div>
+      
+      <div class="info-row" id="phone-row" style="display:none;">
+        <span class="info-label">전화번호 (연락처)</span>
+        <span class="info-value"><a href="" id="phone-placeholder" style="color: #2563eb; text-decoration: none; font-weight: 700;">-</a></span>
+      </div>
+    </div>
+
+    <!-- Nearby Stores List Section -->
+    <div class="card" id="nearby-section" style="display:none;">
+      <h3 class="section-title">주변 우대 가맹점 안내</h3>
+      <div id="nearby-list">
+        <!-- Dynamically loaded items -->
+      </div>
+      <button id="toggle-nearby-btn" style="display:none; width:100%; padding:12px 0; margin-top:12px; background:none; border:1px solid #cbd5e1; border-radius:10px; font-weight:700; color:#475569; cursor:pointer; font-size:14px;">주변 가맹점 더 보기</button>
+    </div>
+    
+    <!-- Definition Card -->
+    <div class="card">
+      <h3 class="section-title">나라사랑가게란?</h3>
+      <p class="desc-text">
+        병역을 성실히 이행한 사람(예비군, 현역 장병, 사회복무요원, 병역명문가 등)을 격려하고 실질적인 경제적 혜택을 제공하여 자긍심을 고취시키기 위해, 병무청과 민간 가맹업체가 상생하여 추진하는 공식 우대 프로그램입니다.
+      </p>
+    </div>
+    
+    <!-- Action Buttons -->
+    <a href="#" class="btn btn-primary" id="map-btn">주변 나라사랑가게 지도 보기</a>
+    <a href="https://www.mma.go.kr/contents.do?mc=mma0003358" class="btn btn-accent" target="_blank">나라사랑가게 참여하기 (가맹점 신청 안내)</a>
+    <a href="https://www.mma.go.kr" class="btn btn-secondary" target="_blank">병무청 공식 홈페이지 바로가기</a>
+    
+    <div class="footer">
+      © 병무청 & 경기북부청 나라사랑가게 상생 캠페인
+    </div>
+  </div>
+
+  <script>
+    function formatKoreanAddress(addr) {
+      if (!addr) return "-";
+      let res = addr.trim();
+      
+      const provinces = [
+        "경기도", "서울특별시", "인천광역시", "강원특별자치도", "강원도",
+        "충청북도", "충청남도", "경상북도", "경상남도", "전라북도", "전라남도",
+        "제주특별자치도", "제주도", "대전광역시", "광주광역시", "대구광역시", "울산광역시", "세종특별자치시"
+      ];
+      for (const p of provinces) {
+        if (res.startsWith(p) && !res.startsWith(p + " ")) {
+          res = p + " " + res.substring(p.length);
+          break;
+        }
+      }
+      
+      res = res.replace(/^(경기도|서울특별시|인천광역시|강원도|강원특별자치도|충청북도|충청남도|경상북도|경상남도|전라북도|전라남도|제주특별자치도|제주도|대전광역시|광주광역시|대구광역시|울산광역시|세종특별자치시)\s*([가-힣]+[시군구])/, "$1 $2");
+      res = res.replace(/([시군구])\s*([가-힣\d]+[로길읍면])/, "$1 $2");
+      res = res.replace(/([로길읍면])\s*(\d+)/, "$1 $2");
+      res = res.replace(/(\d+)(\d층)/, "$1 $2");
+      res = res.replace(/(\S)\s*(\([가-힣\d]+동\))/g, "$1 $2");
+      res = res.replace(/(\S)\s*(\([가-힣\d]+리\))/g, "$1 $2");
+      res = res.replace(/(\S)\s*(\([가-힣\d]+읍\))/g, "$1 $2");
+      
+      res = res.replace(/\s+/g, " ");
+      return res;
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function formatDistance(dist) {
+      if (dist >= 1000) {
+        return (dist / 1000).toFixed(1) + "km";
+      }
+      return Math.round(dist) + "m";
+    }
+
+    async function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const facilityId = urlParams.get("facility_id") || "nara_3218";
+      
+      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      const apiBase = isLocal ? "" : "http://77.90.230.91:8080";
+      
+      // 1. Log QR code scan to the server in background
+      try {
+        fetch(`${apiBase}/api/qr_scan?facility_id=${encodeURIComponent(facilityId)}`);
+      } catch (err) {
+        console.error("Failed to log scan:", err);
+      }
+      
+      // 2. Set map link directly to our premium custom Naver Map!
+      document.getElementById("map-btn").href = `/map_only_light.html?facility_id=${encodeURIComponent(facilityId)}`;
+      
+      // 3. Fetch facility info from JSON
+      try {
+        const res = await fetch("/data/benefits_map.json");
+        const data = await res.json();
+        const facilities = data.facilities || [];
+        const target = facilities.find(f => f.facility_id === facilityId || f.id === facilityId);
+        
+        if (target) {
+          document.getElementById("name-placeholder").innerText = target.name;
+          
+          let cleanBenefit = target.benefit || "";
+          cleanBenefit = cleanBenefit.replace(/<br\s*\/?>/gi, "<br>");
+          cleanBenefit = cleanBenefit.replace(/<(?!br\s*\/?)[^>]+>/gi, "");
+          document.getElementById("benefit-placeholder").innerHTML = cleanBenefit;
+          
+          let cleanAudience = (target.audiences && target.audiences.length > 0) 
+            ? target.audiences.join(" / ") 
+            : "나라사랑카드 소지자 / 병역이행 증빙자";
+          document.getElementById("audience-placeholder").innerText = cleanAudience;
+          
+          document.getElementById("address-placeholder").innerText = formatKoreanAddress(target.address);
+          
+          if (target.phone) {
+            const phoneEl = document.getElementById("phone-placeholder");
+            phoneEl.innerText = target.phone;
+            phoneEl.href = `tel:${target.phone}`;
+            document.getElementById("phone-row").style.display = "block";
+          } else {
+            document.getElementById("phone-row").style.display = "none";
+          }
+          
+          document.getElementById("store-card").style.display = "block";
+          
+          // Calculate and render nearest neighbor stores
+          if (target.lat && target.lng) {
+            const allNeighbors = facilities
+              .filter(f => f.facility_id !== facilityId && f.id !== facilityId && f.lat && f.lng && f.source_type === "nara_sarang_store")
+              .map(f => {
+                const dist = getDistance(target.lat, target.lng, f.lat, f.lng);
+                return { item: f, distance: dist };
+              });
+            allNeighbors.sort((a, b) => a.distance - b.distance);
+            
+            // Limit to nearest 15 stores
+            const nearestList = allNeighbors.slice(0, 15);
+            
+            if (nearestList.length > 0) {
+              const listContainer = document.getElementById("nearby-list");
+              const toggleBtn = document.getElementById("toggle-nearby-btn");
+              let isExpanded = false;
+              
+              function renderList() {
+                const visibleItems = isExpanded ? nearestList : nearestList.slice(0, 3);
+                
+                listContainer.innerHTML = visibleItems.map(n => {
+                  const rawBenefit = n.item.benefit || "";
+                  const shortBenefit = rawBenefit.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "");
+                  const cleanFullBenefit = rawBenefit.replace(/<br\s*\/?>/gi, "<br>").replace(/<(?!br\s*\/?)[^>]+>/gi, "");
+                  
+                  let benefitHtml = "";
+                  if (shortBenefit.length > 22) {
+                    benefitHtml = `
+                      <span class="benefit-short">${shortBenefit.substring(0, 22)}...</span>
+                      <span class="benefit-full" style="display:none;">${cleanFullBenefit}</span>
+                      <span class="benefit-toggle" style="color:#2563eb; font-weight:700; margin-left:6px; cursor:pointer; font-size:12px; display:inline-block;">더보기</span>
+                    `;
+                  } else {
+                    benefitHtml = `<span>${shortBenefit || "-"}</span>`;
+                  }
+                  
+                  return `
+                    <div class="nearby-item">
+                      <div class="nearby-info">
+
+                        <div class="nearby-name-row">
+                          <a href="/mobile_landing.html?facility_id=${n.item.facility_id}" class="nearby-name" style="color: #2563eb; text-decoration: none; border-bottom: 1.5px dashed #cbd5e1; padding-bottom: 1px;">${n.item.name}</a>
+                          <span class="nearby-category">${n.item.original_category || "가맹점"}</span>
+                        </div>
+                        <div class="nearby-benefit">${benefitHtml}</div>
+                      </div>
+                      <div class="nearby-dist">${formatDistance(n.distance)}</div>
+                    </div>
+                  `;
+                }).join("");
+                
+                if (nearestList.length > 3) {
+                  toggleBtn.style.display = "block";
+                  toggleBtn.innerText = isExpanded 
+                    ? "주변 가맹점 접기" 
+                    : `주변 가맹점 더 보기 (${nearestList.length - 3}개 더 있음)`;
+                }
+              }
+              
+              toggleBtn.onclick = () => {
+                isExpanded = !isExpanded;
+                renderList();
+              };
+              
+              listContainer.onclick = (e) => {
+                const toggle = e.target.closest(".benefit-toggle");
+                if (!toggle) return;
+                
+                const parent = toggle.parentElement;
+                const shortEl = parent.querySelector(".benefit-short");
+                const fullEl = parent.querySelector(".benefit-full");
+                
+                if (fullEl.style.display === "none") {
+                  fullEl.style.display = "inline";
+                  shortEl.style.display = "none";
+                  toggle.innerText = "접기";
+                } else {
+                  fullEl.style.display = "none";
+                  shortEl.style.display = "inline";
+                  toggle.innerText = "더보기";
+                }
+              };
+              
+              renderList();
+              document.getElementById("nearby-section").style.display = "block";
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error loading facility data:", err);
+      }
+    }
+    
+    window.onload = init;
+  </script>
+</body>
+</html>

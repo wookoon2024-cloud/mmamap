@@ -54,14 +54,13 @@ button:active {
 .brandLogo {
   position: fixed;
   top: 0px;
-  left: 16px;
+  left: 12px;
   z-index: 1200;
   pointer-events: none;
 }
 
 .brandLogo img {
-  height: 32px;
-  margin-top: 9px;
+  height: 50px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -2976,6 +2975,399 @@ button:active {
 }
 
 
+/* Sidebar and Grid Overrides for Collapsible Sidebar */
+.legendBar {
+  position: fixed !important;
+  top: 50px !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 320px !important;
+  height: calc(100vh - 50px) !important;
+  z-index: 1080 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  padding: 20px 16px !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+  border-right: 1px solid #dce5f3 !important;
+  border-left: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  box-shadow: 4px 0 12px rgba(15, 23, 42, 0.08) !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: visible !important;
+}
+
+.legendBar.collapsed {
+  transform: translateX(-320px) !important;
+}
+
+.legendTabRow {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+  z-index: 1 !important;
+}
+
+.legendTabBtn {
+  flex: 1 1 calc(50% - 4px) !important;
+  text-align: center !important;
+  border-radius: 6px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.legendRegionWrap {
+  margin-left: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 4px !important;
+  gap: 8px !important;
+}
+
+.legendRegionLabel {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #4a5f87 !important;
+}
+
+.legendRegionSelect {
+  flex: 1 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Category grid rendering */
+.categoryLegend,
+.audienceLegend {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px 6px !important;
+  overflow-x: visible !important;
+  overflow-y: auto !important;
+  padding: 16px 0 !important;
+  border-top: 1px solid #ecf1f8 !important;
+  width: 100% !important;
+}
+
+.legendItem {
+  min-width: 0 !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* Collapsible Toggle Button styles */
+.sidebarToggleBtn {
+  position: absolute !important;
+  left: 100% !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 24px !important;
+  height: 56px !important;
+  background: #ffffff !important;
+  border: 1px solid #dce5f3 !important;
+  border-left: none !important;
+  border-radius: 0 8px 8px 0 !important;
+  box-shadow: 4px 0 8px rgba(15, 23, 42, 0.06) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1001 !important;
+  padding: 0 !important;
+  color: #4a5f87 !important;
+  font-size: 11px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.sidebarToggleBtn:hover {
+  background: #f8fafc !important;
+  color: #2f6ff2 !important;
+}
+
+
+/* Sidebar Search Box styles */
+.sidebarSearchWrap {
+  width: 100% !important;
+  padding: 0 0 10px 0 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 8px !important;
+}
+
+#sidebarSearchInput {
+  width: 100% !important;
+  height: 36px !important;
+  border: 1px solid #ced9ee !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  color: #1a2438 !important;
+  background: #fbfdff !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+#sidebarSearchInput:focus {
+  border-color: #2f6ff2 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(47, 111, 242, 0.1) !important;
+}
+
+/* Move newStorePanel to the bottom of the sidebar */
+.legendBar #newStorePanel {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 100px !important;
+  margin-top: auto !important;
+  border: 1px solid #dce5f3 !important;
+  border-radius: 8px !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  z-index: auto !important;
+}
+
+
+/* Collapsible Sidebar Title & Grid Refinements */
+.sidebarSectionTitle {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: #1e293b !important;
+  padding: 12px 0 4px 0 !important;
+  border-bottom: 2px solid #f1f5f9 !important;
+  margin-top: 8px !important;
+  letter-spacing: -0.02em !important;
+}
+
+.categoryLegend,
+.audienceLegend {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 12px 4px !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  padding: 10px 0 !important;
+  border-top: none !important;
+}
+
+.sidebarToggleBtn {
+  left: 318px !important;
+  top: calc(50% - 28px) !important;
+  transform: none !important;
+}
+
+.legendBar {
+  overflow-y: auto !important;
+}
+
+
+/* Toggle Button Fixed Layout and Transition synchronization */
+.sidebarToggleBtn {
+  position: fixed !important;
+  left: 320px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 24px !important;
+  height: 56px !important;
+  background: #ffffff !important;
+  border: 1px solid #dce5f3 !important;
+  border-left: none !important;
+  border-radius: 0 8px 8px 0 !important;
+  box-shadow: 4px 0 8px rgba(15, 23, 42, 0.06) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1090 !important;
+  padding: 0 !important;
+  color: #4a5f87 !important;
+  font-size: 11px !important;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease !important;
+}
+
+.sidebarToggleBtn.collapsed {
+  left: 0px !important;
+}
+
+
+/* Prevent toggle button from jumping vertically when clicked (:active state) due to global button:active rules */
+.sidebarToggleBtn:active {
+  transform: translateY(-50%) !important;
+}
+
+
+/* Reduce Brand Logo Height to 32px to look neat inside 50px header */
+.brandLogo img {
+  height: 32px !important;
+  margin-top: 9px !important;
+}
+
+/* Tighter row gap for categories/audience lists */
+.categoryLegend,
+.audienceLegend {
+  gap: 6px 2px !important;
+  padding: 6px 0 !important;
+}
+
+/* Enlarge circular icons and inner images */
+.legendDot {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.legendDot.hasImage::after {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.legendDot::after {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+
+/* Align Brand Logo left start to 16px to match search box */
+.brandLogo {
+  left: 16px !important;
+}
+
+/* Tighten sidebar spacing to shrink white space gaps */
+.legendBar {
+  gap: 6px !important;
+  padding: 12px 16px !important;
+}
+
+.sidebarSearchWrap {
+  margin-bottom: 2px !important;
+}
+
+.legendRegionWrap {
+  margin-top: 0 !important;
+  margin-bottom: 2px !important;
+}
+
+.sidebarSectionTitle {
+  margin-top: 4px !important;
+  padding: 4px 0 2px 0 !important;
+}
+
+.categoryLegend,
+.audienceLegend {
+  gap: 4px 2px !important;
+  padding: 4px 0 !important;
+}
+
+.legendItem {
+  min-height: 38px !important;
+}
+
+/* Maximize inner icon size inside circles (almost full fit) */
+.legendDot.hasImage::after {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+
+/* Position the Navigation bar dynamically starting after the sidebar */
+.hubNav {
+  left: 336px !important;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.sidebarToggleBtn.collapsed ~ .hubNav {
+  left: 190px !important;
+}
+
+/* Reduce the size of the real-time ranking window by half */
+.rankPanel {
+  width: 220px !important;
+  max-width: 220px !important;
+}
+
+/* Data status box in the sidebar */
+.legendBar #sourceStatsBox {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: 36px !important;
+  margin-top: auto !important;
+  border: 1px solid #dce5f3 !important;
+  border-radius: 8px !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 12px !important;
+}
+
+.legendBar #sourceStatsBox .sourceStatsTitle {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #4a5f87 !important;
+}
+
+.legendBar #sourceStatsBox .sourceStatsTicker {
+  font-size: 11px !important;
+}
+
+/* Force New Store Panel to have exactly 132px height to show 3 items at a time */
+.legendBar #newStorePanel {
+  position: relative !important;
+  height: 132px !important;
+  min-height: 132px !important;
+  max-height: 132px !important;
+  margin-top: 4px !important;
+  overflow: hidden !important;
+}
+
+
+/* Remove right whitespace gap for real-time panel */
+.rankPanel {
+  right: 56px !important;
+}
+
+/* Swap bottom stack margin-top: auto to newStorePanel */
+.legendBar #newStorePanel {
+  margin-top: auto !important;
+}
+
+.legendBar #sourceStatsBox {
+  margin-top: 4px !important;
+}
+
+/* Ensure data stats text/counts are fully visible inside sidebar style (dark slate & blue) */
+.legendBar #sourceStatsBox .sourceStatsLine {
+  color: #475569 !important;
+}
+
+.legendBar #sourceStatsBox .sourceStatsLine strong {
+  color: #2f6ff2 !important;
+}
+
+
 /* Resize detail popup card (narrower & taller) */
 .detailPanel {
   width: min(440px, calc(100vw - 24px)) !important;
@@ -2995,6 +3387,17 @@ button:active {
 .detailPrintBtn:hover {
   background: #1d4ed8 !important;
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
+}
+
+
+/* Synchronize sub-menu columns padding-left with the navigation menu position */
+.hubMegaGrid {
+  padding-left: 336px !important;
+  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.sidebarToggleBtn.collapsed ~ .hubMega .hubMegaGrid {
+  padding-left: 190px !important;
 }
 
 

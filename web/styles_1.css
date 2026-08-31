@@ -15,10 +15,10 @@ body::before {
   top: 0;
   left: 0;
   right: 0;
-  height: 50px;
+  height: 64px;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(4px);
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid #dbe3f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   z-index: 900;
   pointer-events: none;
@@ -53,16 +53,15 @@ button:active {
 
 .brandLogo {
   position: fixed;
-  top: 0px;
-  left: 16px;
+  top: -32px;
+  left: -5px;
   z-index: 1200;
   pointer-events: none;
 }
 
 .brandLogo img {
-  height: 32px;
-  margin-top: 9px;
-  width: auto;
+  width: 200px;
+  
   object-fit: contain;
   display: block;
 }
@@ -72,7 +71,7 @@ button:active {
   top: 0;
   left: var(--hub-nav-left);
   right: var(--hub-nav-right);
-  height: 50px;
+  height: 64px;
   z-index: 1085;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, var(--hub-col-width)));
@@ -84,7 +83,7 @@ button:active {
 }
 
 .hubPrimaryBtn {
-  height: 50px;
+  height: 64px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -122,7 +121,7 @@ button:active {
 
 .hubMega {
   position: fixed;
-  top: 50px;
+  top: 64px;
   left: 0;
   right: 0;
   z-index: 1115;
@@ -732,17 +731,17 @@ button:active {
 
 .profileMenuWrap {
   position: fixed;
-  top: 7px;
+  top: 8px;
   right: 12px;
   z-index: 1100;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .sourceStatsBox {
   width: 250px;
-  height: 36px;
+  height: 44px;
   border: 1px solid #cfdcf5;
   border-radius: 8px;
   background: #2f6ff2;
@@ -813,14 +812,14 @@ button:active {
 
 .rankPanel {
   position: fixed;
-  top: 7px;
+  top: 8px;
   right: 326px;
   left: auto;
   z-index: 1090;
   width: min(430px, calc(100vw - 338px));
   max-width: min(430px, calc(100vw - 338px));
   border: 1px solid #d7deed;
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
   overflow: hidden;
@@ -835,7 +834,7 @@ button:active {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  height: 44px;
   box-sizing: border-box;
   padding: 0 10px;
   border-bottom: 1px solid #e7ecf5;
@@ -851,9 +850,9 @@ button:active {
 .liveBadge {
   background: #ff3b30;
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
 }
 
@@ -978,8 +977,8 @@ button:active {
 }
 
 .profileBtn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 6px;
   background: #2f6ff2;
@@ -991,10 +990,10 @@ button:active {
 .profileBtn::before {
   content: "";
   position: absolute;
-  left: 11px;
-  top: 6px;
-  width: 14px;
-  height: 14px;
+  left: 13px;
+  top: 8px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
 }
@@ -1002,18 +1001,18 @@ button:active {
 .profileBtn::after {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 20px;
-  width: 20px;
-  height: 10px;
-  border-radius: 10px 10px 6px 6px;
+  left: 10px;
+  top: 24px;
+  width: 24px;
+  height: 12px;
+  border-radius: 12px 12px 8px 8px;
   background: #fff;
 }
 
 .favoritesPanel {
   position: absolute;
   right: 0;
-  top: 44px;
+  top: 52px;
   width: 320px;
   max-height: 420px;
   overflow: auto;
@@ -1075,7 +1074,7 @@ button:active {
 
 .legendBar {
   position: fixed;
-  top: 56px;
+  top: 70px;
   left: var(--top-panel-left);
   right: auto;
   z-index: 1000;
@@ -1480,7 +1479,7 @@ button:active {
 .detailDivider {
   margin-top: 10px;
   height: 1px;
-  background: #cbd5e1;
+  background: #e3e9f3;
 }
 
 .detailInfoTable {
@@ -1520,7 +1519,7 @@ button:active {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2px 8px;
+  gap: 8px;
 }
 
 .audienceChip {
@@ -1531,8 +1530,8 @@ button:active {
 }
 
 .audienceChip img {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -1674,8 +1673,8 @@ button:active {
   border-radius: 16px;
   width: 48px;
   height: 48px;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
   white-space: nowrap;
   letter-spacing: -0.01em;
 }
@@ -1694,7 +1693,7 @@ button:active {
 
 .newStorePanel {
   position: fixed;
-  top: 56px;
+  top: 70px;
   right: 12px;
   z-index: 1085;
   width: 302px;
@@ -2976,128 +2975,290 @@ button:active {
 }
 
 
-/* Resize detail popup card (narrower & taller) */
-.detailPanel {
-  width: min(440px, calc(100vw - 24px)) !important;
-  min-height: 220px !important;
-  padding: 24px 20px 20px !important;
+/* Draft 1 Overrides - Floating HUD Card Style */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+* {
+  font-family: "Pretendard", -apple-system, sans-serif !important;
 }
 
-/* Style print button with solid color and no icon margin */
-.detailPrintBtn {
-  background: #2563eb !important;
-  border: 1px solid #1d4ed8 !important;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2) !important;
-  padding: 6px 14px !important;
-  gap: 0 !important;
+body::before {
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  height: 0 !important;
 }
 
-.detailPrintBtn:hover {
-  background: #1d4ed8 !important;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3) !important;
-}
-
-
-/* Circular Loading Spinner Keyframe Animation */
-@keyframes printSpinnerSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-
-/* Custom Vector SVG Icons style improvements */
-.detailIconBtn svg {
-  display: block;
-  width: 16px;
-  height: 16px;
-  transition: fill 0.2s, stroke 0.2s;
-}
-
-.detailIconBtn.like svg {
-  fill: none;
-  stroke: #64748b;
-  stroke-width: 2;
-}
-
-.detailIconBtn.like.active svg {
-  fill: #ef4444;
-  stroke: #ef4444;
-}
-
-.detailIconBtn.fav svg {
-  fill: none;
-  stroke: #64748b;
-  stroke-width: 2;
-}
-
-.detailIconBtn.fav.active svg {
-  fill: #f59e0b;
-  stroke: #f59e0b;
-}
-
-/* Close Button SVG Styling */
-.detailCloseBtn svg {
-  display: block;
-  stroke: #64748b;
-  transition: stroke 0.2s;
-}
-
-.detailCloseBtn:hover svg {
-  stroke: #1e293b;
-}
-
-.sidebarToggleBtn span svg {
-  display: block;
-  stroke: currentColor;
-}
-
-
-/* Enhance loading spinner to align with map double-ring high-tech design */
-.print-loading-spinner {
-  width: 48px !important;
-  height: 48px !important;
-  border: 3px solid rgba(47, 111, 242, 0.1) !important;
-  border-radius: 50% !important;
-  border-top-color: #2f6ff2 !important;
-  border-bottom-color: #2f6ff2 !important;
-  animation: printSpinnerSpin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite !important;
-}
-
-/* Force print preview area to hide scrollbars and center the template card */
-.printPreviewArea {
-  flex: 1 !important;
-  overflow: hidden !important;
-  padding: 16px !important;
-  background: #e2e8f0 !important;
+.brandLogo {
+  top: 12px !important;
+  left: 15px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 28px !important;
+  padding: 6px 18px 6px 12px !important;
+  height: 52px !important;
   display: flex !important;
-  flex-direction: column !important;
+  align-items: center !important;
+  pointer-events: auto !important;
+}
+
+.brandLogo img {
+  width: 130px !important;
+  object-fit: contain !important;
+}
+
+.hubNav {
+  top: 12px !important;
+  left: 215px !important;
+  height: 52px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 28px !important;
+  padding: 0 16px !important;
+  gap: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  grid-template-columns: none !important;
+}
+
+.hubPrimaryBtn {
+  height: 38px !important;
+  border-radius: 19px !important;
+  padding: 0 16px !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  width: auto !important;
 }
 
-
-/* Style primary print button inside header */
-.printModalHeader .printBtnPrimary {
-  padding: 6px 16px !important;
-  background: #2f6ff2 !important;
-  border: none !important;
-  border-radius: 6px !important;
-  font-size: 12px !important;
-  box-shadow: 0 2px 4px rgba(47, 111, 242, 0.2) !important;
-  transition: background 0.2s, transform 0.1s;
+.hubPrimaryBtn:hover {
+  background: rgba(30, 58, 138, 0.05) !important;
+  color: #1e3a8a !important;
 }
 
-.printModalHeader .printBtnPrimary:hover {
-  background: #1d4ed8 !important;
+.hubPrimaryBtn.active {
+  background: #1e3a8a !important;
+  color: #ffffff !important;
 }
 
-.printModalHeader .printBtnPrimary:active {
-  transform: translateY(1px);
+.hubPrimaryBtn.active::after {
+  display: none !important;
 }
 
+.hubMega {
+  top: 76px !important;
+  left: 215px !important;
+  right: auto !important;
+  width: 620px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12) !important;
+  padding: 20px !important;
+}
 
-/* Remove translation shift from print button hover state */
-.detailPrintBtn:hover {
-  transform: none !important;
+.hubMegaGrid {
+  padding: 0 !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px !important;
+}
+
+.hubMegaTitle {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  border-bottom: 2px solid #f1f5f9 !important;
+  padding-bottom: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+.hubSecondaryBtn {
+  text-align: left !important;
+  color: #64748b !important;
+  font-size: 13px !important;
+  padding: 4px 0 !important;
+}
+
+.hubSecondaryBtn:hover {
+  color: #1e3a8a !important;
+  text-decoration: none !important;
+}
+
+.profileMenuWrap {
+  top: 12px !important;
+  right: 15px !important;
+  height: 52px !important;
+  gap: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.profileBtn {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 26px !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=\x27http://www.w3.org/2000/svg\x27 width=\x2724\x27 height=\x2724\x27 viewBox=\x270 0 24 24\x27 fill=\x27none\x27 stroke=\x27%23475569\x27 stroke-width=\x272\x27 stroke-linecap=\x27round\x27 stroke-linejoin=\x27round\x27%3E%3Cpath d=\x27M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\x27%3E%3C/path%3E%3C/svg%3E") !important;
+  background-size: 20px !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  backdrop-filter: blur(10px) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.profileBtn:hover {
+  background-color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+.sourceStatsBox {
+  height: 52px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 26px !important;
+  padding: 0 20px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sourceStatsTitle {
+  color: #1e3a8a !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  margin-right: 12px !important;
+}
+
+.sourceStatsLine {
+  font-size: 13px !important;
+  color: #475569 !important;
+}
+
+.sourceStatsLine strong {
+  color: #1e3a8a !important;
+}
+
+.legendBar {
+  top: 76px !important;
+  left: 15px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 16px !important;
+  width: 340px !important;
+}
+
+.legendTabBtn {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+}
+
+.legendTabBtn.active {
+  background: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+.legendRegionSelect {
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  padding: 4px 8px !important;
+}
+
+.rankPanel {
+  top: 76px !important;
+  right: 15px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 20px !important;
+  width: 320px !important;
+  padding: 16px !important;
+}
+
+.rankTab {
+  font-size: 13px !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+}
+
+.rankTab.active {
+  background: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+.newStorePanel {
+  bottom: 20px !important;
+  left: 15px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 6px 18px !important;
+  height: 40px !important;
+}
+
+.mapTools {
+  bottom: 20px !important;
+  right: 15px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 6px !important;
+  align-items: center !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 24px !important;
+  padding: 6px 12px !important;
+}
+
+.toolBtn {
+  border-radius: 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+.hubPanel, .introPopup {
+  border-radius: 24px !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+  padding: 24px !important;
+  background: #ffffff !important;
+}
+
+.hubModalBackdrop, .introBackdrop {
+  backdrop-filter: blur(10px) !important;
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
+.introPopupHead h2, .introPopupBody p {
+  color: #1e293b !important;
+}
+
+.introConfirmBtn {
+  background: #1e3a8a !important;
+  border-radius: 12px !important;
+  padding: 10px 20px !important;
 }
 

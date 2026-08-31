@@ -3,14 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>군필지도</title>
-    <link rel="stylesheet" href="./styles.css?v=4.1" />
+    <title>군필지도 - 시안 4 (퓨처 다크 맵 스타일)</title>
+    <!-- Use Tailwind CSS CDN from the generative_ui built-in skill allowlist -->
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <link rel="stylesheet" href="./styles_4.css?v=1.0" />
   </head>
   <body>
     <div id="map"></div>
 
     <div id="brandLogo" class="brandLogo">
-      <img src="./img/logo.png?v=4.0" alt="logo" />
+      <img src="./img/logo.png" alt="logo" style="filter: brightness(0) invert(1);" />
     </div>
 
     <nav id="hubNav" class="hubNav" aria-label="서비스 메뉴"></nav>
@@ -98,54 +100,11 @@
     <div class="mapTools" aria-label="지도 도구 모음">
       <button id="btnLocate" type="button" class="toolBtn locate">내위치</button>
       <button id="btnZoomOut" type="button" class="toolBtn zoom">-</button>
+      <span id="zoomLabel" class="zoomLabel">100m</span>
       <button id="btnZoomIn" type="button" class="toolBtn zoom">+</button>
-      <button id="btnZoomLevel" type="button" class="toolBtn level">16</button>
-    </div>
-
-    <div id="detailPanel" class="detailPanel hidden"></div>
-
-    <div id="printModalBackdrop" class="printModalBackdrop hidden" aria-hidden="true">
-      <div id="printModal" class="printModal" role="dialog" aria-modal="true" aria-labelledby="printModalStoreName">
-        <div class="printModalHeader">
-          <div class="printModalTitleWrap">
-            <h3 id="printModalStoreName" class="printModalTitle">맞춤 홍보물 인쇄</h3>
-          </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <button id="doPrintBtn" class="printBtnPrimary" type="button">이미지 다운로드</button>
-            <button id="closePrintModalBtn" class="printModalCloseBtn" type="button" aria-label="닫기">×</button>
-          </div>
-        </div>
-        <div class="printTemplateTabs">
-          <button class="printTabBtn active" data-tpl="poster" type="button">
-            <span class="tabText">A4 포스터 (상생지도 결합)</span>
-          </button>
-          <button class="printTabBtn" data-tpl="table_stand" type="button">
-            <span class="tabText">미니 테이블 스탠드</span>
-          </button>
-          <button class="printTabBtn" data-tpl="door_hanger" type="button">
-            <span class="tabText">도어행거 (문고리형)</span>
-          </button>
-        </div>
-        <div class="printPreviewArea">
-          <div id="printTemplateContainer" class="printTemplateContainer"></div>
-        </div>
-        <div class="printModalFooter">
-          <div class="printUsageGuide" style="display: flex; flex-direction: column; gap: 2px; text-align: left; font-family: 'Noto Sans KR', sans-serif; flex: 1; margin-right: 20px;">
-            <div style="font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 4px; font-size: 13px; margin-bottom: 2px;">
-              💡 활용 가이드 & 사용 방법
-            </div>
-            <div id="printGuideContent" style="font-size: 11px; color: #64748b; font-weight: 500;">
-              가맹점 출입구나 카운터 주변에 부착하여 방문하는 대상자(현역병, 사회복무, 병역명문가 등)가 혜택을 즉시 알아볼 수 있도록 홍보하는 용도로 활용됩니다.
-            </div>
-          </div>
-          <div class="printActions">
-            <button id="cancelPrintBtn" class="printBtnSecondary" type="button">닫기</button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <script src="./config.js?v=2.7"></script>
-    <script src="./app.js?v=3.9"></script>
+    <script src="./app_4.js?v=1.0"></script>
   </body>
 </html>
