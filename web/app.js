@@ -1699,24 +1699,51 @@ async function bootstrap() {
     });
     posterCircles.push(circle1000);
 
-    // Center Store Pin
+    // Center Main Store Pin (Premium Blue Pin with Top Label)
     const centerMarker = new naver.maps.Marker({
       position: center,
       map: posterMapInstance,
+      zIndex: 9999,
       icon: {
         content: `
-          <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);">
-            <div style="background:#1e3a8a;color:#ffffff;font-size:11px;font-weight:900;padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;">
+          <div style="position:relative; width:64px; height:64px; background-image:url('/img/blue_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; z-index:9999;">
+            <div style="position:absolute; bottom:68px; left:50%; transform:translateX(-50%); background-color:#1e3a8a; color:#ffffff; font-family:'Noto Sans KR', sans-serif; font-size:13px; font-weight:700; padding:5px 14px; border-radius:20px; white-space:nowrap; box-shadow:0 4px 12px rgba(30,58,138,0.4); z-index:9999;">
               ${escapeHtml(point.title)}
             </div>
-            <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #1e3a8a;"></div>
-            <div style="width:8px;height:8px;background:#1e3a8a;border:2px solid #fff;border-radius:50%;margin-top:-2px;"></div>
           </div>
         `,
-        anchor: new naver.maps.Point(0, 0),
+        anchor: new naver.maps.Point(32, 32),
       },
     });
     posterMarkers.push(centerMarker);
+
+    // Neighbor Stores (Premium Gold Pins with 1~5 Badges & Speech Bubbles)
+    if (Array.isArray(nearbyStores)) {
+      nearbyStores.forEach((item, idx) => {
+        if (!item || !item.point) return;
+        const n = item.point;
+        const distText = item.distKm < 1 ? Math.round(item.distKm * 1000) + 'm' : item.distKm.toFixed(1) + 'km';
+        const num = idx + 1;
+        const nMarker = new naver.maps.Marker({
+          position: new naver.maps.LatLng(n.lat, n.lng),
+          map: posterMapInstance,
+          zIndex: 100 + idx,
+          icon: {
+            content: `
+              <div style="position:relative; width:46px; height:46px; background-image:url('/img/gold_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; display:flex; align-items:center; justify-content:center; z-index:100;">
+                <span style="color:#ffffff; font-weight:900; font-size:12px; margin-top:-5px; text-shadow:0 1px 2px rgba(0,0,0,0.5);">${num}</span>
+                <div style="position:absolute; bottom:48px; left:50%; transform:translateX(-50%); background:#ffffff; color:#0f172a; font-family:'Noto Sans KR', sans-serif; font-size:10px; font-weight:700; padding:3px 7px; border-radius:8px; border:1.5px solid #d2c9bd; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,0.12); line-height:1.2; text-align:center;">
+                  <div>${escapeHtml(n.title)}</div>
+                  <div style="font-size:9px; color:#64748b; font-weight:500;">(${distText})</div>
+                </div>
+              </div>
+            `,
+            anchor: new naver.maps.Point(23, 23),
+          },
+        });
+        posterMarkers.push(nMarker);
+      });
+    }
 
     // Distance Badges (styled as high-contrast pills)
     const lngOffset500 = 500 / (111320 * Math.cos(latRad));
@@ -1724,7 +1751,7 @@ async function bootstrap() {
       position: new naver.maps.LatLng(point.lat, point.lng + lngOffset500),
       map: posterMapInstance,
       icon: {
-        content: '<div style="background:#ffffff;border:2px solid #2563eb;color:#1e3a8a;font-size:12px;font-weight:900;padding:2px 8px;border-radius:15px;box-shadow:0 2px 4px rgba(0,0,0,0.2);transform:translate(-50%,-50%);white-space:nowrap;">500m</div>',
+        content: '<div style="background:#ffffff;border:2px solid #2563eb;color:#1e3a8a;font-size:11px;font-weight:900;padding:2px 7px;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.2);transform:translate(-50%,-50%);white-space:nowrap;">500m</div>',
         anchor: new naver.maps.Point(0, 0),
       },
     });
@@ -1735,13 +1762,11 @@ async function bootstrap() {
       position: new naver.maps.LatLng(point.lat, point.lng + lngOffset1000),
       map: posterMapInstance,
       icon: {
-        content: '<div style="background:#ffffff;border:2px solid #2563eb;color:#1e3a8a;font-size:12px;font-weight:900;padding:2px 8px;border-radius:15px;box-shadow:0 2px 4px rgba(0,0,0,0.2);transform:translate(-50%,-50%);white-space:nowrap;">1km</div>',
+        content: '<div style="background:#ffffff;border:2px solid #2563eb;color:#1e3a8a;font-size:11px;font-weight:900;padding:2px 7px;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.2);transform:translate(-50%,-50%);white-space:nowrap;">1km</div>',
         anchor: new naver.maps.Point(0, 0),
       },
     });
     posterMarkers.push(badge1000);
-
-
   };
 
   let currentPrintBlobUrl = null;
