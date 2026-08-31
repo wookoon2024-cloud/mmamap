@@ -1607,35 +1607,29 @@ async function bootstrap() {
     let timerInterval = setInterval(() => {
       const curElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
       if (subLog && loadingWrap && loadingWrap.style.display !== "none") {
-        subLog.textContent = `[1/2] 서버 응답 대기 중... (${curElapsed}초 경과)`;
+        let stageText = "서버 연결 중...";
+        const sec = parseFloat(curElapsed);
+        if (sec < 4) {
+          stageText = "가맹점 정보 및 지도 데이터 구성 중";
+        } else if (sec < 20) {
+          stageText = "고화질 지도 및 Pretendard 그래픽 렌더링 중";
+        } else {
+          stageText = "서버 최초 기동 중 / 이미지 인코딩 마무리 중";
+        }
+        subLog.textContent = `[1/2] ${stageText} (${curElapsed}초 경과)`;
       }
-    }, 500);
+    }, 400);
 
     try {
       updateLog(`[1/2] ${tplTitle} 렌더링 요청 전송 (ID: ${facilityId})`, "info");
       
       const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-      const primaryUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
-      const renderDirectUrl = `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      const targetUrl = isLocal 
+        ? `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`
+        : `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
       
-      let targetUrl = primaryUrl;
-      let res;
-      
-      try {
-        updateLog(`[시도 1] ${isLocal ? "로컬 서버" : "Vercel 프록시"} 호출: ${targetUrl}`, "info");
-        res = await fetch(targetUrl);
-        if (!res.ok && !isLocal) {
-          throw new Error(`Proxy HTTP ${res.status}`);
-        }
-      } catch (proxyErr) {
-        if (!isLocal) {
-          targetUrl = renderDirectUrl;
-          updateLog(`[시도 2] Render 백엔드 직접 연결 시도: ${targetUrl} (사유: ${proxyErr.message})`, "warn");
-          res = await fetch(targetUrl);
-        } else {
-          throw proxyErr;
-        }
-      }
+      updateLog(`[호출] ${isLocal ? "로컬 서버" : "Render 백엔드 직접 연결"}: ${targetUrl}`, "info");
+      const res = await fetch(targetUrl);
 
       clearInterval(timerInterval);
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
