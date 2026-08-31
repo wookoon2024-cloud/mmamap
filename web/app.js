@@ -1801,11 +1801,26 @@ async function bootstrap() {
     };
 
     try {
-      const targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
-      updateLog(`[1/3] 서버(Render) 데이터 요청 전송 ➔ ${endpoint} (${facilityId})`, "info");
+      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      const primaryUrl = isLocal 
+        ? `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`
+        : `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      const fallbackUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+
+      updateLog(`[1/3] 서버 요청 전송 ➔ ${primaryUrl}`, "info");
       
       const startTime = performance.now();
-      const res = await fetch(targetUrl);
+      let res;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        res = await fetch(primaryUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+      } catch (firstErr) {
+        updateLog(`[재시도] 1차 요청 지연(${firstErr.message}), 프록시 경로로 재시도...`, "warn");
+        res = await fetch(fallbackUrl);
+      }
+
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
       
       if (!res.ok) {
