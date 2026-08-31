@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Render.com 실서버 직접 통신 진단기</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif; background: #0f172a; color: #f8fafc; padding: 24px; }
+    .container { max-width: 900px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 24px; border: 1px solid #334155; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #38bdf8; }
+    p.desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
+    .target-box { background: #0f172a; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; border: 1px solid #334155; font-size: 13px; word-break: break-all; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    button { background: #2563eb; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    button.sec { background: #334155; }
+    .preset-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .preset-btn { background: #334155; color: #cbd5e1; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .preset-btn:hover { background: #0284c7; color: #fff; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    input[type='text'] { flex: 1; background: #0f172a; border: 1px solid #475569; color: #f8fafc; padding: 10px 14px; border-radius: 8px; font-size: 14px; }
+    .timer-badge { font-family: monospace; font-size: 18px; font-weight: 700; color: #4ade80; margin-left: auto; display: flex; align-items: center; }
+    .status-card { background: #0f172a; border-radius: 12px; border: 1px solid #334155; padding: 16px; margin-top: 16px; }
+    .status-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+    .status-tag { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+    .tag-success { background: #166534; color: #4ade80; }
+    .tag-error { background: #991b1b; color: #fca5a5; }
+    .tag-loading { background: #854d0e; color: #fde047; }
+    .log-terminal { background: #000; color: #a3e635; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; margin-top: 12px; }
+    .preview-box { margin-top: 16px; text-align: center; }
+    .preview-box img { max-width: 100%; max-height: 480px; border-radius: 8px; border: 1px solid #475569; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Render.com 실서버 직접 통신 진단기</h1>
+    <p class="desc">Vercel 프록시를 일절 거치지 않고, 브라우저에서 Render 백엔드로 100% 직접 호출하여 상태와 속도를 실시간 측정합니다.</p>
+    <div class="target-box">🌐 <b>Render 대상 URL:</b> https://mmamap-backend-docker.onrender.com</div>
+    <div class="preset-btns">
+      <button type="button" class="preset-btn" onclick="setFacility('mmg_1620', '하나로의료재단')">하나로의료재단 (mmg_1620)</button>
+      <button type="button" class="preset-btn" onclick="setFacility('mmg_2580', '세종문화회관')">세종문화회관 (mmg_2580)</button>
+      <button type="button" class="preset-btn" onclick="setFacility('nara_2403', '더스퀘어치과의원')">더스퀘어치과의원 (nara_2403)</button>
+      <button type="button" class="preset-btn" onclick="setFacility('nara_3218', '의정부간호학원')">의정부간호학원 (nara_3218)</button>
+    </div>
+    <div class="input-row">
+      <input type="text" id="facilityInput" value="mmg_1620" placeholder="가맹점 ID">
+      <div class="timer-badge" id="stopwatch">0.00초</div>
+    </div>
+    <div class="btn-group">
+      <button onclick="runTest('health')">1. 헬스체크 (/api/health)</button>
+      <button onclick="runTest('print_poster')">2. A4 포스터 직접 생성 (/api/print_poster)</button>
+      <button onclick="runTest('print_stand')" class="sec">3. 미니 스탠드 직접 생성</button>
+      <button onclick="runTest('print_hanger')" class="sec">4. 도어행거 직접 생성</button>
+    </div>
+    <div class="status-card" id="statusCard" style="display: none;">
+      <div class="status-header">
+        <span id="testTitle" style="font-weight: 700;">테스트 결과</span>
+        <span class="status-tag" id="statusTag">대기 중</span>
+      </div>
+      <div id="statusDetails"></div>
+      <div class="preview-box" id="previewWrap" style="display: none;">
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">🖼️ 렌더링된 이미지 수신 완료:</div>
+        <img id="previewImg" src="" alt="Render 결과">
+      </div>
+      <div class="log-terminal" id="logTerminal"></div>
+    </div>
+  </div>
+  <script>
+    const RENDER_BASE = 'https://mmamap-backend-docker.onrender.com';
+    let timerId = null;
+    function setFacility(id, name) { document.getElementById('facilityInput').value = id; }
+    function log(msg) {
+      const term = document.getElementById('logTerminal');
+      term.textContent += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
+      term.scrollTop = term.scrollHeight;
+    }
+    function startTimer() {
+      const sw = document.getElementById('stopwatch');
+      const start = performance.now();
+      clearInterval(timerId);
+      sw.textContent = '0.00초';
+      timerId = setInterval(() => { sw.textContent = ((performance.now() - start) / 1000).toFixed(2) + '초'; }, 50);
+      return start;
+    }
+    function stopTimer(start) {
+      clearInterval(timerId);
+      const sec = ((performance.now() - start) / 1000).toFixed(2);
+      document.getElementById('stopwatch').textContent = sec + '초';
+      return sec;
+    }
+    async function runTest(endpoint) {
+      const fid = document.getElementById('facilityInput').value.trim();
+      const card = document.getElementById('statusCard');
+      const tag = document.getElementById('statusTag');
+      const details = document.getElementById('statusDetails');
+      const previewWrap = document.getElementById('previewWrap');
+      const previewImg = document.getElementById('previewImg');
+      card.style.display = 'block';
+      previewWrap.style.display = 'none';
+      document.getElementById('logTerminal').textContent = '';
+      tag.className = 'status-tag tag-loading';
+      tag.textContent = '통신 중...';
+      details.innerHTML = '<div>⏳ Render.com 백엔드로 직접 HTTP 요청 전송 중...</div>';
+      let url = RENDER_BASE + '/api/' + endpoint;
+      if (endpoint !== 'health') url += '?facility_id=' + encodeURIComponent(fid) + '&t=' + Date.now();
+      log('[요청 전송] ' + url);
+      const startTime = startTimer();
+      try {
+        const res = await fetch(url);
+        const elapsed = stopTimer(startTime);
+        log('[응답 수신] HTTP ' + res.status + ' (' + elapsed + '초)');
+        if (res.ok) {
+          tag.className = 'status-tag tag-success';
+          tag.textContent = '200 OK (' + elapsed + '초)';
+          if (endpoint === 'health') {
+            const json = await res.json();
+            details.innerHTML = '<div style="color: #4ade80; font-weight:700;">✅ 헬스체크 성공 (' + elapsed + '초)</div><pre>' + JSON.stringify(json) + '</pre>';
+          } else {
+            const blob = await res.blob();
+            previewImg.src = URL.createObjectURL(blob);
+            previewWrap.style.display = 'block';
+            details.innerHTML = '<div style="color: #4ade80; font-weight:700;">✅ 이미지 수신 성공 (' + elapsed + '초, ' + (blob.size/1024).toFixed(1) + ' KB)</div>';
+          }
+        } else {
+          tag.className = 'status-tag tag-error';
+          tag.textContent = 'HTTP ' + res.status;
+          details.innerHTML = '<div style="color: #f87171;">❌ 오류 응답: HTTP ' + res.status + '</div>';
+        }
+      } catch (err) {
+        const elapsed = stopTimer(startTime);
+        tag.className = 'status-tag tag-error';
+        tag.textContent = '통신 실패';
+        details.innerHTML = '<div style="color: #f87171;">❌ 에러: ' + err.message + ' (' + elapsed + '초)</div>';
+      }
+    }
+  </script>
+</body>
+</html>
