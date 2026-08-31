@@ -1719,6 +1719,7 @@ async function bootstrap() {
       ? point.audiences.map(getAudienceDisplayName).join(", ")
       : "나라사랑카드 소지 장병, 사회복무요원, 예비군, 병역명문가";
     const audienceText = audienceList;
+    const addressText = point.address || "전국 매장";
 
     const origin = window.location.origin || "https://mmamap-seven.vercel.app";
     const landingUrl = `${origin}/mobile_landing.html?id=${encodeURIComponent(facilityId)}`;
@@ -1731,16 +1732,28 @@ async function bootstrap() {
     if (tplName === "poster") {
       container.innerHTML = `
         <div class="print-sheet poster-sheet" style="width: 440px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 14px 14px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
-          <div style="text-align: center; font-size: 17px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">대한민국 병무청 × 나라사랑가게 상생 지도</div>
+          <!-- Top Header with Official MMA Logo and Title -->
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 2px;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <svg width="22" height="22" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+                <path d="M50,4 A46,46 0 0,1 50,96 A23,23 0 0,1 50,50 A23,23 0 0,0 50,4 Z" fill="#0047A0"/>
+                <path d="M50,96 A46,46 0 0,1 50,4 A23,23 0 0,1 50,50 A23,23 0 0,0 50,96 Z" fill="#CD2E3A"/>
+              </svg>
+              <span style="font-size: 13px; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">병무청</span>
+            </div>
+            <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
+            <div style="width: 50px;"></div>
+          </div>
           
           <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 10px 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <div style="font-size: 18px; font-weight: 900; color: #0F172A; margin-bottom: 4px;">${escapeHtml(storeTitle)}</div>
             <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 16px; margin-bottom: 4px;">${escapeHtml(benefitText)}</div>
-            <div style="font-size: 10px; color: #475569; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
+            <div style="font-size: 10px; color: #64748B; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
           </div>
 
           <!-- Real Interactive Naver Map -->
-          <div id="posterMapDiv" style="width: 100%; height: 200px; border-radius: 10px; overflow: hidden; border: 1.5px solid #CBD5E1; box-shadow: 0 2px 6px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
+          <div id="posterMapDiv" style="width: 100%; height: 200px; border-radius: 10px; overflow: hidden; border: 1.5px solid #D2C9BD; box-shadow: 0 2px 6px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
 
           <div style="background: #ffffff; border-radius: 10px; border: 1px solid #E2E8F0; overflow: hidden;">
             <div style="background: #DFD7CB; padding: 5px 10px; font-size: 11px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
