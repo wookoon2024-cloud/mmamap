@@ -1564,6 +1564,88 @@ async function bootstrap() {
 
   let currentPrintPoint = null;
   let currentPrintTemplate = "poster";
+  let currentPrintBlobUrl = null;
+
+  const renderPrintTemplate = async (point, tplName = "poster") => {
+    const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
+    if (!container || !point) return;
+
+    if (currentPrintBlobUrl) {
+      URL.revokeObjectURL(currentPrintBlobUrl);
+      currentPrintBlobUrl = null;
+    }
+
+    const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
+    const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
+    const facilityId = point.facilityId || point.id || "";
+    const widthPx = tplName === "poster" ? 480 : (tplName === "table_stand" ? 340 : 280);
+    const heightPx = tplName === "poster" ? 678 : (tplName === "table_stand" ? 490 : 490);
+
+    container.innerHTML = `
+      <div class="print-sheet tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
+        <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
+          <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
+          <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안을 생성 중입니다...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/2] 고화질 그래픽 렌더링 요청 중...</div>
+        </div>
+        <img id="printResultImg" 
+             alt="${tplTitle} 인쇄 시안" 
+             style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 5; display: none; object-fit: contain;" />
+      </div>
+    `;
+
+    const subLog = document.getElementById("printSubLog");
+    const loadingWrap = document.getElementById("printLoadingWrap");
+    const resultImg = document.getElementById("printResultImg");
+
+    const updateLog = (msg, type = "info") => {
+      if (subLog) subLog.textContent = msg;
+      addDebugLog(msg, type);
+    };
+
+    try {
+      updateLog(`[1/2] ${tplTitle} 렌더링 요청 전송 (${facilityId})`, "info");
+      
+      let targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+      
+      const startTime = performance.now();
+      let res;
+      try {
+        res = await fetch(targetUrl);
+      } catch (err) {
+        // Fallback to direct Render backend if local /api route is not available
+        targetUrl = `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+        updateLog(`[재시도] Render 서버 직접 연결: ${targetUrl}`, "warn");
+        res = await fetch(targetUrl);
+      }
+
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      
+      if (!res || !res.ok) {
+        throw new Error(`HTTP ${res ? res.status : "Error"} (${res ? res.statusText : "연결 실패"}) [${elapsed}초]`);
+      }
+      
+      const blob = await res.blob();
+      currentPrintBlobUrl = URL.createObjectURL(blob);
+      
+      resultImg.onload = () => {
+        updateLog(`[2/2] ${tplTitle} 렌더링 완료 (${elapsed}초, ${(blob.size / 1024).toFixed(1)} KB)`, "success");
+        if (loadingWrap) loadingWrap.style.display = "none";
+        if (resultImg) resultImg.style.display = "block";
+      };
+      resultImg.src = currentPrintBlobUrl;
+    } catch (err) {
+      console.error("[PrintModal Error]", err);
+      updateLog(`[오류] 홍보물 생성 실패: ${err.message}`, "error");
+      if (loadingWrap) {
+        loadingWrap.innerHTML = `
+          <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 8px;">홍보물 생성 일시 지연</div>
+          <div style="font-size: 12px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 12px;">${err.message || err}</div>
+          <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
+        `;
+      }
+    }
+  };
 
   const getDistanceKm = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // km
@@ -1687,8 +1769,6 @@ async function bootstrap() {
     }
   };
 
-  let currentPrintBlobUrl = null;
-
   const addDebugLog = (msg, type = "info") => {
     console.log(`[MMAMap Debug] ${msg}`);
     const list = document.getElementById("liveDebugLogList");
@@ -1704,149 +1784,6 @@ async function bootstrap() {
     row.textContent = `[${timeStr}] ${msg}`;
     list.appendChild(row);
     list.scrollTop = list.scrollHeight;
-  };
-
-  const renderPrintTemplate = (point, tplName = "poster") => {
-    const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
-    if (!container || !point) return;
-
-    const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
-    const facilityId = point.facilityId || point.id || "";
-    const storeTitle = point.title || "나라사랑가게";
-    const rawBenefit = cleanBenefit(point.benefit) || "병역이행자 및 병역명문가 할인 우대";
-    const benefitText = rawBenefit.split("<br>")[0].split("\n")[0];
-    const audienceList = Array.isArray(point.audiences) && point.audiences.length
-      ? point.audiences.map(getAudienceDisplayName).join(", ")
-      : "나라사랑카드 소지 장병, 사회복무요원, 예비군, 병역명문가";
-    const audienceText = audienceList;
-    const addressText = point.address || "전국 매장";
-
-    const origin = window.location.origin || "https://mmamap-seven.vercel.app";
-    const landingUrl = `${origin}/mobile_landing.html?id=${encodeURIComponent(facilityId)}`;
-    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(landingUrl)}`;
-
-    const nearby = getNearbyStores(point, 5);
-
-    addDebugLog(`[홍보물 즉시 렌더링] ${tplTitle} (ID: ${facilityId})`, "info");
-
-    if (tplName === "poster") {
-      container.innerHTML = `
-        <div class="print-sheet poster-sheet" style="width: 520px; min-height: 735px; background: #F3F3ED; border-radius: 4px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); padding: 28px 24px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
-          <!-- Top Header: Left Official MMA Logo & Center Title -->
-          <div style="position: relative; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 32px; margin-bottom: 2px;">
-            <img src="./img/mma_logo.png?v=2" alt="병무청" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 26px; width: auto; object-fit: contain;" />
-            <div style="font-size: 21px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
-          </div>
-          
-          <!-- Main Store Card (Exact Python Poster Card) -->
-          <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 16px 14px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-            <div style="font-size: 22px; font-weight: 900; color: #1E1E1E; margin-bottom: 4px;">${escapeHtml(storeTitle)}</div>
-            <div style="color: #9C8262; font-weight: 800; font-size: 15px; margin-bottom: 6px; letter-spacing: -0.3px;">${escapeHtml(benefitText)}</div>
-            <div style="font-size: 11px; color: #64748B; font-weight: 500;">우대 대상 : ${escapeHtml(audienceText)}</div>
-          </div>
-
-          <!-- Real Interactive Naver Map (Spacious High-Res Box) -->
-          <div id="posterMapDiv" style="width: 100%; height: 270px; border-radius: 10px; overflow: hidden; border: 1.5px solid #D2C9BD; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
-
-          <!-- Neighbors Table (Exact Python Poster 3-Column Table) -->
-          <div>
-            <div style="font-size: 15px; font-weight: 900; color: #1E1E1E; margin-bottom: 6px; text-align: left;">주변 나라사랑가게</div>
-            <div style="background: #ffffff; border-radius: 6px; border: 1.5px solid #DFD7CB; overflow: hidden;">
-              <div style="background: #DFD7CB; padding: 7px 12px; font-size: 11.5px; font-weight: 800; color: #1E1E1E; display: flex; text-align: center;">
-                <span style="width: 32%; text-align: left; padding-left: 24px;">이름</span>
-                <span style="width: 38%; text-align: center;">할인 혜택</span>
-                <span style="width: 30%; text-align: center;">우대 대상</span>
-              </div>
-              <div style="display: flex; flex-direction: column;">
-                ${nearby.map((item, i) => {
-                  const n = item.point || {};
-                  const nBenefit = cleanBenefit(n.benefit).slice(0, 18);
-                  const nAudience = (Array.isArray(n.audiences) && n.audiences.length ? n.audiences.join(", ") : "장병 및 예비군").slice(0, 14);
-                  return `
-                    <div style="display: flex; align-items: center; padding: 5px 10px; border-bottom: 1px solid #F1F5F9; font-size: 10px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
-                      <div style="display: flex; align-items: center; gap: 5px; width: 32%; overflow: hidden;">
-                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; min-width: 16px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 9px; font-weight: bold;">${i + 1}</span>
-                        <span style="font-weight: 700; color: #1E1E1E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(n.title || "가맹점")}</span>
-                      </div>
-                      <div style="width: 38%; font-size: 9.5px; color: #1E1E1E; font-weight: 500; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;">${escapeHtml(nBenefit)}</div>
-                      <div style="width: 30%; font-size: 9px; color: #475569; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(nAudience)}</div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          </div>
-
-          <!-- Footer -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #ffffff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 6px 10px;">
-            <div style="flex: 1; font-size: 10px; text-align: left;">
-              <div style="font-weight: 800; color: #1E1E1E; margin-bottom: 1px; font-size: 10.5px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
-              <div style="color: #64748B; font-size: 9px; line-height: 1.2;">나라사랑가게의 정의와 병무청 공식 우대 혜택을 모바일로 바로 확인할 수 있습니다.</div>
-            </div>
-            <img src="${qrImgUrl}" alt="QR" style="width: 48px; height: 48px; border-radius: 4px; border: 1px solid #CBD5E1;" />
-          </div>
-        </div>
-      `;
-
-      setTimeout(() => {
-        initPosterMap(point, nearby);
-      }, 50);
-    } else if (tplName === "table_stand") {
-      container.innerHTML = `
-        <div class="print-sheet stand-sheet" style="width: 360px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
-          <div style="font-size: 10px; color: #94A3B8; border-bottom: 1px dashed #94A3B8; padding-bottom: 4px;">아크릴 스탠드 규격 가이드선 (10cm × 15cm)</div>
-          
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-            <img src="./img/mma_logo.png?v=2" alt="병무청" style="height: 22px; width: auto; object-fit: contain; margin: 0 auto;" />
-            <div style="font-size: 12px; font-weight: 800; color: #1E3A8A; margin-top: 2px;">나라사랑가게 상생 네트워크</div>
-          </div>
-
-          <div style="font-size: 22px; font-weight: 900; color: #0F172A;">${escapeHtml(storeTitle)}</div>
-          <div>
-            <span style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 14px; padding: 6px 18px; border-radius: 20px;">${escapeHtml(benefitText)}</span>
-          </div>
-          <div style="background: #ffffff; border: 1.5px solid #CBD5E1; border-radius: 10px; padding: 10px 12px; font-size: 11px; text-align: left;">
-            <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 4px;">[ 우대 대상 ]</div>
-            <div style="color: #475569;">${escapeHtml(audienceText)}</div>
-          </div>
-          <div style="margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 6px;">
-            <img src="${qrImgUrl}" alt="QR" style="width: 110px; height: 110px; border-radius: 8px; border: 1px solid #CBD5E1; background: #fff; padding: 4px;" />
-            <div style="font-size: 11px; font-weight: 800; color: #1E3A8A;">스마트폰 스캔 (상세 혜택 안내)</div>
-          </div>
-          <div style="font-size: 9px; color: #64748B; border-top: 1px solid #DFD7CB; padding-top: 6px;">병역이행자 여러분의 헌신에 감사드립니다 | ${escapeHtml(addressText)}</div>
-        </div>
-      `;
-    } else if (tplName === "door_hanger") {
-      container.innerHTML = `
-        <div class="print-sheet hanger-sheet" style="width: 300px; min-height: 520px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; margin: 0 auto; text-align: center; color: #1E1E1E;">
-          <!-- Door Hole Guide -->
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-            <div style="width: 60px; height: 60px; border-radius: 50%; border: 2px dashed #64748B; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #64748B; margin: 0 auto;">문고리 거치선 (지름 8cm)</div>
-            <div style="width: 1px; height: 12px; border-left: 2px dashed #64748B;"></div>
-          </div>
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px;">
-            <img src="./img/mma_logo.png?v=2" alt="병무청" style="height: 20px; width: auto; object-fit: contain; margin: 0 auto;" />
-            <div style="font-size: 11px; font-weight: 800; color: #1E3A8A; margin-top: 2px;">나라사랑가게</div>
-          </div>
-          <div style="font-size: 11px; color: #64748B;">환영합니다</div>
-          <div style="font-size: 20px; font-weight: 900; color: #0F172A;">${escapeHtml(storeTitle)}</div>
-          <div>
-            <span style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 13px; padding: 5px 14px; border-radius: 20px;">${escapeHtml(benefitText)}</span>
-          </div>
-          <div style="background: #ffffff; border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px 10px; font-size: 10px; text-align: left;">
-            <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 2px;">[ 우대 대상 ]</div>
-            <div style="color: #475569;">${escapeHtml(audienceText)}</div>
-          </div>
-          <div style="margin-top: auto; background: #ffffff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
-            <img src="${qrImgUrl}" alt="QR" style="width: 90px; height: 90px; border-radius: 4px;" />
-            <div style="font-size: 10px; font-weight: 800; color: #1E3A8A;">스마트폰 스캔 (상세 혜택)</div>
-          </div>
-          <div style="font-size: 9px; color: #64748B; border-top: 1px solid #DFD7CB; padding-top: 4px;">대한민국 병무청 × 나라사랑가게 네트워크</div>
-        </div>
-      `;
-    }
-
-    addDebugLog(`[성공] ${tplTitle} 화면에 즉시 렌더링 완료 (0.01초 소요)`, "success");
   };
 
   const openPrintModal = (point) => {
@@ -2672,48 +2609,28 @@ async function bootstrap() {
 
   const doPrintBtn = document.getElementById("doPrintBtn");
   if (doPrintBtn) {
-    doPrintBtn.addEventListener("click", async () => {
-      const sheet = document.querySelector(".print-sheet");
-      if (!sheet || !currentPrintPoint) return;
+    doPrintBtn.addEventListener("click", () => {
+      if (!currentPrintPoint) return;
+      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : (currentPrintTemplate === "table_stand" ? "스탠드" : "도어행거");
+      const filename = `상생지도_${tplTitle}_${currentPrintPoint.title || "가맹점"}.png`;
       
-      const origText = doPrintBtn.textContent;
-      doPrintBtn.textContent = "이미지 생성 중...";
-      doPrintBtn.disabled = true;
-
-      try {
-        if (typeof html2canvas === "function") {
-          addDebugLog("[다운로드] 화면 표시 내용 기준 고해상도 PNG 렌더링 중...", "info");
-          const canvas = await html2canvas(sheet, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: "#F3F3ED",
-          });
-          const imgUrl = canvas.toDataURL("image/png");
-          const link = document.createElement("a");
-          link.href = imgUrl;
-          const tplTitle = currentPrintTemplate === "poster" ? "포스터" : (currentPrintTemplate === "table_stand" ? "스탠드" : "도어행거");
-          link.download = `상생지도_${tplTitle}_${currentPrintPoint.title || "가맹점"}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          addDebugLog("[다운로드 완료] 고해상도 PNG 이미지 저장 완료!", "success");
-        } else {
-          const facilityId = currentPrintPoint.facilityId || currentPrintPoint.id || "";
-          const link = document.createElement("a");
-          link.href = `/api/print_${currentPrintTemplate === "poster" ? "poster" : (currentPrintTemplate === "table_stand" ? "stand" : "hanger")}?facility_id=${encodeURIComponent(facilityId)}`;
-          link.download = `상생지도_${currentPrintPoint.title}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      } catch (err) {
-        console.error("Image download error:", err);
-        addDebugLog(`[오류] 다운로드 실패: ${err.message}`, "error");
-        alert("이미지 저장 중 오류가 발생했습니다: " + err.message);
-      } finally {
-        doPrintBtn.textContent = origText;
-        doPrintBtn.disabled = false;
+      if (currentPrintBlobUrl) {
+        const link = document.createElement("a");
+        link.href = currentPrintBlobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        addDebugLog(`[다운로드 완료] ${filename} 저장 완료!`, "success");
+      } else {
+        const facilityId = currentPrintPoint.facilityId || currentPrintPoint.id || "";
+        const endpoint = currentPrintTemplate === "poster" ? "print_poster" : (currentPrintTemplate === "table_stand" ? "print_stand" : "print_hanger");
+        const link = document.createElement("a");
+        link.href = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}`;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     });
   }
