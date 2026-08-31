@@ -1744,29 +1744,9 @@ async function bootstrap() {
 
   };
 
-  const renderPrintTemplate = (point, tplName = "poster") => {
-    const container = document.getElementById("printTemplateContainer");
-    if (!container || !point) return;
-
-    const title = escapeHtml(point.title || "나라사랑가게");
-    const category = escapeHtml(toCategoryLabel(point.category) || "우대매장");
-    const rawBenefit = cleanBenefit(point.benefit);
-    const benefit = escapeHtml(rawBenefit);
-    const address = escapeHtml(point.address || "전국 매장");
-    const phone = escapeHtml(point.phone || "");
-    const audiences = Array.isArray(point.audiences) && point.audiences.length
-      ? point.audiences.map(getAudienceDisplayName).join(", ")
-      : "예비군, 복무중인 사람, 병역명문가";
-
-    const origin = window.location.origin || "http://localhost:8080";
-    const landingUrl = `${origin}/mobile_landing.html?id=${encodeURIComponent(point.facilityId || point.title)}`;
-    const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(landingUrl)}`;
-
-    const nearby = getNearbyStores(point, 5);
-
   let currentPrintBlobUrl = null;
 
-  const renderPrintTemplate = async (point, tplName) => {
+  const renderPrintTemplate = async (point, tplName = "poster") => {
     const container = document.getElementById("printCanvasContainer");
     if (!container) return;
 
@@ -1835,6 +1815,7 @@ async function bootstrap() {
           <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
         `;
       }
+    }
   };
 
   const openPrintModal = (point) => {
