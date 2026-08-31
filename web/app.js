@@ -1629,7 +1629,16 @@ async function bootstrap() {
         : `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
       
       updateLog(`[호출] ${isLocal ? "로컬 서버" : "Render 백엔드 직접 연결"}: ${targetUrl}`, "info");
-      const res = await fetch(targetUrl);
+      
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 45000);
+      
+      let res;
+      try {
+        res = await fetch(targetUrl, { signal: controller.signal });
+      } finally {
+        clearTimeout(fetchTimeout);
+      }
 
       clearInterval(timerInterval);
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);

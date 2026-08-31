@@ -354,7 +354,9 @@ def draw_poster(store, neighbors, map_path):
     pamphlet.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
 
-def generate_poster(facility_id, port=8080):
+def generate_poster(facility_id, port=None):
+    if not port:
+        port = int(os.environ.get("PORT", 8080))
     store, neighbors = get_store_and_neighbors(facility_id)
     map_path = None
     

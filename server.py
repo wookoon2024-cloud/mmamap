@@ -337,11 +337,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             with open(cache_path, "rb") as f:
                 img_bytes = f.read()
         else:
-            print(f"[Server] Rendering poster dynamically for {facility_id}")
+            server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+            print(f"[Server] Rendering poster dynamically for {facility_id} on port {server_port}")
             from poster_renderer import generate_poster
             
             try:
-                img_bytes = generate_poster(facility_id)
+                img_bytes = generate_poster(facility_id, port=server_port)
                 # Cache it
                 with open(cache_path, "wb") as f:
                     f.write(img_bytes)
@@ -379,11 +380,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             with open(cache_path, "rb") as f:
                 img_bytes = f.read()
         else:
-            print(f"[Server] Rendering stand dynamically for {facility_id}")
+            server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+            print(f"[Server] Rendering stand dynamically for {facility_id} on port {server_port}")
             from stand_renderer import generate_stand
             
             try:
-                img_bytes = generate_stand(facility_id)
+                img_bytes = generate_stand(facility_id, port=server_port)
                 # Cache it
                 with open(cache_path, "wb") as f:
                     f.write(img_bytes)
@@ -421,7 +423,8 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             with open(cache_path, "rb") as f:
                 img_bytes = f.read()
         else:
-            print(f"[Server] Rendering hanger dynamically for {facility_id}")
+            server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+            print(f"[Server] Rendering hanger dynamically for {facility_id} on port {server_port}")
             from hanger_renderer import draw_door_hanger, get_store_info
             
             try:

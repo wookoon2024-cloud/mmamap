@@ -293,7 +293,9 @@ def draw_table_stand(store, map_path):
     stand.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
 
-def generate_stand(facility_id, port=8080):
+def generate_stand(facility_id, port=None):
+    if not port:
+        port = int(os.environ.get("PORT", 8080))
     store = get_store_info(facility_id)
     if not store:
         raise ValueError(f"Facility {facility_id} not found.")
