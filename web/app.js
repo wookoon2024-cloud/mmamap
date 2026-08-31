@@ -2705,40 +2705,63 @@ async function bootstrap() {
     if (!query) return;
     const lowerQuery = query.toLowerCase();
 
-    // 1. Exact or partial store title match
-    const titleMatch = points.find((p) => (p.title || "").toLowerCase() === lowerQuery) ||
-                       points.find((p) => (p.title || "").toLowerCase().includes(lowerQuery));
-    if (titleMatch) {
-      const key = getFacilityKey(titleMatch);
+    // 1. Exact Store Title Match ONLY (100% 일치할 때만 단일 상점 포커스)
+    const exactTitleMatch = points.find((p) => (p.title || "").toLowerCase() === lowerQuery);
+    if (exactTitleMatch) {
+      const key = getFacilityKey(exactTitleMatch);
       if (key) {
         focusFacility(key);
         return;
       }
     }
 
-    // 2. Address / Region / Category / Benefit match
-    const matchedStores = points.filter((p) => 
+    // 2. Region / Address Match (지역명/주소 검색 시 해당 지역 전체 지도 이동)
+    const addrMatches = points.filter((p) => 
       (p.address || "").toLowerCase().includes(lowerQuery) || 
-      (p.region || "").toLowerCase().includes(lowerQuery) ||
-      (p.category || "").toLowerCase().includes(lowerQuery) ||
-      (p.subtitle || "").toLowerCase().includes(lowerQuery) ||
-      (p.benefit || "").toLowerCase().includes(lowerQuery)
+      (p.region || "").toLowerCase().includes(lowerQuery)
     );
 
-    if (matchedStores.length > 0) {
-      const avgLat = matchedStores.reduce((sum, p) => sum + p.lat, 0) / matchedStores.length;
-      const avgLng = matchedStores.reduce((sum, p) => sum + p.lng, 0) / matchedStores.length;
+    if (addrMatches.length > 0) {
+      if (selectedFacilityId) hideDetailPanelOnly();
+      const avgLat = addrMatches.reduce((sum, p) => sum + p.lat, 0) / addrMatches.length;
+      const avgLng = addrMatches.reduce((sum, p) => sum + p.lng, 0) / addrMatches.length;
       map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
-      map.setZoom(matchedStores.length === 1 ? 16 : 14, true);
+      map.setZoom(14, true);
       updateZoomLabel();
       scheduleRender();
       return;
     }
 
-    // 3. Fallback to Naver Geocoder if available
+    // 3. Partial Store Title / Category / Benefit Match
+    const partialMatches = points.filter((p) => 
+      (p.title || "").toLowerCase().includes(lowerQuery) ||
+      (p.category || "").toLowerCase().includes(lowerQuery) ||
+      (p.subtitle || "").toLowerCase().includes(lowerQuery) ||
+      (p.benefit || "").toLowerCase().includes(lowerQuery)
+    );
+
+    if (partialMatches.length === 1) {
+      const key = getFacilityKey(partialMatches[0]);
+      if (key) {
+        focusFacility(key);
+        return;
+      }
+    } else if (partialMatches.length > 1) {
+      if (selectedFacilityId) hideDetailPanelOnly();
+      const avgLat = partialMatches.reduce((sum, p) => sum + p.lat, 0) / partialMatches.length;
+      const avgLng = partialMatches.reduce((sum, p) => sum + p.lng, 0) / partialMatches.length;
+      map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
+      map.setZoom(14, true);
+      updateZoomLabel();
+      scheduleRender();
+      return;
+    }
+
+    // 4. Fallback to Naver Geocoder if available
     if (window.naver && naver.maps && naver.maps.Service && naver.maps.Service.geocode) {
       naver.maps.Service.geocode({ query }, (status, response) => {
         if (status === naver.maps.Service.Status.OK && response.v2 && response.v2.addresses.length > 0) {
+          if (selectedFacilityId) hideDetailPanelOnly();
           const address = response.v2.addresses[0];
           const pos = new naver.maps.LatLng(address.y, address.x);
           map.setCenter(pos);
