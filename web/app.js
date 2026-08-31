@@ -1767,25 +1767,23 @@ async function bootstrap() {
     const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
     if (!container) return;
 
-    if (currentPrintBlobUrl) {
-      URL.revokeObjectURL(currentPrintBlobUrl);
-      currentPrintBlobUrl = null;
-    }
-
     const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
     const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
     const facilityId = point.facilityId || point.id || "";
     const widthPx = tplName === "poster" ? 420 : (tplName === "table_stand" ? 280 : 240);
     const heightPx = tplName === "poster" ? 594 : (tplName === "table_stand" ? 420 : 435);
 
+    const targetUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+
     container.innerHTML = `
       <div class="tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
         <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
           <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
           <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: sans-serif;">${tplTitle} 생성 중...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/3] 서버(Render) 연결 요청 중...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/2] 서버 렌더링 요청 중...</div>
         </div>
         <img id="printResultImg" 
+             src="${targetUrl}"
              alt="${tplTitle} 인쇄 시안" 
              style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 5; display: none; object-fit: contain;" />
       </div>
@@ -1800,61 +1798,33 @@ async function bootstrap() {
       addDebugLog(msg, type);
     };
 
-    try {
-      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-      const primaryUrl = isLocal 
-        ? `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`
-        : `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
-      const fallbackUrl = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+    const startTime = performance.now();
+    updateLog(`[1/2] ${tplTitle} 렌더링 요청 ➔ ${targetUrl}`, "info");
 
-      updateLog(`[1/3] 서버 요청 전송 ➔ ${primaryUrl}`, "info");
-      
-      const startTime = performance.now();
-      let res;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
-        res = await fetch(primaryUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-      } catch (firstErr) {
-        updateLog(`[재시도] 1차 요청 지연(${firstErr.message}), 프록시 경로로 재시도...`, "warn");
-        res = await fetch(fallbackUrl);
-      }
-
+    resultImg.onload = () => {
       const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      updateLog(`[2/2] ${tplTitle} 렌더링 완료! (${elapsed}초)`, "success");
+      if (loadingWrap) loadingWrap.style.display = "none";
+      resultImg.style.display = "block";
+    };
+
+    resultImg.onerror = (e) => {
+      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+      updateLog(`[오류] 1차 경로 지연 (${elapsed}초) - 직접 Render 백엔드 연결 시도...`, "warn");
       
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        const errDetail = `HTTP ${res.status} (${errText || res.statusText || "서버 오류"}) [${elapsed}초]`;
-        updateLog(`[오류] ${errDetail}`, "error");
-        throw new Error(errDetail);
-      }
-      
-      const blob = await res.blob();
-      const sizeKb = (blob.size / 1024).toFixed(1);
-      updateLog(`[2/3] 이미지 수신 완료 (${elapsed}초, ${sizeKb} KB) ➔ 브라우저 렌더링 중...`, "info");
-      
-      currentPrintBlobUrl = URL.createObjectURL(blob);
-      
-      resultImg.onload = () => {
-        updateLog(`[3/3] 렌더링 완료! (${sizeKb} KB)`, "success");
-        if (loadingWrap) loadingWrap.style.display = "none";
-        if (resultImg) resultImg.style.display = "block";
-      };
+      const directUrl = `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
       resultImg.onerror = () => {
-        updateLog(`[오류] 브라우저 이미지 디코딩 실패`, "error");
+        updateLog(`[오류] 2차 직접 연결도 실패했습니다.`, "error");
+        if (loadingWrap) {
+          loadingWrap.innerHTML = `
+            <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 8px;">홍보물 생성 오류</div>
+            <div style="font-size: 12px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 12px;">서버 연결 시간 초과</div>
+            <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
+          `;
+        }
       };
-      resultImg.src = currentPrintBlobUrl;
-    } catch (err) {
-      console.error("[PrintModal Error]", err);
-      if (loadingWrap) {
-        loadingWrap.innerHTML = `
-          <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 8px;">홍보물 생성 오류</div>
-          <div style="font-size: 12px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 12px;">${err.message || err}</div>
-          <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
-        `;
-      }
-    }
+      resultImg.src = directUrl;
+    };
   };
 
   const openPrintModal = (point) => {
