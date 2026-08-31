@@ -1731,53 +1731,59 @@ async function bootstrap() {
 
     if (tplName === "poster") {
       container.innerHTML = `
-        <div class="print-sheet poster-sheet" style="width: 440px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 14px 14px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
-          <!-- Top Header with Original MMA Logo Image and Title -->
-          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 2px;">
-            <img src="./img/mma_logo.png?v=2" alt="병무청" style="height: 24px; width: auto; object-fit: contain;" />
-            <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
-            <div style="width: 60px;"></div>
+        <div class="print-sheet poster-sheet" style="width: 440px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 16px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
+          <!-- Header: Left Logo & Center Title -->
+          <div style="position: relative; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 28px;">
+            <img src="./img/mma_logo.png?v=2" alt="병무청" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 24px; width: auto; object-fit: contain;" />
+            <div style="font-size: 19px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
           </div>
           
-          <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 10px 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-            <div style="font-size: 18px; font-weight: 900; color: #0F172A; margin-bottom: 4px;">${escapeHtml(storeTitle)}</div>
-            <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 16px; margin-bottom: 4px;">${escapeHtml(benefitText)}</div>
-            <div style="font-size: 10px; color: #64748B; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
+          <!-- Main Store Card (Matching Python Poster Card exactly) -->
+          <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 12px 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <div style="font-size: 20px; font-weight: 900; color: #1E1E1E; margin-bottom: 3px;">${escapeHtml(storeTitle)}</div>
+            <div style="color: #9C8262; font-weight: 800; font-size: 14px; margin-bottom: 4px;">${escapeHtml(benefitText)}</div>
+            <div style="font-size: 10.5px; color: #64748B; font-weight: 500;">우대 대상 : ${escapeHtml(audienceText)}</div>
           </div>
 
           <!-- Real Interactive Naver Map -->
           <div id="posterMapDiv" style="width: 100%; height: 200px; border-radius: 10px; overflow: hidden; border: 1.5px solid #D2C9BD; box-shadow: 0 2px 6px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
 
-          <div style="background: #ffffff; border-radius: 10px; border: 1px solid #E2E8F0; overflow: hidden;">
-            <div style="background: #DFD7CB; padding: 5px 10px; font-size: 11px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
-              <span style="font-size: 11px; font-weight: 800;">주변 나라사랑가게 (반경 1km)</span>
-              <span style="font-size: 10px; font-weight: 600; color: #64748B;">총 ${nearby.length}곳</span>
-            </div>
-            <div style="display: flex; flex-direction: column;">
-              ${nearby.map((item, i) => {
-                const n = item.point || {};
-                const distText = item.distKm < 1 ? Math.round(item.distKm * 1000) + 'm' : item.distKm.toFixed(1) + 'km';
-                const nBenefit = cleanBenefit(n.benefit).slice(0, 18);
-                return `
-                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; border-bottom: 1px solid #F1F5F9; font-size: 10px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
-                    <div style="display: flex; align-items: center; gap: 5px; flex: 1; overflow: hidden;">
-                      <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 9px; font-weight: bold;">${i + 1}</span>
-                      <span style="font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${escapeHtml(n.title || "가맹점")}</span>
+          <!-- Neighbors Table (Matching Python Poster Table exactly) -->
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #1E1E1E; margin-bottom: 4px; text-align: left;">주변 나라사랑가게</div>
+            <div style="background: #ffffff; border-radius: 8px; border: 1px solid #DFD7CB; overflow: hidden;">
+              <div style="background: #DFD7CB; padding: 5px 10px; font-size: 10.5px; font-weight: 800; color: #1E1E1E; display: flex; text-align: center;">
+                <span style="width: 32%; text-align: left; padding-left: 18px;">이름</span>
+                <span style="width: 38%; text-align: center;">할인 혜택</span>
+                <span style="width: 30%; text-align: center;">우대 대상</span>
+              </div>
+              <div style="display: flex; flex-direction: column;">
+                ${nearby.map((item, i) => {
+                  const n = item.point || {};
+                  const nBenefit = cleanBenefit(n.benefit).slice(0, 18);
+                  const nAudience = (Array.isArray(n.audiences) && n.audiences.length ? n.audiences.join(", ") : "장병 및 예비군").slice(0, 14);
+                  return `
+                    <div style="display: flex; align-items: center; padding: 5px 10px; border-bottom: 1px solid #F1F5F9; font-size: 10px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
+                      <div style="display: flex; align-items: center; gap: 5px; width: 32%; overflow: hidden;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; min-width: 16px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 9px; font-weight: bold;">${i + 1}</span>
+                        <span style="font-weight: 700; color: #1E1E1E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(n.title || "가맹점")}</span>
+                      </div>
+                      <div style="width: 38%; font-size: 9.5px; color: #1E1E1E; font-weight: 500; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;">${escapeHtml(nBenefit)}</div>
+                      <div style="width: 30%; font-size: 9px; color: #475569; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(nAudience)}</div>
                     </div>
-                    <div style="font-size: 10px; color: #0284C7; font-weight: 700; margin: 0 6px; text-align: right;">${escapeHtml(nBenefit)}</div>
-                    <div style="font-size: 10px; color: #64748B; white-space: nowrap; font-weight: 600;">${distText}</div>
-                  </div>
-                `;
-              }).join('')}
+                  `;
+                }).join('')}
+              </div>
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 6px 10px;">
-            <img src="${qrImgUrl}" alt="QR" style="width: 48px; height: 48px; border-radius: 4px; border: 1px solid #CBD5E1;" />
-            <div style="flex: 1; font-size: 10px;">
-              <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 1px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
-              <div style="color: #64748B; font-size: 9px; line-height: 1.2;">가맹점 상세 혜택과 주변 연계 혜택을 모바일에서 즉시 확인하실 수 있습니다.</div>
+          <!-- Footer -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #ffffff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 6px 10px;">
+            <div style="flex: 1; font-size: 10px; text-align: left;">
+              <div style="font-weight: 800; color: #1E1E1E; margin-bottom: 1px; font-size: 10.5px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
+              <div style="color: #64748B; font-size: 9px; line-height: 1.2;">나라사랑가게의 정의와 병무청 공식 우대 혜택을 모바일로 바로 확인할 수 있습니다.</div>
             </div>
+            <img src="${qrImgUrl}" alt="QR" style="width: 48px; height: 48px; border-radius: 4px; border: 1px solid #CBD5E1;" />
           </div>
         </div>
       `;
@@ -2666,23 +2672,48 @@ async function bootstrap() {
 
   const doPrintBtn = document.getElementById("doPrintBtn");
   if (doPrintBtn) {
-    doPrintBtn.addEventListener("click", () => {
-      if (currentPrintPoint) {
-        const facilityId = currentPrintPoint.facilityId || currentPrintPoint.id || "";
-        const link = document.createElement("a");
-        if (currentPrintTemplate === "poster") {
-          link.href = `/api/print_poster?facility_id=${encodeURIComponent(facilityId)}`;
-          link.download = `상생지도_포스터_${currentPrintPoint.title}.png`;
-        } else if (currentPrintTemplate === "table_stand") {
-          link.href = `/api/print_stand?facility_id=${encodeURIComponent(facilityId)}`;
-          link.download = `상생지도_아크릴스탠드_${currentPrintPoint.title}.png`;
-        } else if (currentPrintTemplate === "door_hanger") {
-          link.href = `/api/print_hanger?facility_id=${encodeURIComponent(facilityId)}`;
-          link.download = `상생지도_도어행거_${currentPrintPoint.title}.png`;
+    doPrintBtn.addEventListener("click", async () => {
+      const sheet = document.querySelector(".print-sheet");
+      if (!sheet || !currentPrintPoint) return;
+      
+      const origText = doPrintBtn.textContent;
+      doPrintBtn.textContent = "이미지 생성 중...";
+      doPrintBtn.disabled = true;
+
+      try {
+        if (typeof html2canvas === "function") {
+          addDebugLog("[다운로드] 화면 표시 내용 기준 고해상도 PNG 렌더링 중...", "info");
+          const canvas = await html2canvas(sheet, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#F3F3ED",
+          });
+          const imgUrl = canvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.href = imgUrl;
+          const tplTitle = currentPrintTemplate === "poster" ? "포스터" : (currentPrintTemplate === "table_stand" ? "스탠드" : "도어행거");
+          link.download = `상생지도_${tplTitle}_${currentPrintPoint.title || "가맹점"}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          addDebugLog("[다운로드 완료] 고해상도 PNG 이미지 저장 완료!", "success");
+        } else {
+          const facilityId = currentPrintPoint.facilityId || currentPrintPoint.id || "";
+          const link = document.createElement("a");
+          link.href = `/api/print_${currentPrintTemplate === "poster" ? "poster" : (currentPrintTemplate === "table_stand" ? "stand" : "hanger")}?facility_id=${encodeURIComponent(facilityId)}`;
+          link.download = `상생지도_${currentPrintPoint.title}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         }
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      } catch (err) {
+        console.error("Image download error:", err);
+        addDebugLog(`[오류] 다운로드 실패: ${err.message}`, "error");
+        alert("이미지 저장 중 오류가 발생했습니다: " + err.message);
+      } finally {
+        doPrintBtn.textContent = origText;
+        doPrintBtn.disabled = false;
       }
     });
   }
