@@ -1,3 +1,21 @@
+window.addEventListener("error", function (e) {
+  const errDiv = document.getElementById("debugErrorBadge") || document.createElement("div");
+  errDiv.id = "debugErrorBadge";
+  errDiv.style.position = "fixed";
+  errDiv.style.bottom = "30px";
+  errDiv.style.right = "85px";
+  errDiv.style.background = "#ef4444";
+  errDiv.style.color = "#ffffff";
+  errDiv.style.zIndex = "99999";
+  errDiv.style.padding = "6px 12px";
+  errDiv.style.fontSize = "12px";
+  errDiv.style.fontFamily = "monospace";
+  errDiv.style.borderRadius = "4px";
+  errDiv.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+  errDiv.textContent = `JS Error: ${e.message} at ${String(e.filename || '').split('/').pop()}:${e.lineno}`;
+  document.body.appendChild(errDiv);
+});
+
 const DATA_URL = "./data/benefits_map.json";
 const LS_RATINGS_KEY = "mma_map_ratings_v1";
 const LS_INTRO_DISMISS_KEY = "mma_map_intro_dismiss_v1";
@@ -2363,8 +2381,8 @@ async function bootstrap() {
     const bounds = map.getBounds();
     if (!bounds || typeof bounds.hasLatLng !== "function") {
       if (!initialBoundsListener) {
-        initialBoundsListener = naver.maps.Event.addListener(map, "bounds_changed", () => {
-          naver.maps.Event.removeListener(initialBoundsListener);
+        initialBoundsListener = true;
+        naver.maps.Event.once(map, "bounds_changed", () => {
           initialBoundsListener = null;
           renderVisibleMarkers();
         });
