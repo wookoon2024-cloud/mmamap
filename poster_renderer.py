@@ -360,13 +360,17 @@ def generate_poster(facility_id, port=8080):
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
             )
-            page = browser.new_page(viewport={"width": 880, "height": 550})
+            context = browser.new_context(
+                viewport={"width": 1200, "height": 750},
+                device_scale_factor=2
+            )
+            page = context.new_page()
             url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
             try:
-                page.goto(url, wait_until="networkidle", timeout=8000)
+                page.goto(url, wait_until="networkidle", timeout=12000)
             except Exception as e:
                 print(f"[PosterRenderer] Warning on page.goto: {e}")
-            time.sleep(2)
+            time.sleep(2.5)
             
             map_locator = page.locator("#map")
             map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
