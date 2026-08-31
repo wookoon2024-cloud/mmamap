@@ -2360,6 +2360,10 @@ async function bootstrap() {
 
   const renderVisibleMarkers = () => {
     const bounds = map.getBounds();
+    if (!bounds || typeof bounds.hasLatLng !== "function") {
+      setTimeout(renderVisibleMarkers, 100);
+      return;
+    }
     const visible = [];
     const selectedBeforeRender = selectedFacilityId;
     const MAX_MARKERS = 700;
