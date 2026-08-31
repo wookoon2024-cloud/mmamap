@@ -1627,7 +1627,7 @@ async function bootstrap() {
     const center = new naver.maps.LatLng(point.lat, point.lng);
     posterMapInstance = new naver.maps.Map(mapDiv, {
       center: center,
-      zoom: 14,
+      zoom: 15,
       draggable: false,
       pinchZoom: false,
       scrollWheel: false,
@@ -1642,57 +1642,28 @@ async function bootstrap() {
       mapDataControl: false,
     });
 
-    let maxDLat = 0;
-    let maxDLng = 0;
-    if (Array.isArray(nearbyStores)) {
-      nearbyStores.forEach(item => {
-        if (item && item.point) {
-          const dLat = Math.abs(item.point.lat - point.lat);
-          const dLng = Math.abs(item.point.lng - point.lng);
-          if (dLat > maxDLat) maxDLat = dLat;
-          if (dLng > maxDLng) maxDLng = dLng;
-        }
-      });
-    }
-
     const latRad = (point.lat * Math.PI) / 180;
-    const minDLat = 1000 / 111300;
-    const minDLng = 1000 / (111300 * Math.cos(latRad));
-    
-    if (maxDLat < minDLat) maxDLat = minDLat;
-    if (maxDLng < minDLng) maxDLng = minDLng;
 
-    const swCoord = new naver.maps.LatLng(point.lat - maxDLat, point.lng - maxDLng);
-    const neCoord = new naver.maps.LatLng(point.lat + maxDLat, point.lng + maxDLng);
-    const symmetricBounds = new naver.maps.LatLngBounds(swCoord, neCoord);
-
-    posterMapInstance.fitBounds(symmetricBounds, {
-      top: 60,
-      right: 60,
-      bottom: 60,
-      left: 60
-    });
-
-    // 500m circle (thicker, darker blue)
+    // 500m circle (subtle blue dash)
     const circle500 = new naver.maps.Circle({
       map: posterMapInstance,
       center: center,
       radius: 500,
       strokeColor: "#2563eb",
-      strokeWeight: 4,
+      strokeWeight: 3,
       strokeDashStyle: "dash",
       fillColor: "#2563eb",
-      fillOpacity: 0.05,
+      fillOpacity: 0.04,
     });
     posterCircles.push(circle500);
 
-    // 1000m circle (thicker, darker blue)
+    // 1000m circle (subtle blue dash)
     const circle1000 = new naver.maps.Circle({
       map: posterMapInstance,
       center: center,
       radius: 1000,
       strokeColor: "#2563eb",
-      strokeWeight: 4,
+      strokeWeight: 3,
       strokeDashStyle: "dash",
       fillColor: "#2563eb",
       fillOpacity: 0.02,
@@ -1730,15 +1701,15 @@ async function bootstrap() {
           zIndex: 100 + idx,
           icon: {
             content: `
-              <div style="position:relative; width:46px; height:46px; background-image:url('/img/gold_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; display:flex; align-items:center; justify-content:center; z-index:100;">
+              <div style="position:relative; width:44px; height:44px; background-image:url('/img/gold_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; display:flex; align-items:center; justify-content:center; z-index:100;">
                 <span style="color:#ffffff; font-weight:900; font-size:12px; margin-top:-5px; text-shadow:0 1px 2px rgba(0,0,0,0.5);">${num}</span>
-                <div style="position:absolute; bottom:48px; left:50%; transform:translateX(-50%); background:#ffffff; color:#0f172a; font-family:'Noto Sans KR', sans-serif; font-size:10px; font-weight:700; padding:3px 7px; border-radius:8px; border:1.5px solid #d2c9bd; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,0.12); line-height:1.2; text-align:center;">
+                <div style="position:absolute; bottom:46px; left:50%; transform:translateX(-50%); background:#ffffff; color:#0f172a; font-family:'Noto Sans KR', sans-serif; font-size:10px; font-weight:700; padding:3px 7px; border-radius:8px; border:1.5px solid #d2c9bd; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,0.12); line-height:1.2; text-align:center;">
                   <div>${escapeHtml(n.title)}</div>
                   <div style="font-size:9px; color:#64748b; font-weight:500;">(${distText})</div>
                 </div>
               </div>
             `,
-            anchor: new naver.maps.Point(23, 23),
+            anchor: new naver.maps.Point(22, 22),
           },
         });
         posterMarkers.push(nMarker);
