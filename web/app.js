@@ -1747,7 +1747,7 @@ async function bootstrap() {
   let currentPrintBlobUrl = null;
 
   const renderPrintTemplate = async (point, tplName = "poster") => {
-    const container = document.getElementById("printCanvasContainer");
+    const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
     if (!container) return;
 
     if (currentPrintBlobUrl) {
