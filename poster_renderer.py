@@ -354,6 +354,27 @@ def draw_poster(store, neighbors, map_path):
     pamphlet.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
 
+_PLAYWRIGHT_INSTANCE = None
+_BROWSER_INSTANCE = None
+
+def get_shared_browser():
+    global _PLAYWRIGHT_INSTANCE, _BROWSER_INSTANCE
+    if _BROWSER_INSTANCE is None or not _BROWSER_INSTANCE.is_connected():
+        from playwright.sync_api import sync_playwright
+        if _PLAYWRIGHT_INSTANCE is None:
+            _PLAYWRIGHT_INSTANCE = sync_playwright().start()
+        _BROWSER_INSTANCE = _PLAYWRIGHT_INSTANCE.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-extensions"
+            ]
+        )
+    return _BROWSER_INSTANCE
+
 def generate_poster(facility_id, port=None):
     if not port:
         port = int(os.environ.get("PORT", 8080))
@@ -361,32 +382,32 @@ def generate_poster(facility_id, port=None):
     map_path = None
     
     try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-            )
-            context = browser.new_context(
-                viewport={"width": 1200, "height": 750},
-                device_scale_factor=2
-            )
-            page = context.new_page()
-            url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
+        browser = get_shared_browser()
+        context = browser.new_context(
+            viewport={"width": 1200, "height": 750},
+            device_scale_factor=2
+        )
+        page = context.new_page()
+        url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=10000)
             try:
-                page.goto(url, wait_until="networkidle", timeout=12000)
-            except Exception as e:
-                print(f"[PosterRenderer] Warning on page.goto: {e}")
-            time.sleep(2.5)
+                page.wait_for_function("window.__MAP_READY === true", timeout=6000)
+            except Exception:
+                time.sleep(1.5)
+        except Exception as e:
+            print(f"[PosterRenderer] Warning on page.goto: {e}")
+            time.sleep(1.5)
             
-            map_locator = page.locator("#map")
-            map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
-            try:
-                map_locator.screenshot(path=str(map_path), timeout=5000)
-            except Exception as e:
-                print(f"[PosterRenderer] Locator screenshot failed: {e}")
-                page.screenshot(path=str(map_path))
-            browser.close()
+        map_locator = page.locator("#map")
+        map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
+        try:
+            map_locator.screenshot(path=str(map_path), timeout=4000)
+        except Exception as e:
+            print(f"[PosterRenderer] Locator screenshot failed: {e}")
+            page.screenshot(path=str(map_path))
+        page.close()
+        context.close()
     except Exception as e:
         print(f"[PosterRenderer] Playwright capture error: {e}")
 

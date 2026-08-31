@@ -1611,10 +1611,10 @@ async function bootstrap() {
         const sec = parseFloat(curElapsed);
         if (sec < 4) {
           stageText = "가맹점 정보 및 지도 데이터 구성 중";
-        } else if (sec < 20) {
+        } else if (sec < 25) {
           stageText = "고화질 지도 및 Pretendard 그래픽 렌더링 중";
         } else {
-          stageText = "서버 최초 기동 중 / 이미지 인코딩 마무리 중";
+          stageText = "Render 서버 최초 기동 및 이미지 합성 마무리 중";
         }
         subLog.textContent = `[1/2] ${stageText} (${curElapsed}초 경과)`;
       }
@@ -1631,7 +1631,7 @@ async function bootstrap() {
       updateLog(`[호출] ${isLocal ? "로컬 서버" : "Render 백엔드 직접 연결"}: ${targetUrl}`, "info");
       
       const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 45000);
+      const fetchTimeout = setTimeout(() => controller.abort(), 90000);
       
       let res;
       try {

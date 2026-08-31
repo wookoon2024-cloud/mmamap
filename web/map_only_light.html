@@ -786,8 +786,11 @@
           updateExtraMarkers();
         }
         
+        window.__MAP_READY = true;
+        console.log("Map rendering completely ready!");
       } catch (err) {
         console.error("Map initialization error:", err);
+        window.__MAP_READY = true;
       }
     }
     
