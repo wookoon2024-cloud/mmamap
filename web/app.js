@@ -2379,7 +2379,11 @@ async function bootstrap() {
 
   const renderVisibleMarkers = () => {
     const bounds = map.getBounds();
-    if (!bounds || typeof bounds.hasLatLng !== "function") {
+    const isBoundsEmpty = !bounds || 
+      (typeof bounds.hasLatLng !== "function") || 
+      (bounds.getNE().lat() === bounds.getSW().lat() && bounds.getNE().lng() === bounds.getSW().lng());
+
+    if (isBoundsEmpty) {
       if (!initialBoundsListener) {
         initialBoundsListener = true;
         naver.maps.Event.once(map, "bounds_changed", () => {
