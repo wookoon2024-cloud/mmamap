@@ -1731,29 +1731,29 @@ async function bootstrap() {
 
     if (tplName === "poster") {
       container.innerHTML = `
-        <div class="print-sheet poster-sheet" style="width: 440px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 16px 16px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
-          <!-- Header: Left Logo & Center Title -->
-          <div style="position: relative; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 28px;">
-            <img src="./img/mma_logo.png?v=2" alt="병무청" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 24px; width: auto; object-fit: contain;" />
-            <div style="font-size: 19px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
+        <div class="print-sheet poster-sheet" style="width: 520px; min-height: 735px; background: #F3F3ED; border-radius: 4px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); padding: 28px 24px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
+          <!-- Top Header: Left Official MMA Logo & Center Title -->
+          <div style="position: relative; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 32px; margin-bottom: 2px;">
+            <img src="./img/mma_logo.png?v=2" alt="병무청" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 26px; width: auto; object-fit: contain;" />
+            <div style="font-size: 21px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">나라사랑가게 상생 지도</div>
           </div>
           
-          <!-- Main Store Card (Matching Python Poster Card exactly) -->
-          <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 12px 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-            <div style="font-size: 20px; font-weight: 900; color: #1E1E1E; margin-bottom: 3px;">${escapeHtml(storeTitle)}</div>
-            <div style="color: #9C8262; font-weight: 800; font-size: 14px; margin-bottom: 4px;">${escapeHtml(benefitText)}</div>
-            <div style="font-size: 10.5px; color: #64748B; font-weight: 500;">우대 대상 : ${escapeHtml(audienceText)}</div>
+          <!-- Main Store Card (Exact Python Poster Card) -->
+          <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 16px 14px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+            <div style="font-size: 22px; font-weight: 900; color: #1E1E1E; margin-bottom: 4px;">${escapeHtml(storeTitle)}</div>
+            <div style="color: #9C8262; font-weight: 800; font-size: 15px; margin-bottom: 6px; letter-spacing: -0.3px;">${escapeHtml(benefitText)}</div>
+            <div style="font-size: 11px; color: #64748B; font-weight: 500;">우대 대상 : ${escapeHtml(audienceText)}</div>
           </div>
 
-          <!-- Real Interactive Naver Map -->
-          <div id="posterMapDiv" style="width: 100%; height: 200px; border-radius: 10px; overflow: hidden; border: 1.5px solid #D2C9BD; box-shadow: 0 2px 6px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
+          <!-- Real Interactive Naver Map (Spacious High-Res Box) -->
+          <div id="posterMapDiv" style="width: 100%; height: 270px; border-radius: 10px; overflow: hidden; border: 1.5px solid #D2C9BD; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
 
-          <!-- Neighbors Table (Matching Python Poster Table exactly) -->
+          <!-- Neighbors Table (Exact Python Poster 3-Column Table) -->
           <div>
-            <div style="font-size: 13px; font-weight: 800; color: #1E1E1E; margin-bottom: 4px; text-align: left;">주변 나라사랑가게</div>
-            <div style="background: #ffffff; border-radius: 8px; border: 1px solid #DFD7CB; overflow: hidden;">
-              <div style="background: #DFD7CB; padding: 5px 10px; font-size: 10.5px; font-weight: 800; color: #1E1E1E; display: flex; text-align: center;">
-                <span style="width: 32%; text-align: left; padding-left: 18px;">이름</span>
+            <div style="font-size: 15px; font-weight: 900; color: #1E1E1E; margin-bottom: 6px; text-align: left;">주변 나라사랑가게</div>
+            <div style="background: #ffffff; border-radius: 6px; border: 1.5px solid #DFD7CB; overflow: hidden;">
+              <div style="background: #DFD7CB; padding: 7px 12px; font-size: 11.5px; font-weight: 800; color: #1E1E1E; display: flex; text-align: center;">
+                <span style="width: 32%; text-align: left; padding-left: 24px;">이름</span>
                 <span style="width: 38%; text-align: center;">할인 혜택</span>
                 <span style="width: 30%; text-align: center;">우대 대상</span>
               </div>
