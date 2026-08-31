@@ -598,6 +598,7 @@ async function bootstrap() {
   });
 
   let renderedMarkers = [];
+  let initialBoundsListener = null;
   let renderTimer = null;
   let selectedCategory = "";
   let selectedAudience = "";
@@ -2361,7 +2362,13 @@ async function bootstrap() {
   const renderVisibleMarkers = () => {
     const bounds = map.getBounds();
     if (!bounds || typeof bounds.hasLatLng !== "function") {
-      setTimeout(renderVisibleMarkers, 100);
+      if (!initialBoundsListener) {
+        initialBoundsListener = naver.maps.Event.addListener(map, "bounds_changed", () => {
+          naver.maps.Event.removeListener(initialBoundsListener);
+          initialBoundsListener = null;
+          renderVisibleMarkers();
+        });
+      }
       return;
     }
     const visible = [];
