@@ -321,30 +321,7 @@ def draw_poster(store, neighbors, map_path):
     pamphlet.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
 
-async def generate_poster(facility_id, port=8080):
+def generate_poster(facility_id, port=8080):
     store, neighbors = get_store_and_neighbors(facility_id)
-    map_path = None
-    
-    try:
-        from playwright.async_api import async_playwright
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-            )
-            context = await browser.new_context(viewport={"width": 1200, "height": 750})
-            page = await context.new_page()
-            map_path = await capture_map(page, facility_id, port=port)
-            await browser.close()
-    except Exception as e:
-        print(f"[PosterRenderer] Playwright capture skipped or failed: {e}")
-        
-    img_bytes = draw_poster(store, neighbors, map_path)
-    
-    if map_path and Path(map_path).exists():
-        try:
-            Path(map_path).unlink()
-        except Exception:
-            pass
-            
+    img_bytes = draw_poster(store, neighbors, map_path=None)
     return img_bytes

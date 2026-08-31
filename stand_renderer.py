@@ -268,32 +268,9 @@ def draw_table_stand(store, map_path):
     stand.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
 
-async def generate_stand(facility_id, port=8080):
+def generate_stand(facility_id, port=8080):
     store = get_store_info(facility_id)
     if not store:
         raise ValueError(f"Facility {facility_id} not found.")
-        
-    map_path = None
-    try:
-        from playwright.async_api import async_playwright
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-            )
-            page = await browser.new_page()
-            await page.set_viewport_size({"width": 880, "height": 570})
-            map_path = await capture_map(page, facility_id, port=port)
-            await browser.close()
-    except Exception as e:
-        print(f"[StandRenderer] Playwright capture skipped or failed: {e}")
-        
-    img_bytes = draw_table_stand(store, map_path)
-    
-    if map_path and Path(map_path).exists():
-        try:
-            Path(map_path).unlink()
-        except Exception:
-            pass
-            
+    img_bytes = draw_table_stand(store, map_path=None)
     return img_bytes

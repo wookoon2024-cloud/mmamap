@@ -338,20 +338,10 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 img_bytes = f.read()
         else:
             print(f"[Server] Rendering poster dynamically for {facility_id}")
-            import asyncio
             from poster_renderer import generate_poster
             
             try:
-                port = 8080
-                if hasattr(self.server, "server_port"):
-                    port = self.server.server_port
-                
-                # Run the renderer in an event loop
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                img_bytes = loop.run_until_complete(generate_poster(facility_id, port=port))
-                loop.close()
-                
+                img_bytes = generate_poster(facility_id)
                 # Cache it
                 with open(cache_path, "wb") as f:
                     f.write(img_bytes)
@@ -390,16 +380,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             from stand_renderer import generate_stand
             
             try:
-                port = 8080
-                if hasattr(self.server, "server_port"):
-                    port = self.server.server_port
-                elif hasattr(self.server, "server_address"):
-                    port = self.server.server_address[1]
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                img_bytes = loop.run_until_complete(generate_stand(facility_id, port=port))
-                loop.close()
-                
+                img_bytes = generate_stand(facility_id)
                 # Cache it
                 with open(cache_path, "wb") as f:
                     f.write(img_bytes)
