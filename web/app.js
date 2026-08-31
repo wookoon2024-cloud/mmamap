@@ -1764,51 +1764,31 @@ async function bootstrap() {
 
     const nearby = getNearbyStores(point, 5);
 
-    if (tplName === "poster") {
-      const facilityId = point.facilityId || point.id || "";
-      container.innerHTML = `
-        <div class="tpl-poster-img-only" style="position: relative; width: 420px; height: 594px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
-          <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1;">
-            <div class="print-loading-spinner" style="width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-            <div style="font-size: 15px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">포스터 이미지를 생성 중입니다... (약 3~4초 소요)</div>
-          </div>
-          <img src="/api/print_poster?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
-               alt="A4 홍보 포스터" 
-               style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
-               onload="this.previousElementSibling.style.display='none';" 
-               onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:14px;\\'>이미지 생성 중 일시적 오류가 발생했습니다.<br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;poster&quot;)\\' style=\\'margin-top:8px;padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;\\'>다시 시도</button></div>';" />
+    const tplTitle = tplName === "poster" ? "포스터" : (tplName === "table_stand" ? "스탠드" : "도어행거");
+    const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
+    const facilityId = point.facilityId || point.id || "";
+    const widthPx = tplName === "poster" ? 420 : (tplName === "table_stand" ? 280 : 240);
+    const heightPx = tplName === "poster" ? 594 : (tplName === "table_stand" ? 420 : 435);
+
+    container.innerHTML = `
+      <div class="tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
+        <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 1; padding: 20px; text-align: center;">
+          <div class="print-loading-spinner" style="width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
+          <div id="printStepLog" style="font-size: 14px; font-weight: 700; color: #334155; font-family: sans-serif;">${tplTitle} 맞춤 시안을 생성 중입니다...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #64748b; font-family: monospace;">[1/3] 가맹점 혜택 및 QR 데이터 구성 중</div>
         </div>
-      `;
-    } else if (tplName === "table_stand") {
-      const facilityId = point.facilityId || point.id || "";
-      container.innerHTML = `
-        <div class="tpl-stand-img-only" style="position: relative; width: 280px; height: 420px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
-          <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1;">
-            <div class="print-loading-spinner" style="width: 32px; height: 32px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-            <div style="font-size: 13px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">스탠드 시안을 생성 중입니다...</div>
-          </div>
-          <img src="/api/print_stand?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
-               alt="미니 테이블 스탠드 시안" 
-               style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
-               onload="this.previousElementSibling.style.display='none';" 
-               onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:13px;\\'>생성 중 오류 발생<br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;table_stand&quot;)\\' style=\\'margin-top:8px;padding:4px 10px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;\\'>다시 시도</button></div>';" />
-        </div>
-      `;
-    } else if (tplName === "door_hanger") {
-      const facilityId = point.facilityId || point.id || "";
-      container.innerHTML = `
-        <div class="tpl-hanger-img-only" style="position: relative; width: 240px; height: 435px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto;">
-          <div class="print-loading-spinner-wrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1;">
-            <div class="print-loading-spinner" style="width: 32px; height: 32px; border: 4px solid #e2e8f0; border-top: 4px solid #2f6ff2; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-            <div style="font-size: 13px; font-weight: 700; color: #64748b; font-family: 'Noto Sans KR', sans-serif;">도어행거 시안을 생성 중입니다...</div>
-          </div>
-          <img src="/api/print_hanger?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
-               alt="도어행거 시안" 
-               style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block;" 
-               onload="this.previousElementSibling.style.display='none';" 
-               onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:13px;\\'>생성 중 오류 발생<br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;door_hanger&quot;)\\' style=\\'margin-top:8px;padding:4px 10px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;\\'>다시 시도</button></div>';" />
-        </div>
-      `;
+        <img src="/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}" 
+             alt="${tplTitle} 인쇄 시안" 
+             style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 2; display: block; object-fit: contain;" 
+             onload="this.previousElementSibling.style.display='none';" 
+             onerror="this.previousElementSibling.innerHTML='<div style=\\'color:#ef4444;font-weight:700;font-size:14px;\\'>이미지 생성 중 일시적 지연이 발생했습니다.<br><span style=\\'font-size:12px;color:#64748b;\\'>서버 재시도 요청 중...</span><br><button onclick=\\'renderPrintTemplate(currentPrintPoint, &quot;${tplName}&quot;)\\' style=\\'margin-top:10px;padding:6px 16px;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;\\'>다시 시도</button></div>';" />
+      </div>
+    `;
+
+    const subLog = document.getElementById("printSubLog");
+    if (subLog) {
+      setTimeout(() => { if (subLog) subLog.textContent = "[2/3] 고화질 그래픽 렌더링 중..."; }, 1200);
+      setTimeout(() => { if (subLog) subLog.textContent = "[3/3] 최종 인쇄용 이미지 완성 중..."; }, 2500);
     }
   };
 
