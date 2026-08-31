@@ -1642,34 +1642,6 @@ async function bootstrap() {
       mapDataControl: false,
     });
 
-    const latRad = (point.lat * Math.PI) / 180;
-
-    // 500m circle (subtle blue dash)
-    const circle500 = new naver.maps.Circle({
-      map: posterMapInstance,
-      center: center,
-      radius: 500,
-      strokeColor: "#2563eb",
-      strokeWeight: 3,
-      strokeDashStyle: "dash",
-      fillColor: "#2563eb",
-      fillOpacity: 0.04,
-    });
-    posterCircles.push(circle500);
-
-    // 1000m circle (subtle blue dash)
-    const circle1000 = new naver.maps.Circle({
-      map: posterMapInstance,
-      center: center,
-      radius: 1000,
-      strokeColor: "#2563eb",
-      strokeWeight: 3,
-      strokeDashStyle: "dash",
-      fillColor: "#2563eb",
-      fillOpacity: 0.02,
-    });
-    posterCircles.push(circle1000);
-
     // Center Main Store Pin (Premium Blue Pin with Top Label)
     const centerMarker = new naver.maps.Marker({
       position: center,
@@ -1677,23 +1649,22 @@ async function bootstrap() {
       zIndex: 9999,
       icon: {
         content: `
-          <div style="position:relative; width:64px; height:64px; background-image:url('/img/blue_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; z-index:9999;">
-            <div style="position:absolute; bottom:68px; left:50%; transform:translateX(-50%); background-color:#1e3a8a; color:#ffffff; font-family:'Noto Sans KR', sans-serif; font-size:13px; font-weight:700; padding:5px 14px; border-radius:20px; white-space:nowrap; box-shadow:0 4px 12px rgba(30,58,138,0.4); z-index:9999;">
+          <div style="position:relative; width:56px; height:56px; background-image:url('/img/blue_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; z-index:9999;">
+            <div style="position:absolute; bottom:60px; left:50%; transform:translateX(-50%); background-color:#1e3a8a; color:#ffffff; font-family:'Noto Sans KR', sans-serif; font-size:12px; font-weight:700; padding:4px 12px; border-radius:18px; white-space:nowrap; box-shadow:0 4px 12px rgba(30,58,138,0.4); z-index:9999;">
               ${escapeHtml(point.title)}
             </div>
           </div>
         `,
-        anchor: new naver.maps.Point(32, 32),
+        anchor: new naver.maps.Point(28, 28),
       },
     });
     posterMarkers.push(centerMarker);
 
-    // Neighbor Stores (Premium Gold Pins with 1~5 Badges & Speech Bubbles)
+    // Neighbor Stores (Gold Pins with 1~5 Badges & Store Name Only - No Distance)
     if (Array.isArray(nearbyStores)) {
       nearbyStores.forEach((item, idx) => {
         if (!item || !item.point) return;
         const n = item.point;
-        const distText = item.distKm < 1 ? Math.round(item.distKm * 1000) + 'm' : item.distKm.toFixed(1) + 'km';
         const num = idx + 1;
         const nMarker = new naver.maps.Marker({
           position: new naver.maps.LatLng(n.lat, n.lng),
@@ -1701,43 +1672,19 @@ async function bootstrap() {
           zIndex: 100 + idx,
           icon: {
             content: `
-              <div style="position:relative; width:44px; height:44px; background-image:url('/img/gold_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; display:flex; align-items:center; justify-content:center; z-index:100;">
-                <span style="color:#ffffff; font-weight:900; font-size:12px; margin-top:-5px; text-shadow:0 1px 2px rgba(0,0,0,0.5);">${num}</span>
-                <div style="position:absolute; bottom:46px; left:50%; transform:translateX(-50%); background:#ffffff; color:#0f172a; font-family:'Noto Sans KR', sans-serif; font-size:10px; font-weight:700; padding:3px 7px; border-radius:8px; border:1.5px solid #d2c9bd; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,0.12); line-height:1.2; text-align:center;">
-                  <div>${escapeHtml(n.title)}</div>
-                  <div style="font-size:9px; color:#64748b; font-weight:500;">(${distText})</div>
+              <div style="position:relative; width:40px; height:40px; background-image:url('/img/gold_pin.png?v=2'); background-size:contain; background-repeat:no-repeat; background-position:center; display:flex; align-items:center; justify-content:center; z-index:100;">
+                <span style="color:#ffffff; font-weight:900; font-size:11px; margin-top:-4px; text-shadow:0 1px 2px rgba(0,0,0,0.5);">${num}</span>
+                <div style="position:absolute; bottom:42px; left:50%; transform:translateX(-50%); background:#ffffff; color:#0f172a; font-family:'Noto Sans KR', sans-serif; font-size:10px; font-weight:700; padding:2px 6px; border-radius:6px; border:1.5px solid #d2c9bd; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.12); text-align:center;">
+                  ${escapeHtml(n.title)}
                 </div>
               </div>
             `,
-            anchor: new naver.maps.Point(22, 22),
+            anchor: new naver.maps.Point(20, 20),
           },
         });
         posterMarkers.push(nMarker);
       });
     }
-
-    // Distance Badges (styled as high-contrast pills)
-    const lngOffset500 = 500 / (111320 * Math.cos(latRad));
-    const badge500 = new naver.maps.Marker({
-      position: new naver.maps.LatLng(point.lat, point.lng + lngOffset500),
-      map: posterMapInstance,
-      icon: {
-        content: '<div style="background:#ffffff;border:2px solid #2563eb;color:#1e3a8a;font-size:11px;font-weight:900;padding:2px 7px;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.2);transform:translate(-50%,-50%);white-space:nowrap;">500m</div>',
-        anchor: new naver.maps.Point(0, 0),
-      },
-    });
-    posterMarkers.push(badge500);
-
-    const lngOffset1000 = 1000 / (111320 * Math.cos(latRad));
-    const badge1000 = new naver.maps.Marker({
-      position: new naver.maps.LatLng(point.lat, point.lng + lngOffset1000),
-      map: posterMapInstance,
-      icon: {
-        content: '<div style="background:#ffffff;border:2px solid #2563eb;color:#1e3a8a;font-size:11px;font-weight:900;padding:2px 7px;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,0.2);transform:translate(-50%,-50%);white-space:nowrap;">1km</div>',
-        anchor: new naver.maps.Point(0, 0),
-      },
-    });
-    posterMarkers.push(badge1000);
   };
 
   let currentPrintBlobUrl = null;
@@ -1772,8 +1719,6 @@ async function bootstrap() {
       ? point.audiences.map(getAudienceDisplayName).join(", ")
       : "나라사랑카드 소지 장병, 사회복무요원, 예비군, 병역명문가";
     const audienceText = audienceList;
-    const addressText = point.address || "전국 매장";
-    const phoneText = point.phone || "";
 
     const origin = window.location.origin || "https://mmamap-seven.vercel.app";
     const landingUrl = `${origin}/mobile_landing.html?id=${encodeURIComponent(facilityId)}`;
@@ -1785,20 +1730,20 @@ async function bootstrap() {
 
     if (tplName === "poster") {
       container.innerHTML = `
-        <div class="print-sheet poster-sheet" style="width: 480px; min-height: 720px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 22px 18px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
-          <div style="text-align: center; font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">대한민국 병무청 × 나라사랑가게 상생 지도</div>
+        <div class="print-sheet poster-sheet" style="width: 440px; background: #F3F3ED; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 14px 14px; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; margin: 0 auto; color: #1E1E1E;">
+          <div style="text-align: center; font-size: 17px; font-weight: 900; letter-spacing: -0.5px; color: #1E1E1E;">대한민국 병무청 × 나라사랑가게 상생 지도</div>
           
-          <div style="background: #ffffff; border: 2px solid #DED7CB; border-radius: 14px; padding: 14px 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
-            <div style="font-size: 21px; font-weight: 900; color: #0F172A; margin-bottom: 5px;">${escapeHtml(storeTitle)}</div>
-            <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 13px; padding: 5px 14px; border-radius: 20px; margin-bottom: 5px;">${escapeHtml(benefitText)}</div>
-            <div style="font-size: 11px; color: #475569; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
+          <div style="background: #ffffff; border: 1.5px solid #DED7CB; border-radius: 12px; padding: 10px 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <div style="font-size: 18px; font-weight: 900; color: #0F172A; margin-bottom: 4px;">${escapeHtml(storeTitle)}</div>
+            <div style="display: inline-block; background: #1E3A8A; color: #ffffff; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 16px; margin-bottom: 4px;">${escapeHtml(benefitText)}</div>
+            <div style="font-size: 10px; color: #475569; font-weight: 600;">우대 대상 : ${escapeHtml(audienceText)}</div>
           </div>
 
           <!-- Real Interactive Naver Map -->
-          <div id="posterMapDiv" style="width: 100%; height: 240px; border-radius: 12px; overflow: hidden; border: 2px solid #CBD5E1; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: relative; z-index: 1;"></div>
+          <div id="posterMapDiv" style="width: 100%; height: 200px; border-radius: 10px; overflow: hidden; border: 1.5px solid #CBD5E1; box-shadow: 0 2px 6px rgba(0,0,0,0.06); position: relative; z-index: 1;"></div>
 
-          <div style="background: #ffffff; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden;">
-            <div style="background: #DFD7CB; padding: 7px 12px; font-size: 11px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
+          <div style="background: #ffffff; border-radius: 10px; border: 1px solid #E2E8F0; overflow: hidden;">
+            <div style="background: #DFD7CB; padding: 5px 10px; font-size: 11px; font-weight: 800; color: #1E1E1E; display: flex; justify-content: space-between;">
               <span>주변 나라사랑가게 (반경 1km)</span>
               <span style="font-size: 10px; font-weight: 600; color: #64748B;">총 ${nearby.length}곳</span>
             </div>
@@ -1808,9 +1753,9 @@ async function bootstrap() {
                 const distText = item.distKm < 1 ? Math.round(item.distKm * 1000) + 'm' : item.distKm.toFixed(1) + 'km';
                 const nBenefit = cleanBenefit(n.benefit).slice(0, 18);
                 return `
-                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #F1F5F9; font-size: 11px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
-                    <div style="display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden;">
-                      <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 10px; font-weight: bold;">${i + 1}</span>
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; border-bottom: 1px solid #F1F5F9; font-size: 10px; background: ${i % 2 === 0 ? '#FAFAFA' : '#FFFFFF'};">
+                    <div style="display: flex; align-items: center; gap: 5px; flex: 1; overflow: hidden;">
+                      <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: #7E8F9A; color: #fff; border-radius: 50%; font-size: 9px; font-weight: bold;">${i + 1}</span>
                       <span style="font-weight: 700; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${escapeHtml(n.title || "가맹점")}</span>
                     </div>
                     <div style="font-size: 10px; color: #0284C7; font-weight: 700; margin: 0 6px; text-align: right;">${escapeHtml(nBenefit)}</div>
@@ -1821,17 +1766,16 @@ async function bootstrap() {
             </div>
           </div>
 
-          <div style="margin-top: auto; display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 8px 12px;">
-            <img src="${qrImgUrl}" alt="QR" style="width: 56px; height: 56px; border-radius: 6px; border: 1px solid #CBD5E1;" />
+          <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 6px 10px;">
+            <img src="${qrImgUrl}" alt="QR" style="width: 48px; height: 48px; border-radius: 4px; border: 1px solid #CBD5E1;" />
             <div style="flex: 1; font-size: 10px;">
-              <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 2px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
-              <div style="color: #64748B; font-size: 10px; line-height: 1.3;">가맹점 상세 혜택과 주변 연계 혜택을 모바일에서 즉시 확인하실 수 있습니다.</div>
+              <div style="font-weight: 800; color: #1E3A8A; margin-bottom: 1px;">스마트폰으로 QR 코드를 스캔해 보세요!</div>
+              <div style="color: #64748B; font-size: 9px; line-height: 1.2;">가맹점 상세 혜택과 주변 연계 혜택을 모바일에서 즉시 확인하실 수 있습니다.</div>
             </div>
           </div>
         </div>
       `;
 
-      // Initialize real Naver Map with radius circles and pins
       setTimeout(() => {
         initPosterMap(point, nearby);
       }, 50);
