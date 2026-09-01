@@ -1745,7 +1745,12 @@ async function bootstrap() {
     list.scrollTop = list.scrollHeight;
   };
 
-  const openPrintModal = (point) => {
+  const openPrintModal = (pointOrId) => {
+    let point = pointOrId;
+    if (typeof pointOrId === "string") {
+      point = pointByFacilityKey.get(pointOrId);
+    }
+    if (!point) return;
     currentPrintPoint = point;
     currentPrintTemplate = "poster";
 
@@ -1772,6 +1777,7 @@ async function bootstrap() {
 
     if (backdrop) backdrop.classList.remove("hidden");
   };
+  window.openPrintModal = openPrintModal;
 
   const closePrintModal = () => {
     const backdrop = document.getElementById("printModalBackdrop");
@@ -3067,6 +3073,14 @@ const MMAAuth = {
                    <small>방문자 스캔 유입 현황</small>
                  </div>
                  <span class="pItemArrow">›</span>
+               </button>
+               <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openMerchantPosterModal(); window.MMAAuth.closeProfileMenu();">
+                 <span class="pItemIcon">🖨️</span>
+                 <div class="pItemText">
+                   <strong>우리 매장 홍보물 인쇄</strong>
+                   <small>포스터 · 미니스탠드 · 도어행거</small>
+                 </div>
+                 <span class="pItemArrow">›</span>
                </button>`
             : ""
         }
@@ -3127,6 +3141,16 @@ const MMAAuth = {
 
   openFavoritesFromMenu() {
     this.openSavedStores("favorites");
+  },
+
+  openMerchantPosterModal() {
+    if (!this.user || !this.user.merchantFacilityId) {
+      alert("점주 인증된 가맹점 정보가 없습니다.");
+      return;
+    }
+    if (typeof window.openPrintModal === "function") {
+      window.openPrintModal(this.user.merchantFacilityId);
+    }
   },
 
   openEditProfileModal() {
