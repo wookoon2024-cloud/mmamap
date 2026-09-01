@@ -3342,17 +3342,27 @@ const MMAAuth = {
           return;
         }
         btnSendEmail.disabled = true;
-        btnSendEmail.textContent = "발송 중...";
+        btnSendEmail.textContent = "발송 요청 중...";
+        if (emailStatus) {
+          emailStatus.textContent = "서버 연결 중입니다. 잠시만 기다려 주세요...";
+          emailStatus.className = "authHelpText";
+        }
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+
           const res = await fetch("/api/auth/send_email_code", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }),
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
+
           const data = await res.json();
           if (data.ok) {
             if (emailStatus) {
-              emailStatus.textContent = "인증번호가 발송되었습니다. 10분 내에 입력해 주세요.";
+              emailStatus.textContent = data.message || "인증번호가 발송되었습니다. 10분 내에 입력해 주세요.";
               emailStatus.className = "authHelpText success";
             }
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
@@ -3363,13 +3373,17 @@ const MMAAuth = {
             }
           } else {
             if (emailStatus) {
-              emailStatus.textContent = data.error || "발송 실패";
+              emailStatus.textContent = data.error || "인증번호 발송 실패";
               emailStatus.className = "authHelpText error";
             }
           }
-        } catch (_e) {
+        } catch (err) {
           if (emailStatus) {
-            emailStatus.textContent = "통신 오류가 발생했습니다.";
+            if (err.name === "AbortError") {
+              emailStatus.textContent = "백엔드 서버가 활성화(Wake-up) 중입니다. 잠시 후 재발송을 눌러주세요.";
+            } else {
+              emailStatus.textContent = "서버 연결 중입니다. 잠시 후 [인증번호 재발송]을 눌러주세요.";
+            }
             emailStatus.className = "authHelpText error";
           }
         } finally {

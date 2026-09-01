@@ -9,9 +9,12 @@ import os
 import random
 import re
 import secrets
+import smtplib
 import sqlite3
 import time
 import uuid
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +24,56 @@ from urllib.parse import parse_qs, urlparse
 BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
 DEFAULT_DB_PATH = BASE_DIR / "outputs" / "military_benefits.db"
+
+
+def send_verification_email(to_email: str, code: str) -> bool:
+    smtp_host = os.environ.get("SMTP_HOST", "").strip()
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "").strip()
+    smtp_from = os.environ.get("SMTP_FROM", smtp_user or "noreply@mmamap.kr").strip()
+
+    if not smtp_host or not smtp_user or not smtp_password:
+        print(f"[Email Dev Mode] No SMTP configured. Verification code for [{to_email}]: {code}")
+        return False
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"[군필지도] 회원가입 이메일 인증번호 [{code}]"
+        msg["From"] = f"군필지도 <{smtp_from}>"
+        msg["To"] = to_email
+
+        html_body = f"""
+        <div style="font-family: 'Nanum Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 520px; margin: 0 auto; padding: 28px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h2 style="color: #2563eb; margin: 0; font-size: 22px;">🪖 군필지도 (GP Map)</h2>
+            <p style="color: #64748b; font-size: 13.5px; margin: 6px 0 0;">청년 장병 및 병역명문가 혜택 지도</p>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px 20px; text-align: center; margin-bottom: 24px;">
+            <p style="font-size: 14.5px; color: #334155; margin: 0 0 14px; font-weight: 600;">회원가입을 위한 6자리 이메일 인증번호입니다.</p>
+            <div style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #1d4ed8; background: #ffffff; padding: 14px 24px; border-radius: 10px; border: 2px dashed #bfdbfe; display: inline-block;">
+              {code}
+            </div>
+            <p style="font-size: 12.5px; color: #94a3b8; margin: 12px 0 0;">인증번호 유효시간은 <b>10분</b>입니다.</p>
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.5;">본인이 요청하지 않은 경우 본 메일을 무시해 주세요.<br>© 2026 군필지도(GP Map). All rights reserved.</p>
+        </div>
+        """
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=12)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=12)
+            server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.sendmail(smtp_from, [to_email], msg.as_string())
+        server.quit()
+        print(f"[Email Sent] Successfully sent code [{code}] to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[Email Error] Failed to send email via SMTP to {to_email}: {e}")
+        return False
 
 FACILITIES_BY_ID = {}
 FACILITIES_LIST = []
@@ -724,12 +777,16 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         finally:
             conn.close()
             
-        print(f"[Auth] Verification code [{code}] for [{email}]")
-        self._json(HTTPStatus.OK, {
+        print(f"[Auth] Verification code [{code}] generated for [{email}]")
+        sent_smtp = send_verification_email(email, code)
+
+        resp = {
             "ok": True,
-            "message": "인증번호가 발송되었습니다.",
-            "debugCode": code,
-        })
+            "message": "인증메일이 발송되었습니다. 받은 편지함(스팸함)을 확인해 주세요." if sent_smtp else "인증번호가 발송되었습니다.",
+            "sentVia": "smtp" if sent_smtp else "dev",
+            "debugCode": code if not sent_smtp else None,
+        }
+        self._json(HTTPStatus.OK, resp)
 
     def _handle_auth_verify_email_code(self):
         body = self._read_json_body()
