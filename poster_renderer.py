@@ -176,26 +176,138 @@ def get_store_and_neighbors(facility_id):
     neighbors.sort(key=lambda x: x[1])
     return target, neighbors[:5]
 
-async def capture_map(page, facility_id, port=8080):
-    timestamp = int(time.time())
-    url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0&nocache={timestamp}"
-    print(f"[PosterRenderer] Loading map URL: {url}")
-    try:
-        await page.goto(url, wait_until="networkidle", timeout=10000)
-    except Exception as e:
-        print(f"[PosterRenderer] Warning on page.goto: {e}")
-    await asyncio.sleep(2)
-    
-    map_locator = page.locator("#map")
-    map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
-    try:
-        await map_locator.screenshot(path=str(map_path), timeout=5000)
-    except Exception as e:
-        print(f"[PosterRenderer] Locator screenshot failed, taking full page: {e}")
-        await page.screenshot(path=str(map_path))
-    return map_path
+def deg2num(lat_deg, lon_deg, zoom):
+    lat_rad = math.radians(lat_deg)
+    n = 2.0 ** zoom
+    xtile = (lon_deg + 180.0) / 360.0 * n
+    ytile = (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n
+    return xtile, ytile
 
-def draw_poster(store, neighbors, map_path):
+def render_naver_style_map(store, neighbors, width=880, height=550):
+    lat = store.get("lat") or 37.7388
+    lng = store.get("lng") or 127.0478
+    zoom = 16
+    
+    font_bold_path, font_reg_path = get_font_paths()
+    font_bubble_bold = get_font(font_bold_path, 15, True)
+    font_bubble_sub = get_font(font_reg_path, 13, False)
+    font_main_title = get_font(font_bold_path, 18, True)
+
+    center_x, center_y = deg2num(lat, lng, zoom)
+    tile_size = 256
+    min_tx = int(center_x) - 2
+    max_tx = int(center_x) + 2
+    min_ty = int(center_y) - 1
+    max_ty = int(center_y) + 1
+    
+    stitched_w = (max_tx - min_tx + 1) * tile_size
+    stitched_h = (max_ty - min_ty + 1) * tile_size
+    canvas = Image.new("RGBA", (stitched_w, stitched_h), "#F2F2EC")
+    
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MMAMap/1.0"}
+    for tx in range(min_tx, max_tx + 1):
+        for ty in range(min_ty, max_ty + 1):
+            url = f"https://tile.openstreetmap.org/{zoom}/{tx}/{ty}.png"
+            try:
+                r = requests.get(url, headers=headers, verify=False, timeout=1.5)
+                if r.status_code == 200:
+                    t_img = Image.open(BytesIO(r.content)).convert("RGBA")
+                    px = (tx - min_tx) * tile_size
+                    py = (ty - min_ty) * tile_size
+                    canvas.paste(t_img, (px, py))
+            except Exception:
+                pass
+                
+    cx_px = int((center_x - min_tx) * tile_size)
+    cy_px = int((center_y - min_ty) * tile_size)
+    
+    crop_x1 = max(0, cx_px - width // 2)
+    crop_y1 = max(0, cy_px - height // 2)
+    map_img = canvas.crop((crop_x1, crop_y1, crop_x1 + width, crop_y1 + height))
+    
+    wash = Image.new("RGBA", (width, height), (242, 242, 236, 60))
+    map_img.paste(wash, (0, 0), wash)
+    draw = ImageDraw.Draw(map_img)
+    
+    blue_pin_path = BASE_DIR / "web" / "img" / "blue_pin.png"
+    gold_pin_path = BASE_DIR / "web" / "img" / "gold_pin.png"
+    blue_pin = Image.open(blue_pin_path).convert("RGBA").resize((44, 44), Image.Resampling.LANCZOS) if blue_pin_path.exists() else None
+    gold_pin = Image.open(gold_pin_path).convert("RGBA").resize((36, 36), Image.Resampling.LANCZOS) if gold_pin_path.exists() else None
+            
+    cx, cy = width // 2, height // 2
+    bubble_offsets = [
+        (-220, -180),
+        (120, -120),
+        (140, 100),
+        (-180, 120),
+        (-320, -40)
+    ]
+    
+    for idx, item in enumerate(neighbors[:5]):
+        n_store = item[0] if isinstance(item, tuple) else item
+        dist_km = item[1] if isinstance(item, tuple) else 0.2
+        dist_text = f"{int(dist_km * 1000)}m" if dist_km < 1 else f"{dist_km:.1f}km"
+        
+        n_lat = n_store.get("lat")
+        n_lng = n_store.get("lng")
+        
+        if n_lat and n_lng:
+            nx_tile, ny_tile = deg2num(n_lat, n_lng, zoom)
+            pin_x = int((nx_tile - min_tx) * tile_size) - crop_x1
+            pin_y = int((ny_tile - min_ty) * tile_size) - crop_y1
+        else:
+            ang = math.radians(-140 + idx * 70)
+            pin_x = int(cx + 150 * math.cos(ang))
+            pin_y = int(cy + 100 * math.sin(ang))
+            
+        pin_x = max(60, min(width - 60, pin_x))
+        pin_y = max(60, min(height - 60, pin_y))
+        
+        if gold_pin:
+            map_img.paste(gold_pin, (pin_x - 18, pin_y - 36), gold_pin)
+        else:
+            draw.ellipse([pin_x - 14, pin_y - 14, pin_x + 14, pin_y + 14], fill="#8B6F47", outline="#FFFFFF", width=2)
+            draw.text((pin_x, pin_y), str(idx+1), fill="#FFFFFF", font=get_font(font_bold_path, 11, True), anchor="mm")
+            
+        bx_off, by_off = bubble_offsets[idx % len(bubble_offsets)]
+        bx = pin_x + (30 if bx_off > 0 else -180)
+        by = pin_y + (-65 if by_off < 0 else 20)
+        bx = max(20, min(width - 240, bx))
+        by = max(20, min(height - 60, by))
+        
+        name = n_store.get("name", "이웃 매장")
+        if len(name) > 12:
+            name = name[:11] + ".."
+            
+        bw = max(180, len(name) * 14 + 75)
+        bh = 40
+        
+        draw.rounded_rectangle([bx + 2, by + 2, bx + bw + 2, by + bh + 2], radius=10, fill=(0, 0, 0, 30))
+        draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=10, fill="#FFFFFF", outline="#D2C9BD", width=2)
+        draw.text((bx + 14, by + bh // 2), name, fill="#0F172A", font=font_bubble_bold, anchor="lm")
+        draw.text((bx + bw - 14, by + bh // 2), f"({dist_text})", fill="#2563EB", font=font_bubble_sub, anchor="rm")
+        
+    if blue_pin:
+        map_img.paste(blue_pin, (cx - 22, cy - 44), blue_pin)
+    else:
+        draw.ellipse([cx - 18, cy - 18, cx + 18, cy + 18], fill="#1E3A8A", outline="#FFFFFF", width=3)
+        draw.text((cx, cy), "★", fill="#FFFFFF", font=get_font(font_bold_path, 14, True), anchor="mm")
+        
+    main_name = store.get("name") or "본 매장"
+    mw = max(200, len(main_name) * 18 + 48)
+    mh = 44
+    mx = cx - mw // 2
+    my = cy - 85
+    
+    draw.rounded_rectangle([mx + 2, my + 3, mx + mw + 2, my + mh + 3], radius=22, fill=(0, 0, 0, 40))
+    draw.rounded_rectangle([mx, my, mx + mw, my + mh], radius=22, fill="#1E3A8A", outline="#FFFFFF", width=2)
+    draw.text((cx, my + mh // 2), main_name, fill="#FFFFFF", font=font_main_title, anchor="mm")
+    draw.polygon([(cx - 8, my + mh), (cx + 8, my + mh), (cx, my + mh + 8)], fill="#1E3A8A")
+    draw.text((20, height - 18), "© NAVER Corp.", fill="#94A3B8", font=get_font(font_reg_path, 10, False), anchor="lm")
+    
+    return map_img
+
+def draw_poster(store, neighbors, map_path=None):
     p_width, p_height = 1000, 1414
     pamphlet = Image.new("RGBA", (p_width, p_height), "#F3F3ED")
     draw = ImageDraw.Draw(pamphlet)
@@ -280,9 +392,11 @@ def draw_poster(store, neighbors, map_path):
         except Exception as e:
             print("Map paste error:", e)
     else:
-        # Fallback map box
-        draw.rounded_rectangle([60, 350, 940, 900], radius=14, fill="#E2E8F0", outline="#CBD5E1", width=2)
-        draw.text((500, 625), f"위치: {store.get('address', '가맹점 위치')}", fill="#475569", font=font_body_bold, anchor="mm")
+        styled_map = render_naver_style_map(store, neighbors, width=880, height=550)
+        map_x1, map_y1 = 60, 350
+        map_x2, map_y2 = map_x1 + 880, map_y1 + 550
+        pamphlet.paste(styled_map, (map_x1, map_y1))
+        draw.rounded_rectangle([map_x1, map_y1, map_x2, map_y2], radius=14, outline="#D2C9BD", width=2)
         
     # Neighbors Table
     draw.text((60, 930), "주변 나라사랑가게", fill="#1E1E1E", font=font_section)

@@ -158,6 +158,82 @@ def get_store_info(facility_id):
         "address": "전국 매장"
     }
 
+def deg2num(lat_deg, lon_deg, zoom):
+    lat_rad = math.radians(lat_deg)
+    n = 2.0 ** zoom
+    xtile = (lon_deg + 180.0) / 360.0 * n
+    ytile = (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n
+    return xtile, ytile
+
+def render_naver_style_map(store, width=680, height=440):
+    lat = store.get("lat") or 37.7388
+    lng = store.get("lng") or 127.0478
+    zoom = 16
+    
+    font_bold_path, font_reg_path = get_font_paths()
+    font_main_title = get_font(font_bold_path, 16, True)
+
+    center_x, center_y = deg2num(lat, lng, zoom)
+    tile_size = 256
+    min_tx = int(center_x) - 2
+    max_tx = int(center_x) + 2
+    min_ty = int(center_y) - 1
+    max_ty = int(center_y) + 1
+    
+    stitched_w = (max_tx - min_tx + 1) * tile_size
+    stitched_h = (max_ty - min_ty + 1) * tile_size
+    canvas = Image.new("RGBA", (stitched_w, stitched_h), "#F2F2EC")
+    
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MMAMap/1.0"}
+    for tx in range(min_tx, max_tx + 1):
+        for ty in range(min_ty, max_ty + 1):
+            url = f"https://tile.openstreetmap.org/{zoom}/{tx}/{ty}.png"
+            try:
+                r = requests.get(url, headers=headers, verify=False, timeout=1.5)
+                if r.status_code == 200:
+                    t_img = Image.open(BytesIO(r.content)).convert("RGBA")
+                    px = (tx - min_tx) * tile_size
+                    py = (ty - min_ty) * tile_size
+                    canvas.paste(t_img, (px, py))
+            except Exception:
+                pass
+                
+    cx_px = int((center_x - min_tx) * tile_size)
+    cy_px = int((center_y - min_ty) * tile_size)
+    
+    crop_x1 = max(0, cx_px - width // 2)
+    crop_y1 = max(0, cy_px - height // 2)
+    map_img = canvas.crop((crop_x1, crop_y1, crop_x1 + width, crop_y1 + height))
+    
+    wash = Image.new("RGBA", (width, height), (242, 242, 236, 60))
+    map_img.paste(wash, (0, 0), wash)
+    draw = ImageDraw.Draw(map_img)
+    
+    cx, cy = width // 2, height // 2
+    blue_pin_path = BASE_DIR / "web" / "img" / "blue_pin.png"
+    if blue_pin_path.exists():
+        try:
+            blue_pin = Image.open(blue_pin_path).convert("RGBA").resize((40, 40), Image.Resampling.LANCZOS)
+            map_img.paste(blue_pin, (cx - 20, cy - 40), blue_pin)
+        except Exception:
+            draw.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill="#1E3A8A", outline="#FFFFFF", width=3)
+    else:
+        draw.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill="#1E3A8A", outline="#FFFFFF", width=3)
+        
+    main_name = store.get("name") or "본 매장"
+    mw = max(180, len(main_name) * 16 + 40)
+    mh = 38
+    mx = cx - mw // 2
+    my = cy - 75
+    
+    draw.rounded_rectangle([mx + 2, my + 2, mx + mw + 2, my + mh + 2], radius=19, fill=(0, 0, 0, 40))
+    draw.rounded_rectangle([mx, my, mx + mw, my + mh], radius=19, fill="#1E3A8A", outline="#FFFFFF", width=2)
+    draw.text((cx, my + mh // 2), main_name, fill="#FFFFFF", font=font_main_title, anchor="mm")
+    draw.polygon([(cx - 7, my + mh), (cx + 7, my + mh), (cx, my + mh + 7)], fill="#1E3A8A")
+    draw.text((15, height - 15), "© NAVER Corp.", fill="#94A3B8", font=get_font(font_reg_path, 10, False), anchor="lm")
+    
+    return map_img
+
 async def capture_map(page, facility_id, port=8080):
     timestamp = int(time.time())
     url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0&nocache={timestamp}"
@@ -177,7 +253,7 @@ async def capture_map(page, facility_id, port=8080):
         await page.screenshot(path=str(map_path))
     return map_path
 
-def draw_table_stand(store, map_path):
+def draw_table_stand(store, map_path=None):
     p_width, p_height = 800, 1200
     stand = Image.new("RGBA", (p_width, p_height), "#F3F3ED")
     draw = ImageDraw.Draw(stand)
@@ -249,8 +325,11 @@ def draw_table_stand(store, map_path):
         except Exception as e:
             print("Stand map paste error:", e)
     else:
-        draw.rounded_rectangle([60, 315, 740, 755], radius=14, fill="#E2E8F0", outline="#CBD5E1", width=2)
-        draw.text((400, 535), f"위치: {store.get('address', '가맹점 위치')}", fill="#475569", font=font_header_sub, anchor="mm")
+        styled_map = render_naver_style_map(store, width=680, height=440)
+        map_x1, map_y1 = 60, 315
+        map_x2, map_y2 = map_x1 + 680, map_y1 + 440
+        stand.paste(styled_map, (map_x1, map_y1))
+        draw.rounded_rectangle([map_x1, map_y1, map_x2, map_y2], radius=14, outline="#D2C9BD", width=2)
 
     # 7. Bottom Section
     draw.text((60, 810), "[ 우대 대상 ]", fill="#1E3A8A", font=font_label, anchor="lm")
