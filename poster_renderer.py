@@ -364,19 +364,30 @@ def get_shared_browser():
         from playwright.sync_api import sync_playwright
         if _PLAYWRIGHT_INSTANCE is None:
             _PLAYWRIGHT_INSTANCE = sync_playwright().start()
-        _BROWSER_INSTANCE = _PLAYWRIGHT_INSTANCE.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--disable-software-rasterizer",
-                "--disable-extensions",
-                "--js-flags=--max-old-space-size=128",
-                "--no-zygote"
-            ]
-        )
+        
+        launch_args = [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+            "--disable-extensions",
+            "--js-flags=--max-old-space-size=128",
+            "--no-zygote"
+        ]
+        try:
+            _BROWSER_INSTANCE = _PLAYWRIGHT_INSTANCE.chromium.launch(
+                headless=True,
+                args=launch_args
+            )
+        except Exception as e:
+            print(f"[PosterRenderer] Browser launch failed ({e}), installing Chromium...")
+            import subprocess
+            subprocess.run(["playwright", "install", "chromium"], check=False)
+            _BROWSER_INSTANCE = _PLAYWRIGHT_INSTANCE.chromium.launch(
+                headless=True,
+                args=launch_args
+            )
     return _BROWSER_INSTANCE
 
 def generate_poster(facility_id, port=None):
