@@ -90,30 +90,37 @@ class SQLiteConnWrapper:
         self.conn.close()
 
 
+_USE_POSTGRES = True
+
 def init_review_table(db_path: Path) -> None:
+    global _USE_POSTGRES
     db_url = get_db_url()
-    if db_url:
-        import psycopg2
-        conn = psycopg2.connect(db_url, sslmode="require")
+    if db_url and _USE_POSTGRES:
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS review_posts (
-                      id VARCHAR(255) PRIMARY KEY,
-                      author VARCHAR(255) NOT NULL DEFAULT '',
-                      content TEXT NOT NULL,
-                      password_hash VARCHAR(255) NOT NULL,
-                      created_at BIGINT NOT NULL,
-                      updated_at BIGINT
+            import psycopg2
+            conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS review_posts (
+                          id VARCHAR(255) PRIMARY KEY,
+                          author VARCHAR(255) NOT NULL DEFAULT '',
+                          content TEXT NOT NULL,
+                          password_hash VARCHAR(255) NOT NULL,
+                          created_at BIGINT NOT NULL,
+                          updated_at BIGINT
+                        )
+                        """
                     )
-                    """
-                )
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_review_posts_created_at ON review_posts (created_at DESC)")
-                conn.commit()
-        finally:
-            conn.close()
-        return
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_review_posts_created_at ON review_posts (created_at DESC)")
+                    conn.commit()
+            finally:
+                conn.close()
+            return
+        except Exception as e:
+            print(f"[Server DB] Postgres init_review_table error: {e}, falling back to SQLite.")
+            _USE_POSTGRES = False
 
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
@@ -137,54 +144,59 @@ def init_review_table(db_path: Path) -> None:
 
 
 def init_engagement_tables(db_path: Path) -> None:
+    global _USE_POSTGRES
     db_url = get_db_url()
-    if db_url:
-        import psycopg2
-        conn = psycopg2.connect(db_url, sslmode="require")
+    if db_url and _USE_POSTGRES:
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS facility_click_events (
-                      event_id SERIAL PRIMARY KEY,
-                      facility_id VARCHAR(255) NOT NULL,
-                      client_token VARCHAR(255) NOT NULL,
-                      created_at BIGINT NOT NULL
+            import psycopg2
+            conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS facility_click_events (
+                          event_id SERIAL PRIMARY KEY,
+                          facility_id VARCHAR(255) NOT NULL,
+                          client_token VARCHAR(255) NOT NULL,
+                          created_at BIGINT NOT NULL
+                        )
+                        """
                     )
-                    """
-                )
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_click_facility ON facility_click_events (facility_id)")
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_click_client ON facility_click_events (client_token)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_click_facility ON facility_click_events (facility_id)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_click_client ON facility_click_events (client_token)")
 
-                cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS facility_action_states (
-                      client_token VARCHAR(255) NOT NULL,
-                      facility_id VARCHAR(255) NOT NULL,
-                      action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('like', 'favorite')),
-                      active INTEGER NOT NULL CHECK (active IN (0, 1)),
-                      updated_at BIGINT NOT NULL,
-                      PRIMARY KEY (client_token, facility_id, action_type)
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS facility_action_states (
+                          client_token VARCHAR(255) NOT NULL,
+                          facility_id VARCHAR(255) NOT NULL,
+                          action_type VARCHAR(50) NOT NULL CHECK (action_type IN ('like', 'favorite')),
+                          active INTEGER NOT NULL CHECK (active IN (0, 1)),
+                          updated_at BIGINT NOT NULL,
+                          PRIMARY KEY (client_token, facility_id, action_type)
+                        )
+                        """
                     )
-                    """
-                )
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_action_facility_type ON facility_action_states (facility_id, action_type)")
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_action_client_type ON facility_action_states (client_token, action_type)")
-                
-                cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS qr_scan_events (
-                      event_id SERIAL PRIMARY KEY,
-                      facility_id VARCHAR(255) NOT NULL,
-                      created_at BIGINT NOT NULL
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_action_facility_type ON facility_action_states (facility_id, action_type)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_action_client_type ON facility_action_states (client_token, action_type)")
+                    
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS qr_scan_events (
+                          event_id SERIAL PRIMARY KEY,
+                          facility_id VARCHAR(255) NOT NULL,
+                          created_at BIGINT NOT NULL
+                        )
+                        """
                     )
-                    """
-                )
-                cur.execute("CREATE INDEX IF NOT EXISTS idx_qr_facility ON qr_scan_events (facility_id)")
-                conn.commit()
-        finally:
-            conn.close()
-        return
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_qr_facility ON qr_scan_events (facility_id)")
+                    conn.commit()
+            finally:
+                conn.close()
+            return
+        except Exception as e:
+            print(f"[Server DB] Postgres init_engagement_tables error: {e}, falling back to SQLite.")
+            _USE_POSTGRES = False
 
     conn = sqlite3.connect(db_path)
     try:
@@ -239,9 +251,14 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(WEB_DIR), **kwargs)
 
     def _db(self):
+        global _USE_POSTGRES
         db_url = get_db_url()
-        if db_url:
-            return PostgresConnWrapper(db_url)
+        if db_url and _USE_POSTGRES:
+            try:
+                return PostgresConnWrapper(db_url)
+            except Exception as e:
+                print(f"[Server DB] Postgres connection failed: {e}, falling back to SQLite.")
+                _USE_POSTGRES = False
         return SQLiteConnWrapper(self.db_path)
 
     def _json(self, status: int, payload: dict) -> None:
@@ -871,8 +888,12 @@ def main():
     args = parser.parse_args()
 
     db_path = Path(args.db).resolve()
-    init_review_table(db_path)
-    init_engagement_tables(db_path)
+    try:
+        init_review_table(db_path)
+        init_engagement_tables(db_path)
+    except Exception as e:
+        print(f"[Server DB] Initialization error in main: {e}, continuing with SQLite...")
+    
     MMAMapHandler.db_path = db_path
     server = ThreadingHTTPServer((args.host, args.port), MMAMapHandler)
     print(f"Serving MMAMap at http://{args.host}:{args.port}")
