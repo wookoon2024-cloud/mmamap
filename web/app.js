@@ -3643,18 +3643,24 @@ const MMAAuth = {
     // 30-day Daily Chart
     if (chartContainer && stats.daily) {
       const maxPv = Math.max(...stats.daily.map((d) => d.pv), 10);
+      const todayStr = new Date().toISOString().slice(5, 10).replace("-", ".");
       chartContainer.innerHTML = stats.daily
-        .map((d) => {
+        .map((d, idx) => {
+          const isToday = idx === stats.daily.length - 1 || d.date === todayStr;
           const heightPercent = Math.max(8, Math.round((d.pv / maxPv) * 100));
           return `
-            <div class="adminChartBarCol">
+            <div class="adminChartBarCol ${isToday ? 'today' : ''}">
               <span class="adminChartBarVal">${d.pv > 0 ? d.pv : ''}</span>
               <div class="adminChartBarPv" style="height: ${heightPercent}%;"></div>
-              <span class="adminChartBarLabel">${d.date}</span>
+              <span class="adminChartBarLabel">${d.date}${isToday ? '<br><b style="color:#d97706;">오늘</b>' : ''}</span>
             </div>
           `;
         })
         .join("");
+
+      setTimeout(() => {
+        chartContainer.scrollLeft = chartContainer.scrollWidth;
+      }, 50);
     }
 
     // Devices
