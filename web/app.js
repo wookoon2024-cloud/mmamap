@@ -3177,12 +3177,6 @@ async function bootstrap() {
     }
   } catch (_e) {}
 
-  // Background Render Server Wake-up Ping
-  try {
-    fetch("https://mmamap-backend.onrender.com/api/health", { mode: "no-cors" }).then(() => {
-      addDebugLog("[System] Render 클라우드 백엔드 활성화(Wake-up) 완료", "info");
-    }).catch(() => {});
-  } catch (_e) {}
 }
 
 // ============================================================
@@ -3199,6 +3193,17 @@ const MMAAuth = {
   isEmailVerified: false,
   isMerchantVerified: false,
   isNicknameChecked: false,
+
+  currentAdminTab: "analytics",
+  adminMembers: [],
+  adminMemberRoleFilter: "all",
+  adminMemberSearchQuery: "",
+
+  adminFacilities: [],
+  adminFacSourceFilter: "all",
+  adminFacCategoryFilter: "all",
+  adminFacSortBy: "engagement",
+  adminFacSearchQuery: "",
 
   async init() {
     this.bindEvents();
@@ -3833,6 +3838,11 @@ const MMAAuth = {
       if (data.ok && data.stats) {
         this.renderAdminStats(data.stats);
       }
+      if (this.currentAdminTab === "members") {
+        await this.fetchAdminMembers(key);
+      } else if (this.currentAdminTab === "facilities") {
+        await this.fetchAdminFacilities(key);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -3854,16 +3864,201 @@ const MMAAuth = {
     this.currentAdminTab = tab;
     const btnAnalytics = document.getElementById("adminTabBtnAnalytics");
     const btnMembers = document.getElementById("adminTabBtnMembers");
+    const btnFacilities = document.getElementById("adminTabBtnFacilities");
     const tabAnalytics = document.getElementById("adminTabAnalytics");
     const tabMembers = document.getElementById("adminTabMembers");
+    const tabFacilities = document.getElementById("adminTabFacilities");
 
     if (btnAnalytics) btnAnalytics.classList.toggle("active", tab === "analytics");
     if (btnMembers) btnMembers.classList.toggle("active", tab === "members");
+    if (btnFacilities) btnFacilities.classList.toggle("active", tab === "facilities");
+
     if (tabAnalytics) tabAnalytics.classList.toggle("hidden", tab !== "analytics");
     if (tabMembers) tabMembers.classList.toggle("hidden", tab !== "members");
+    if (tabFacilities) tabFacilities.classList.toggle("hidden", tab !== "facilities");
 
     if (tab === "members" && this.adminMembers.length === 0) {
       this.fetchAdminMembers();
+    }
+    if (tab === "facilities" && this.adminFacilities.length === 0) {
+      this.fetchAdminFacilities();
+    }
+  },
+
+  async fetchAdminFacilities(adminKey = "") {
+    try {
+      const key = adminKey || (this.user && this.user.role === "admin" ? "" : "demo");
+      const url = key ? `/api/admin/facilities?admin_key=${encodeURIComponent(key)}` : "/api/admin/facilities";
+      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.facilities)) {
+        this.adminFacilities = data.facilities;
+
+        const total = data.totalCount || this.adminFacilities.length;
+        const totalClicks = data.totalClicks || 0;
+        const totalQrs = data.totalQrScans || 0;
+        const totalEngagement = (data.totalLikes || 0) + (data.totalFavorites || 0);
+
+        const elTotal = document.getElementById("adminFacTotalCount");
+        const elClicks = document.getElementById("adminFacTotalClicks");
+        const elQrs = document.getElementById("adminFacTotalQrs");
+        const elEng = document.getElementById("adminFacTotalEngagement");
+        const elBadge = document.getElementById("adminFacBadgeCount");
+
+        if (elTotal) elTotal.innerHTML = `${total.toLocaleString()}<small>개소</small>`;
+        if (elClicks) elClicks.innerHTML = `${totalClicks.toLocaleString()}<small>회</small>`;
+        if (elQrs) elQrs.innerHTML = `${totalQrs.toLocaleString()}<small>회</small>`;
+        if (elEng) elEng.innerHTML = `${totalEngagement.toLocaleString()}<small>건</small>`;
+        if (elBadge) elBadge.textContent = `${total.toLocaleString()}개`;
+
+        this.renderAdminFacilitiesTable();
+      }
+    } catch (err) {
+      addDebugLog(`[Admin Facilities Error] ${err.message}`, 'error');
+    }
+  },
+
+  filterAdminFacilities() {
+    const srcEl = document.getElementById("adminFacSourceFilter");
+    const catEl = document.getElementById("adminFacCategoryFilter");
+    this.adminFacSourceFilter = srcEl ? srcEl.value : "all";
+    this.adminFacCategoryFilter = catEl ? catEl.value : "all";
+    this.renderAdminFacilitiesTable();
+  },
+
+  sortAdminFacilities(sortBy) {
+    this.adminFacSortBy = sortBy || "engagement";
+    this.renderAdminFacilitiesTable();
+  },
+
+  searchAdminFacilities(query) {
+    this.adminFacSearchQuery = (query || "").trim().toLowerCase();
+    this.renderAdminFacilitiesTable();
+  },
+
+  renderAdminFacilitiesTable() {
+    const tbody = document.getElementById("adminFacilitiesTableBody");
+    const countEl = document.getElementById("adminFacListCount");
+    if (!tbody) return;
+
+    let list = this.adminFacilities;
+
+    // Filter by Source
+    if (this.adminFacSourceFilter && this.adminFacSourceFilter !== "all") {
+      list = list.filter((f) => f.sourceType === this.adminFacSourceFilter);
+    }
+
+    // Filter by Category
+    if (this.adminFacCategoryFilter && this.adminFacCategoryFilter !== "all") {
+      list = list.filter((f) => toCategoryLabel(f.category, f.name) === this.adminFacCategoryFilter);
+    }
+
+    // Filter by Search Query
+    if (this.adminFacSearchQuery) {
+      const q = this.adminFacSearchQuery;
+      list = list.filter((f) =>
+        (f.name || "").toLowerCase().includes(q) ||
+        (f.address || "").toLowerCase().includes(q) ||
+        (f.benefit || "").toLowerCase().includes(q) ||
+        (f.phone || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    const sortBy = this.adminFacSortBy || "engagement";
+    list = [...list].sort((a, b) => {
+      if (sortBy === "clicks") return (b.clicks || 0) - (a.clicks || 0);
+      if (sortBy === "qr") return (b.qrScans || 0) - (a.qrScans || 0);
+      if (sortBy === "likes") return (b.likes || 0) - (a.likes || 0);
+      if (sortBy === "favorites") return (b.favorites || 0) - (a.favorites || 0);
+      if (sortBy === "name") return (a.name || "").localeCompare(b.name || "", "ko");
+      return (b.totalEngagement || 0) - (a.totalEngagement || 0);
+    });
+
+    if (countEl) countEl.textContent = `${list.length.toLocaleString()}개`;
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
+            일치하는 가맹점 데이터가 없습니다.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // Render up to 250 items for smooth UI performance
+    const displayList = list.slice(0, 250);
+
+    tbody.innerHTML = displayList
+      .map((f, idx) => {
+        const rank = idx + 1;
+        const rankClass = rank === 1 ? "top1" : (rank === 2 ? "top2" : (rank === 3 ? "top3" : ""));
+        const sourceBadge = f.sourceType === "nara_sarang_store"
+          ? `<span style="font-size: 10px; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 1px 5px; border-radius: 4px; border: 1px solid #bfdbfe;">🎖️ 나라사랑</span>`
+          : `<span style="font-size: 10px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 1px 5px; border-radius: 4px; border: 1px solid #a7f3d0;">🏛️ 명문가</span>`;
+
+        const cat = toCategoryLabel(f.category, f.name);
+
+        return `
+          <tr>
+            <td style="text-align: center;">
+              <span class="facRankBadge ${rankClass}">${rank}</span>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <strong style="color: #0f172a; font-size: 13px; cursor: pointer;" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도에서 위치 보기">
+                  ${this.escapeHtml(f.name)}
+                </strong>
+                ${sourceBadge}
+              </div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(f.benefit || '')}">
+                ${this.escapeHtml(f.benefit || '혜택 정보 없음')}
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <span class="facCategoryBadge">${this.escapeHtml(cat)}</span>
+            </td>
+            <td>
+              <div style="font-size: 11.5px; color: #334155; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(f.address || '')}">
+                ${this.escapeHtml(f.address || '-')}
+              </div>
+              ${f.phone ? `<div style="font-size: 10.5px; color: #64748b;">${this.escapeHtml(f.phone)}</div>` : ''}
+            </td>
+            <td style="text-align: center;">
+              <span class="facStatValue ${f.clicks > 0 ? 'highlight' : ''}">${(f.clicks || 0).toLocaleString()}</span>
+            </td>
+            <td style="text-align: center;">
+              <span class="facStatValue ${f.qrScans > 0 ? 'qrHighlight' : ''}">${(f.qrScans || 0).toLocaleString()}</span>
+            </td>
+            <td style="text-align: center;">
+              <span class="facStatValue" style="color: #e11d48;">${(f.likes || 0).toLocaleString()}</span>
+            </td>
+            <td style="text-align: center;">
+              <span class="facStatValue" style="color: #d97706;">${(f.favorites || 0).toLocaleString()}</span>
+            </td>
+            <td style="text-align: center;">
+              <div class="facActionBtns">
+                <button type="button" class="facActionBtn mapBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도 위치로 이동">
+                  🗺️ 지도
+                </button>
+                <button type="button" class="facActionBtn printBtn" onclick="window.MMAAuth.adminOpenFacilityPrintouts('${this.escapeHtml(f.facilityId)}')" title="홍보물 3종 출력">
+                  🖨️ 인쇄물
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  },
+
+  adminOpenFacilityPrintouts(facilityId) {
+    this.closeAdminDashboardModal();
+    if (typeof window.openPrintModal === "function") {
+      window.openPrintModal(facilityId);
     }
   },
 

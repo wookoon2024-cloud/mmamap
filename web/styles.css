@@ -1899,6 +1899,173 @@ button:active {
   color: #ffffff;
 }
 
+/* ============================================================
+   ADMIN STORE-LEVEL STATISTICS STYLES (TAB 3)
+============================================================ */
+.adminFacControlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adminFacFilterGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminFacSelect {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.adminFacSelect:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.adminFacSearchWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 360px;
+}
+
+.adminFacSearchWrap input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12.5px;
+  outline: none;
+  font-family: inherit;
+}
+
+.adminFacSearchWrap input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.adminFacTable th,
+.adminFacTable td {
+  vertical-align: middle;
+  padding: 8px 10px;
+}
+
+.adminFacTable tr:hover td {
+  background: #f1f5f9;
+}
+
+.facRankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.facRankBadge.top1 {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.facRankBadge.top2 {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.facRankBadge.top3 {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.facCategoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+}
+
+.facStatValue {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.facStatValue.highlight {
+  color: #2563eb;
+}
+
+.facStatValue.qrHighlight {
+  color: #7c3aed;
+}
+
+.facActionBtns {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.facActionBtn {
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.facActionBtn.mapBtn {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.facActionBtn.mapBtn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.facActionBtn.printBtn {
+  background: #fdf4ff;
+  color: #9333ea;
+  border-color: #f5d0fe;
+}
+
+.facActionBtn.printBtn:hover {
+  background: #9333ea;
+  color: #ffffff;
+}
+
 .hubPanelClose {
   width: 32px;
   height: 32px;
