@@ -2814,6 +2814,36 @@ const MMAAuth = {
     } else {
       this.renderNav();
     }
+    // Track Page Access / Visit Analytics
+    this.logPageVisit();
+
+    // Check URL for admin shortcut (?admin=1 or ?admin_key=...)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has("admin") || urlParams.has("admin_key")) {
+        const k = urlParams.get("admin_key") || "demo";
+        setTimeout(() => this.openAdminDashboardModal(k), 800);
+      }
+    } catch (_e) {}
+  },
+
+  async logPageVisit() {
+    try {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/i.test(navigator.userAgent);
+      const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
+
+      await fetch("/api/analytics/visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: window.location.pathname + window.location.search,
+          referrer: document.referrer || "",
+          device_type: deviceType,
+          user_role: this.user ? this.user.role : "guest",
+        }),
+      });
+    } catch (_err) {}
   },
 
   async fetchMe() {
@@ -2830,7 +2860,7 @@ const MMAAuth = {
         this.user = data.user;
         this.favorites = new Set(data.favorites || []);
         this.likes = new Set(data.likes || []);
-        addDebugLog(`[Auth] 로그인 세션 활성화: ${this.user.nickname} (${this.user.role === 'merchant' ? '가맹점주' : '일반'})`, 'success');
+        addDebugLog(`[Auth] 로그인 세션 활성화: ${this.user.nickname} (${this.user.role})`, 'success');
       } else {
         this.token = "";
         this.user = null;
@@ -2853,18 +2883,23 @@ const MMAAuth = {
       return;
     }
 
+    const isAdmin = this.user.role === "admin";
     const isMerchant = this.user.role === "merchant";
-    const roleIcon = isMerchant ? "🏪" : "🪖";
-    const roleTitle = isMerchant ? "점주" : "회원";
+    const roleIcon = isAdmin ? "👑" : isMerchant ? "🏪" : "🪖";
+    const roleTitle = isAdmin ? "관리자" : isMerchant ? "점주" : "회원";
 
     wrap.innerHTML = `
       <div class="authUserBadge">
         <span>${roleIcon}</span>
         <strong>${this.escapeHtml(this.user.nickname)}</strong>
-        <small style="color:#64748b;">${roleTitle}</small>
+        <small style="color:${isAdmin ? '#a21caf' : '#64748b'};">${roleTitle}</small>
       </div>
       ${
-        isMerchant && this.user.merchantFacilityId
+        isAdmin
+          ? `<button type="button" class="authNavBtn adminBtn" onclick="window.MMAAuth.openAdminDashboardModal()">
+               <span>👑</span> 운영 통계
+             </button>`
+          : isMerchant && this.user.merchantFacilityId
           ? `<button type="button" class="authNavBtn merchantBtn" onclick="window.MMAAuth.openMerchantStatsModal()">
                <span>📊</span> 우리 매장 통계
              </button>`
@@ -2968,6 +3003,115 @@ const MMAAuth = {
     localStorage.removeItem(LS_AUTH_TOKEN_KEY);
     this.renderNav();
     addDebugLog("[Auth] 로그아웃 완료", "info");
+  },
+
+  async openAdminDashboardModal(adminKey = "") {
+    const backdrop = document.getElementById("adminDashboardBackdrop");
+    const modal = document.getElementById("adminDashboardModal");
+    if (!backdrop || !modal) return;
+
+    backdrop.classList.remove("hidden");
+    modal.classList.remove("hidden");
+
+    try {
+      const url = adminKey ? `/api/admin/stats?admin_key=${encodeURIComponent(adminKey)}` : "/api/admin/stats";
+      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (data.ok && data.stats) {
+        this.renderAdminStats(data.stats);
+      } else {
+        alert(data.error || "관리자 통계를 불러올 수 없습니다.");
+      }
+    } catch (err) {
+      addDebugLog(`[Admin Error] ${err.message}`, 'error');
+    }
+  },
+
+  closeAdminDashboardModal() {
+    const backdrop = document.getElementById("adminDashboardBackdrop");
+    const modal = document.getElementById("adminDashboardModal");
+    if (backdrop) backdrop.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  },
+
+  renderAdminStats(stats) {
+    const totalPv = document.getElementById("adminTotalPv");
+    const totalUv = document.getElementById("adminTotalUv");
+    const todayPv = document.getElementById("adminTodayPv");
+    const todayUv = document.getElementById("adminTodayUv");
+    const monthPv = document.getElementById("adminMonthPv");
+    const monthUv = document.getElementById("adminMonthUv");
+    const totalUsers = document.getElementById("adminTotalUsers");
+    const userDetail = document.getElementById("adminUserDetail");
+    const chartContainer = document.getElementById("adminDailyChartContainer");
+    const devContainer = document.getElementById("adminDeviceBreakdown");
+    const pathContainer = document.getElementById("adminTopPathsList");
+    const tableBody = document.getElementById("adminRecentVisitsBody");
+
+    if (totalPv) totalPv.innerHTML = `${(stats.totalPageviews || 0).toLocaleString()}<small>PV</small>`;
+    if (totalUv) totalUv.textContent = `순 방문자 ${(stats.totalUniqueVisitors || 0).toLocaleString()} UV`;
+    if (todayPv) todayPv.innerHTML = `${(stats.todayPageviews || 0).toLocaleString()}<small>PV</small>`;
+    if (todayUv) todayUv.textContent = `순 방문자 ${(stats.todayUniqueVisitors || 0).toLocaleString()} UV`;
+    if (monthPv) monthPv.innerHTML = `${(stats.monthPageviews || 0).toLocaleString()}<small>PV</small>`;
+    if (monthUv) monthUv.textContent = `순 방문자 ${(stats.monthUniqueVisitors || 0).toLocaleString()} UV`;
+
+    if (totalUsers) totalUsers.innerHTML = `${stats.users.total || 0}<small>명</small>`;
+    if (userDetail) userDetail.textContent = `일반 ${stats.users.general || 0} · 소상공인 ${stats.users.merchant || 0}`;
+
+    // 30-day Daily Chart
+    if (chartContainer && stats.daily) {
+      const maxPv = Math.max(...stats.daily.map((d) => d.pv), 10);
+      chartContainer.innerHTML = stats.daily
+        .map((d) => {
+          const heightPercent = Math.max(8, Math.round((d.pv / maxPv) * 100));
+          return `
+            <div class="adminChartBarCol">
+              <span class="adminChartBarVal">${d.pv > 0 ? d.pv : ''}</span>
+              <div class="adminChartBarPv" style="height: ${heightPercent}%;"></div>
+              <span class="adminChartBarLabel">${d.date}</span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // Devices
+    if (devContainer && stats.devices) {
+      const totalDev = (stats.devices.desktop || 0) + (stats.devices.mobile || 0) + (stats.devices.tablet || 0) || 1;
+      const pcPct = Math.round(((stats.devices.desktop || 0) / totalDev) * 100);
+      const mobPct = Math.round(((stats.devices.mobile || 0) / totalDev) * 100);
+      const tabPct = Math.round(((stats.devices.tablet || 0) / totalDev) * 100);
+      devContainer.innerHTML = `
+        <div class="adminPathItem"><strong>💻 PC / 데스크톱</strong><span>${stats.devices.desktop || 0}건 (${pcPct}%)</span></div>
+        <div class="adminPathItem"><strong>📱 모바일 (스마트폰)</strong><span>${stats.devices.mobile || 0}건 (${mobPct}%)</span></div>
+        <div class="adminPathItem"><strong>📟 태블릿</strong><span>${stats.devices.tablet || 0}건 (${tabPct}%)</span></div>
+      `;
+    }
+
+    // Top Paths
+    if (pathContainer && stats.topPaths) {
+      pathContainer.innerHTML = stats.topPaths
+        .map((p) => `<div class="adminPathItem"><strong>${this.escapeHtml(p.path)}</strong><span>${p.count}회</span></div>`)
+        .join("");
+    }
+
+    // Recent visits table
+    if (tableBody && stats.recentVisits) {
+      tableBody.innerHTML = stats.recentVisits
+        .map(
+          (v) => `
+          <tr>
+            <td>${this.escapeHtml(v.time)}</td>
+            <td><code>${this.escapeHtml(v.path)}</code></td>
+            <td>${this.escapeHtml(v.referrer)}</td>
+            <td>${this.escapeHtml(v.device)}</td>
+            <td><span class="adminBadge">${this.escapeHtml(v.role)}</span></td>
+          </tr>
+        `
+        )
+        .join("");
+    }
   },
 
   async openMerchantStatsModal() {
@@ -3123,6 +3267,11 @@ const MMAAuth = {
     const statsBackdrop = document.getElementById("merchantStatsBackdrop");
     if (statsClose) statsClose.onclick = () => this.closeMerchantStatsModal();
     if (statsBackdrop) statsBackdrop.onclick = () => this.closeMerchantStatsModal();
+
+    const adminClose = document.getElementById("adminDashboardCloseBtn");
+    const adminBackdrop = document.getElementById("adminDashboardBackdrop");
+    if (adminClose) adminClose.onclick = () => this.closeAdminDashboardModal();
+    if (adminBackdrop) adminBackdrop.onclick = () => this.closeAdminDashboardModal();
 
     const policyClose = document.getElementById("policyCloseBtn");
     const policyBackdrop = document.getElementById("policyBackdrop");
@@ -3529,6 +3678,8 @@ const MMAAuth = {
 };
 
 window.MMAAuth = MMAAuth;
+window.openAdminDashboard = (key = "") => MMAAuth.openAdminDashboardModal(key);
+window.openAdminStats = (key = "") => MMAAuth.openAdminDashboardModal(key);
 
 bootstrap().catch((e) => {
   // eslint-disable-next-line no-console

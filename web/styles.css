@@ -1364,6 +1364,306 @@ button:active {
   padding-left: 18px;
 }
 
+/* ============================================================
+   ADMIN DASHBOARD MODAL & STYLES
+============================================================ */
+.authNavBtn.adminBtn {
+  background: #fdf4ff;
+  border-color: #f0abfc;
+  color: #a21caf;
+}
+
+.authNavBtn.adminBtn:hover {
+  background: #fae8ff;
+  border-color: #e879f9;
+  color: #86198f;
+}
+
+.adminDashboardBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.adminDashboardBackdrop.hidden {
+  display: none;
+}
+
+.adminDashboardModal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10050;
+  width: min(880px, calc(100vw - 28px));
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  animation: hubModalCenterFadeIn 0.18s ease-out;
+}
+
+.adminDashboardModal.hidden {
+  display: none;
+}
+
+.adminDashboardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 26px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.adminBadge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #fdf4ff;
+  border: 1px solid #f0abfc;
+  color: #a21caf;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.adminDashboardTitle {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adminDashboardBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #f8fafc;
+}
+
+.adminKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .adminKpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.adminKpiCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.adminKpiCard.highlight {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.adminKpiCard.userCard {
+  background: #fdf4ff;
+  border-color: #f5d0fe;
+}
+
+.adminKpiLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.adminKpiCard.highlight .adminKpiLabel {
+  color: #2563eb;
+}
+
+.adminKpiCard.userCard .adminKpiLabel {
+  color: #a21caf;
+}
+
+.adminKpiValue {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.adminKpiCard.highlight .adminKpiValue {
+  color: #1d4ed8;
+}
+
+.adminKpiCard.userCard .adminKpiValue {
+  color: #86198f;
+}
+
+.adminKpiValue small {
+  font-size: 13px;
+  font-weight: 700;
+  margin-left: 4px;
+  color: #64748b;
+}
+
+.adminKpiSub {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.adminStatsCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.adminStatsCardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.adminStatsCardHead h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adminStatsCardSub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.adminDailyChartContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 150px;
+  padding-top: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.adminChartBarCol {
+  flex: 1;
+  min-width: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.adminChartBarVal {
+  font-size: 10px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.adminChartBarPv {
+  width: 100%;
+  max-width: 16px;
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.adminChartBarLabel {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.adminTwoColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 650px) {
+  .adminTwoColGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adminDeviceBreakdown,
+.adminTopPathsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adminPathItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.adminPathItem strong {
+  color: #1e293b;
+  font-family: monospace;
+}
+
+.adminPathItem span {
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.adminRecentTableWrap {
+  overflow-x: auto;
+}
+
+.adminRecentTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.adminRecentTable th {
+  padding: 8px 10px;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  border-bottom: 1.5px solid #cbd5e1;
+}
+
+.adminRecentTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.adminRecentTable tr:last-child td {
+  border-bottom: 0;
+}
+
 .hubPanelClose {
   width: 32px;
   height: 32px;
