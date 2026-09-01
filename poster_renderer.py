@@ -371,7 +371,10 @@ def get_shared_browser():
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
-                "--disable-extensions"
+                "--disable-software-rasterizer",
+                "--disable-extensions",
+                "--js-flags=--max-old-space-size=128",
+                "--no-zygote"
             ]
         )
     return _BROWSER_INSTANCE
@@ -385,25 +388,25 @@ def generate_poster(facility_id, port=None):
     try:
         browser = get_shared_browser()
         context = browser.new_context(
-            viewport={"width": 1200, "height": 750},
-            device_scale_factor=2
+            viewport={"width": 880, "height": 550},
+            device_scale_factor=1
         )
         page = context.new_page()
         url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
         try:
-            page.goto(url, wait_until="domcontentloaded", timeout=10000)
+            page.goto(url, wait_until="domcontentloaded", timeout=8000)
             try:
-                page.wait_for_function("window.__MAP_READY === true", timeout=6000)
+                page.wait_for_function("window.__MAP_READY === true", timeout=4000)
             except Exception:
-                time.sleep(1.5)
+                time.sleep(1.0)
         except Exception as e:
             print(f"[PosterRenderer] Warning on page.goto: {e}")
-            time.sleep(1.5)
+            time.sleep(1.0)
             
         map_locator = page.locator("#map")
         map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
         try:
-            map_locator.screenshot(path=str(map_path), timeout=4000)
+            map_locator.screenshot(path=str(map_path), timeout=3000)
         except Exception as e:
             print(f"[PosterRenderer] Locator screenshot failed: {e}")
             page.screenshot(path=str(map_path))
