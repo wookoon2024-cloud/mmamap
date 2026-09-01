@@ -355,74 +355,61 @@ def draw_poster(store, neighbors, map_path):
     pamphlet.convert("RGB").save(output_buf, format="PNG")
     return output_buf.getvalue()
 
-_PLAYWRIGHT_INSTANCE = None
-_BROWSER_INSTANCE = None
-
-def get_shared_browser():
-    global _PLAYWRIGHT_INSTANCE, _BROWSER_INSTANCE
-    if _BROWSER_INSTANCE is None or not _BROWSER_INSTANCE.is_connected():
-        from playwright.sync_api import sync_playwright
-        if _PLAYWRIGHT_INSTANCE is None:
-            _PLAYWRIGHT_INSTANCE = sync_playwright().start()
-        
-        launch_args = [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--disable-software-rasterizer",
-            "--disable-extensions",
-            "--js-flags=--max-old-space-size=128",
-            "--no-zygote"
-        ]
-        try:
-            _BROWSER_INSTANCE = _PLAYWRIGHT_INSTANCE.chromium.launch(
-                headless=True,
-                args=launch_args
-            )
-        except Exception as e:
-            print(f"[PosterRenderer] Browser launch failed ({e}), installing Chromium...")
-            import subprocess
-            subprocess.run(["playwright", "install", "chromium"], check=False)
-            _BROWSER_INSTANCE = _PLAYWRIGHT_INSTANCE.chromium.launch(
-                headless=True,
-                args=launch_args
-            )
-    return _BROWSER_INSTANCE
-
 def generate_poster(facility_id, port=None):
     if not port:
         port = int(os.environ.get("PORT", 8080))
     store, neighbors = get_store_and_neighbors(facility_id)
     map_path = None
     
+    launch_args = [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--disable-extensions",
+        "--js-flags=--max-old-space-size=128",
+        "--no-zygote"
+    ]
+    
     try:
-        browser = get_shared_browser()
-        context = browser.new_context(
-            viewport={"width": 880, "height": 550},
-            device_scale_factor=1
-        )
-        page = context.new_page()
-        url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=8000)
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
             try:
-                page.wait_for_function("window.__MAP_READY === true", timeout=4000)
-            except Exception:
+                browser = p.chromium.launch(headless=True, args=launch_args)
+            except Exception as e:
+                print(f"[PosterRenderer] Playwright chromium missing ({e}), installing...")
+                import subprocess
+                subprocess.run(["playwright", "install", "chromium"], check=False)
+                browser = p.chromium.launch(headless=True, args=launch_args)
+                
+            context = browser.new_context(
+                viewport={"width": 880, "height": 550},
+                device_scale_factor=1
+            )
+            page = context.new_page()
+            url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=8000)
+                try:
+                    page.wait_for_function("window.__MAP_READY === true", timeout=4000)
+                except Exception:
+                    time.sleep(1.0)
+            except Exception as e:
+                print(f"[PosterRenderer] Warning on page.goto: {e}")
                 time.sleep(1.0)
-        except Exception as e:
-            print(f"[PosterRenderer] Warning on page.goto: {e}")
-            time.sleep(1.0)
-            
-        map_locator = page.locator("#map")
-        map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
-        try:
-            map_locator.screenshot(path=str(map_path), timeout=3000)
-        except Exception as e:
-            print(f"[PosterRenderer] Locator screenshot failed: {e}")
-            page.screenshot(path=str(map_path))
-        page.close()
-        context.close()
+                
+            map_locator = page.locator("#map")
+            map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
+            try:
+                map_locator.screenshot(path=str(map_path), timeout=3000)
+            except Exception as e:
+                print(f"[PosterRenderer] Locator screenshot failed: {e}")
+                page.screenshot(path=str(map_path))
+                
+            page.close()
+            context.close()
+            browser.close()
     except Exception as e:
         print(f"[PosterRenderer] Playwright capture error: {e}")
 

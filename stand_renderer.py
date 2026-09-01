@@ -301,29 +301,55 @@ def generate_stand(facility_id, port=None):
     if not store:
         raise ValueError(f"Facility {facility_id} not found.")
     
+    launch_args = [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--disable-extensions",
+        "--js-flags=--max-old-space-size=128",
+        "--no-zygote"
+    ]
+    
     map_path = None
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+            try:
+                browser = p.chromium.launch(headless=True, args=launch_args)
+            except Exception as e:
+                print(f"[StandRenderer] Playwright chromium missing ({e}), installing...")
+                import subprocess
+                subprocess.run(["playwright", "install", "chromium"], check=False)
+                browser = p.chromium.launch(headless=True, args=launch_args)
+                
+            context = browser.new_context(
+                viewport={"width": 680, "height": 440},
+                device_scale_factor=1
             )
-            page = browser.new_page(viewport={"width": 680, "height": 440})
+            page = context.new_page()
             url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0"
             try:
-                page.goto(url, wait_until="networkidle", timeout=8000)
+                page.goto(url, wait_until="domcontentloaded", timeout=8000)
+                try:
+                    page.wait_for_function("window.__MAP_READY === true", timeout=4000)
+                except Exception:
+                    time.sleep(1.0)
             except Exception as e:
                 print(f"[StandRenderer] Warning on page.goto: {e}")
-            time.sleep(2)
+                time.sleep(1.0)
             
             map_locator = page.locator("#map")
             map_path = BASE_DIR / f"temp_map_stand_{facility_id}.png"
             try:
-                map_locator.screenshot(path=str(map_path), timeout=5000)
+                map_locator.screenshot(path=str(map_path), timeout=3000)
             except Exception as e:
                 print(f"[StandRenderer] Locator screenshot failed: {e}")
                 page.screenshot(path=str(map_path))
+                
+            page.close()
+            context.close()
             browser.close()
     except Exception as e:
         print(f"[StandRenderer] Playwright capture error: {e}")
