@@ -1588,30 +1588,17 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
             return
         
-        # Check cache folder first
-        cache_dir = BASE_DIR / "outputs" / "poster_cache"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / f"poster_{facility_id}.png"
+        server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+        print(f"[Server] Rendering poster dynamically for {facility_id} on port {server_port}")
+        from poster_renderer import generate_poster
         
-        if cache_path.exists() and cache_path.stat().st_size > 200000:
-            print(f"[Server] Serving cached poster for {facility_id}")
-            with open(cache_path, "rb") as f:
-                img_bytes = f.read()
-        else:
-            server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
-            print(f"[Server] Rendering poster dynamically for {facility_id} on port {server_port}")
-            from poster_renderer import generate_poster
-            
-            try:
-                img_bytes = generate_poster(facility_id, port=server_port)
-                if len(img_bytes) > 200000:
-                    with open(cache_path, "wb") as f:
-                        f.write(img_bytes)
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
-                return
+        try:
+            img_bytes = generate_poster(facility_id, port=server_port)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+            return
                 
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "image/png")
@@ -1631,30 +1618,17 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
             return
         
-        # Check cache folder first
-        cache_dir = BASE_DIR / "outputs" / "stand_cache"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / f"stand_{facility_id}.png"
+        server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+        print(f"[Server] Rendering stand dynamically for {facility_id} on port {server_port}")
+        from stand_renderer import generate_stand
         
-        if cache_path.exists():
-            print(f"[Server] Serving cached stand for {facility_id}")
-            with open(cache_path, "rb") as f:
-                img_bytes = f.read()
-        else:
-            server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
-            print(f"[Server] Rendering stand dynamically for {facility_id} on port {server_port}")
-            from stand_renderer import generate_stand
-            
-            try:
-                img_bytes = generate_stand(facility_id, port=server_port)
-                # Cache it
-                with open(cache_path, "wb") as f:
-                    f.write(img_bytes)
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
-                return
+        try:
+            img_bytes = generate_stand(facility_id, port=server_port)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+            return
                 
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "image/png")
@@ -1674,40 +1648,31 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
             return
         
-        # Check cache folder first
-        cache_dir = BASE_DIR / "outputs" / "hanger_cache"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / f"hanger_{facility_id}.png"
+        server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+        print(f"[Server] Rendering hanger dynamically for {facility_id} on port {server_port}")
+        from hanger_renderer import draw_door_hanger, get_store_info
         
-        if cache_path.exists():
-            print(f"[Server] Serving cached hanger for {facility_id}")
-            with open(cache_path, "rb") as f:
-                img_bytes = f.read()
-        else:
-            server_port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
-            print(f"[Server] Rendering hanger dynamically for {facility_id} on port {server_port}")
-            from hanger_renderer import draw_door_hanger, get_store_info
-            
-            try:
-                store = get_store_info(facility_id)
-                if not store:
-                    self._json(HTTPStatus.NOT_FOUND, {"error": "Store not found"})
-                    return
-                img_bytes = draw_door_hanger(store)
-                
-                # Cache it
-                with open(cache_path, "wb") as f:
-                    f.write(img_bytes)
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+        try:
+            store = get_store_info(facility_id)
+            if not store:
+                self._json(HTTPStatus.NOT_FOUND, {"error": "Store not found"})
                 return
+            img_bytes = draw_door_hanger(store)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+            return
                 
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "image/png")
         self.send_header("Content-Length", str(len(img_bytes)))
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
+        self._safe_write(img_bytes)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
