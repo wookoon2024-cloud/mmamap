@@ -199,17 +199,34 @@ function inferRegionFromAddress(address, lat, lng) {
   return "";
 }
 
-function extractDistrictName(address, region) {
+function extractCityName(address, region) {
   const addr = String(address || "").trim();
-  const m = addr.match(/([가-힣]+(?:특별시|광역시|특별자치시|도|특별자치도))\s*([가-힣]+[시군구])/);
+  const reg = String(region || "").trim();
+
+  // 1. Metropolitan / Special Cities (묶어서 단일 광역/시 뱃지로 표시)
+  if (addr.includes("서울") || reg.includes("서울")) return "서울";
+  if (addr.includes("인천") || reg.includes("인천")) return "인천";
+  if (addr.includes("부산") || reg.includes("부산")) return "부산";
+  if (addr.includes("대구") || reg.includes("대구")) return "대구";
+  if (addr.includes("대전") || reg.includes("대전")) return "대전";
+  if (addr.includes("광주") && (addr.includes("광역시") || reg.includes("광주")) && !addr.includes("경기")) return "광주";
+  if (addr.includes("울산") || reg.includes("울산")) return "울산";
+  if (addr.includes("세종") || reg.includes("세종")) return "세종";
+  if (addr.includes("제주") || reg.includes("제주")) return "제주";
+
+  // 2. Provinces -> Match 'Province City/County' (e.g. "경기 수원시", "강원 춘천시", "경남 창원시")
+  const m = addr.match(/([가-힣]+(?:도|특별자치도))\s*([가-힣]+[시군])/);
   if (m) {
-    let prov = m[1].replace(/특별시|광역시|특별자치시|특별자치도/g, "").replace(/도$/g, "");
-    let dist = m[2];
-    return `${prov} ${dist}`;
+    let prov = m[1].replace(/특별자치도/g, "").replace(/도$/g, "");
+    let city = m[2];
+    return `${prov} ${city}`;
   }
-  const m2 = addr.match(/([가-힣]+[시군구])/);
+
+  // 3. Fallback: match any standalone City/County
+  const m2 = addr.match(/([가-힣]+[시군])/);
   if (m2) return m2[1];
-  return region || "기타";
+
+  return reg || "기타";
 }
 
 function normalizeRegion(rawRegion, address, lat, lng) {
@@ -2395,12 +2412,7 @@ async function bootstrap() {
       const pos = new naver.maps.LatLng(p.lat, p.lng);
       if (bounds && typeof bounds.hasLatLng === "function" && !bounds.hasLatLng(pos)) continue;
 
-      let groupName = "";
-      if (isProvinceLevel) {
-        groupName = p.region || inferRegionFromAddress(p.address, p.lat, p.lng) || "기타";
-      } else {
-        groupName = extractDistrictName(p.address, p.region);
-      }
+      const groupName = extractCityName(p.address, p.region);
 
       if (!clusterMap.has(groupName)) {
         clusterMap.set(groupName, {
@@ -2457,8 +2469,7 @@ async function bootstrap() {
 
         naver.maps.Event.addListener(marker, "click", () => {
           map.setCenter(pos);
-          const nextZoom = isProvinceLevel ? 11 : 13;
-          map.setZoom(nextZoom, true);
+          map.setZoom(13, true);
           updateZoomLabel();
         });
 
