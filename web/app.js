@@ -199,22 +199,75 @@ function inferRegionFromAddress(address, lat, lng) {
   return "";
 }
 
-function extractCityName(address, region) {
+function extractProvinceName(address, lat, lng) {
   const addr = String(address || "").trim();
-  const reg = String(region || "").trim();
 
-  // 1. Metropolitan / Special Cities (묶어서 단일 광역/시 뱃지로 표시)
-  if (addr.includes("서울") || reg.includes("서울")) return "서울";
-  if (addr.includes("인천") || reg.includes("인천")) return "인천";
-  if (addr.includes("부산") || reg.includes("부산")) return "부산";
-  if (addr.includes("대구") || reg.includes("대구")) return "대구";
-  if (addr.includes("대전") || reg.includes("대전")) return "대전";
-  if (addr.includes("광주") && (addr.includes("광역시") || reg.includes("광주")) && !addr.includes("경기")) return "광주";
-  if (addr.includes("울산") || reg.includes("울산")) return "울산";
-  if (addr.includes("세종") || reg.includes("세종")) return "세종";
-  if (addr.includes("제주") || reg.includes("제주")) return "제주";
+  // 1. Direct province keyword match from address
+  if (/서울/.test(addr)) return "서울";
+  if (/부산/.test(addr)) return "부산";
+  if (/대구/.test(addr)) return "대구";
+  if (/인천/.test(addr)) return "인천";
+  if (/광주/.test(addr) && !/경기\s*광주|경기도\s*광주/.test(addr)) return "광주";
+  if (/대전/.test(addr)) return "대전";
+  if (/울산/.test(addr)) return "울산";
+  if (/세종/.test(addr)) return "세종";
+  if (/경기/.test(addr)) return "경기";
+  if (/강원/.test(addr)) return "강원";
+  if (/충(?:청)?북/.test(addr)) return "충북";
+  if (/충(?:청)?남/.test(addr)) return "충남";
+  if (/전(?:라)?북/.test(addr)) return "전북";
+  if (/전(?:라)?남/.test(addr)) return "전남";
+  if (/경(?:상)?북/.test(addr)) return "경북";
+  if (/경(?:상)?남/.test(addr)) return "경남";
+  if (/제주/.test(addr)) return "제주";
 
-  // 2. Provinces -> Match 'Province City/County' (e.g. "경기 수원시", "강원 춘천시", "경남 창원시")
+  // 2. City names in address
+  if (/(수원|성남|고양|용인|부천|안산|안양|남양주|화성|평택|의정부|시흥|파주|김포|광명|광주|군포|이천|양주|오산|구리|안성|포천|의왕|하남|여주|동두천|과천|가평|양평|연천)/.test(addr)) return "경기";
+  if (/(춘천|원주|강릉|동해|태백|속초|삼척|홍천|횡성|영월|평창|정선|철원|화천|양구|인제|고성|양양)/.test(addr)) return "강원";
+  if (/(청주|충주|제천|보은|옥천|영동|증평|진천|괴산|음성|단양)/.test(addr)) return "충북";
+  if (/(천안|공주|보령|아산|서산|논산|계룡|당진|금산|부여|서천|청양|홍성|예산|태안)/.test(addr)) return "충남";
+  if (/(전주|군산|익산|정읍|남원|김제|완주|진안|무주|장수|임실|순창|고창|부안)/.test(addr)) return "전북";
+  if (/(목포|여수|순천|나주|광양|담양|곡성|구례|고흥|보성|화순|장흥|강진|해남|영암|무안|함평|영광|장성|완도|진도|신안)/.test(addr)) return "전남";
+  if (/(포항|경주|김천|안동|구미|영주|영천|상주|문경|경산|군위|의성|청송|영양|영덕|청도|고령|성주|칠곡|예천|봉화|울진|울릉)/.test(addr)) return "경북";
+  if (/(창원|진주|통영|사천|김해|밀양|거제|양산|의령|함안|창녕|고성|남해|하동|산청|함양|거창|합천)/.test(addr)) return "경남";
+
+  // 3. Geographic coordinate fallback (대한민국 위경도 영역 기반 판별)
+  if (Number.isFinite(lat) && Number.isFinite(lng) && lat > 30) {
+    if (lat < 34.0) return "제주";
+    if (lat >= 37.42 && lat <= 37.70 && lng >= 126.76 && lng <= 127.18) return "서울";
+    if (lat >= 37.35 && lat <= 37.60 && lng >= 126.50 && lng < 126.76) return "인천";
+    if (lat >= 36.90 && lat <= 38.30 && lng >= 126.30 && lng <= 127.80) return "경기";
+    if (lat >= 37.00 && lat <= 38.60 && lng >= 127.80 && lng <= 129.40) return "강원";
+    if (lat >= 35.80 && lat <= 37.10 && lng >= 127.30 && lng <= 128.80) return "충북";
+    if (lat >= 35.90 && lat <= 37.10 && lng >= 126.00 && lng <= 127.40) return "충남";
+    if (lat >= 36.20 && lat <= 36.50 && lng >= 127.25 && lng <= 127.55) return "대전";
+    if (lat >= 35.30 && lat <= 36.15 && lng >= 126.30 && lng <= 127.90) return "전북";
+    if (lat >= 34.10 && lat <= 35.50 && lng >= 125.80 && lng <= 127.90) return "전남";
+    if (lat >= 35.05 && lat <= 35.25 && lng >= 126.65 && lng <= 127.00) return "광주";
+    if (lat >= 35.60 && lat <= 37.20 && lng >= 127.80 && lng <= 129.60) return "경북";
+    if (lat >= 35.75 && lat <= 36.05 && lng >= 128.40 && lng <= 128.80) return "대구";
+    if (lat >= 34.60 && lat <= 35.90 && lng >= 127.60 && lng <= 129.40) return "경남";
+    if (lat >= 35.00 && lat <= 35.40 && lng >= 128.80 && lng <= 129.35) return "부산";
+    if (lat >= 35.35 && lat <= 35.75 && lng >= 129.10 && lng <= 129.45) return "울산";
+  }
+  return "기타";
+}
+
+function extractCityName(address, lat, lng) {
+  const addr = String(address || "").trim();
+
+  // 1. Metropolitan / Special Cities
+  if (/서울/.test(addr)) return "서울";
+  if (/인천/.test(addr)) return "인천";
+  if (/부산/.test(addr)) return "부산";
+  if (/대구/.test(addr)) return "대구";
+  if (/대전/.test(addr)) return "대전";
+  if (/광주/.test(addr) && !/경기\s*광주|경기도\s*광주/.test(addr)) return "광주";
+  if (/울산/.test(addr)) return "울산";
+  if (/세종/.test(addr)) return "세종";
+  if (/제주/.test(addr)) return "제주";
+
+  // 2. Province + City/County
   const m = addr.match(/([가-힣]+(?:도|특별자치도))\s*([가-힣]+[시군])/);
   if (m) {
     let prov = m[1].replace(/특별자치도/g, "").replace(/도$/g, "");
@@ -222,36 +275,14 @@ function extractCityName(address, region) {
     return `${prov} ${city}`;
   }
 
-  // 3. Fallback: match any standalone City/County
+  // 3. Fallback: match standalone City/County
   const m2 = addr.match(/([가-힣]+[시군])/);
-  if (m2) return m2[1];
+  if (m2) {
+    const prov = extractProvinceName(address, lat, lng);
+    return prov !== "기타" ? `${prov} ${m2[1]}` : m2[1];
+  }
 
-  return reg || "기타";
-}
-
-function extractProvinceName(address, region, lat, lng) {
-  const addr = String(address || "").trim();
-  const reg = String(region || "").trim();
-
-  if (addr.includes("서울") || reg.includes("서울")) return "서울";
-  if (addr.includes("경기") || reg.includes("경기") || reg === "경기북부" || reg === "경인") return "경기";
-  if (addr.includes("인천") || reg.includes("인천")) return "인천";
-  if (addr.includes("강원") || reg.includes("강원")) return "강원";
-  if (addr.includes("대전") || reg.includes("대전")) return "대전";
-  if (addr.includes("세종") || reg.includes("세종")) return "세종";
-  if (addr.includes("충남") || addr.includes("충청남") || reg.includes("충남")) return "충남";
-  if (addr.includes("충북") || addr.includes("충청북") || reg.includes("충북")) return "충북";
-  if (addr.includes("광주") && (addr.includes("광역시") || reg.includes("광주")) && !addr.includes("경기")) return "광주";
-  if (addr.includes("전남") || addr.includes("전라남") || reg.includes("전남")) return "전남";
-  if (addr.includes("전북") || addr.includes("전라북") || reg.includes("전북")) return "전북";
-  if (addr.includes("대구") || reg.includes("대구")) return "대구";
-  if (addr.includes("경북") || addr.includes("경상북") || reg.includes("경북")) return "경북";
-  if (addr.includes("부산") || reg.includes("부산")) return "부산";
-  if (addr.includes("울산") || reg.includes("울산")) return "울산";
-  if (addr.includes("경남") || addr.includes("경상남") || reg.includes("경남")) return "경남";
-  if (addr.includes("제주") || reg.includes("제주")) return "제주";
-
-  return inferRegionFromAddress(addr, lat, lng) || reg || "기타";
+  return extractProvinceName(address, lat, lng);
 }
 
 function normalizeRegion(rawRegion, address, lat, lng) {
@@ -1585,12 +1616,10 @@ async function bootstrap() {
     animateCenterTo(targetCenter, 240, done);
   };
 
-  const placeDetailPanelAboveMarker = (latLng, screenPoint = null) => {
-    if (!detailPanelEl) return;
+  const placeDetailPanelAboveMarker = (latLng) => {
+    if (!detailPanelEl || !latLng) return;
     const projection = map.getProjection?.();
-    const markerPx = screenPoint
-      ? new naver.maps.Point(screenPoint.x, screenPoint.y)
-      : projection?.fromCoordToOffset?.(latLng);
+    const markerPx = projection?.fromCoordToOffset?.(latLng);
     if (!markerPx) return;
     const markerHalfHeight = 35;
     const markerGap = 10;
@@ -1612,7 +1641,7 @@ async function bootstrap() {
       setTimeout(() => renderVisibleMarkers(), 120);
       if (selectedFacilityId !== targetId) return;
       if (!ENABLE_DETAIL_PANEL) return;
-      openDetailInfo(point, selectedDetailAnchor, selectedDetailScreenPoint);
+      openDetailInfo(point, selectedDetailAnchor);
     });
   };
 
@@ -1931,9 +1960,8 @@ async function bootstrap() {
     detailPanelEl.classList.remove("hidden");
     const finalAnchor = anchorLatLng || selectedDetailAnchor || new naver.maps.LatLng(point.lat, point.lng);
     selectedDetailAnchor = finalAnchor;
-    const finalScreenPoint = screenPoint || selectedDetailScreenPoint || null;
-    placeDetailPanelAboveMarker(finalAnchor, finalScreenPoint);
-    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor, finalScreenPoint));
+    placeDetailPanelAboveMarker(finalAnchor);
+    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor));
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
@@ -2434,12 +2462,11 @@ async function bootstrap() {
       }
       if (!pointMatchRegion(p, selectedRegion)) continue;
 
-      const pos = new naver.maps.LatLng(p.lat, p.lng);
-      if (bounds && typeof bounds.hasLatLng === "function" && !bounds.hasLatLng(pos)) continue;
+      if (!p.lat || !p.lng || p.lat < 30) continue;
 
       const groupName = isProvinceLevel
-        ? extractProvinceName(p.address, p.region, p.lat, p.lng)
-        : extractCityName(p.address, p.region);
+        ? extractProvinceName(p.address, p.lat, p.lng)
+        : extractCityName(p.address, p.lat, p.lng);
 
       if (!clusterMap.has(groupName)) {
         clusterMap.set(groupName, {
@@ -2630,7 +2657,7 @@ async function bootstrap() {
         !detailPanelEl.classList.contains("hidden") &&
         selectedDetailAnchor
       ) {
-        placeDetailPanelAboveMarker(selectedDetailAnchor, selectedDetailScreenPoint);
+        placeDetailPanelAboveMarker(selectedDetailAnchor);
       }
     }
   };
@@ -2851,18 +2878,21 @@ async function bootstrap() {
 
   naver.maps.Event.addListener(map, "zoom_changed", () => {
     updateZoomLabel();
-    closeDetailPanel();
+    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
+    }
   });
-  naver.maps.Event.addListener(map, "idle", scheduleRender);
-
-  naver.maps.Event.addListener(map, "dragstart", () => {
-    if (!isMarkerRepositioning) {
-      closeDetailPanel();
+  naver.maps.Event.addListener(map, "idle", () => {
+    scheduleRender();
+    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
     }
   });
 
-  naver.maps.Event.addListener(map, "zoom_start", () => {
-    closeDetailPanel();
+  naver.maps.Event.addListener(map, "drag", () => {
+    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
+    }
   });
 
   naver.maps.Event.addListener(map, "click", () => {
