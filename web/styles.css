@@ -3272,6 +3272,14 @@ button:active {
   letter-spacing: -0.01em;
 }
 
+.detailPanel.detailPanelInWindow {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
 .detailPanel.hidden {
   display: none;
 }

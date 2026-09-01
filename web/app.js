@@ -662,6 +662,14 @@ async function bootstrap() {
     anchorSize: new naver.maps.Size(10, 10),
   });
 
+  const detailInfoWindow = new naver.maps.InfoWindow({
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    borderWidth: 0,
+    disableAnchor: true,
+    pixelOffset: new naver.maps.Point(0, -12),
+  });
+
   let renderedMarkers = [];
   let activeMarkerMap = new Map();
   let activeClusterMarkerMap = new Map();
@@ -1530,15 +1538,23 @@ async function bootstrap() {
     selectedDetailAnchor = null;
     selectedDetailScreenPoint = null;
     isMarkerRepositioning = false;
-    if (!detailPanelEl) return;
-    detailPanelEl.classList.add("hidden");
-    detailPanelEl.innerHTML = "";
+    if (detailInfoWindow) {
+      detailInfoWindow.close();
+    }
+    if (detailPanelEl) {
+      detailPanelEl.classList.add("hidden");
+      detailPanelEl.innerHTML = "";
+    }
   };
 
   const hideDetailPanelOnly = () => {
-    if (!detailPanelEl) return;
-    detailPanelEl.classList.add("hidden");
-    detailPanelEl.innerHTML = "";
+    if (detailInfoWindow) {
+      detailInfoWindow.close();
+    }
+    if (detailPanelEl) {
+      detailPanelEl.classList.add("hidden");
+      detailPanelEl.innerHTML = "";
+    }
   };
 
   const moveMarkerToLowerArea = (latLng, onDone) => {
@@ -1636,7 +1652,7 @@ async function bootstrap() {
 
   let pendingDetailPoint = null;
 
-  const openDetailAfterMapMove = (point, latLng) => {
+  const openDetailAfterMapMove = (point, latLng, targetMarker = null) => {
     pendingDetailPoint = point;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
     hideDetailPanelOnly();
@@ -1646,13 +1662,13 @@ async function bootstrap() {
       if (opened) return;
       opened = true;
       if (pendingDetailPoint && selectedFacilityId === getFacilityKey(pendingDetailPoint)) {
-        openDetailInfo(pendingDetailPoint, selectedDetailAnchor);
+        openDetailInfo(pendingDetailPoint, targetMarker || selectedDetailAnchor);
         pendingDetailPoint = null;
       }
     };
 
     naver.maps.Event.once(map, "idle", () => {
-      setTimeout(triggerOpen, 60);
+      setTimeout(triggerOpen, 50);
     });
 
     if (map.panTo) {
@@ -1661,7 +1677,7 @@ async function bootstrap() {
       map.setCenter(latLng);
     }
 
-    setTimeout(triggerOpen, 350);
+    setTimeout(triggerOpen, 400);
   };
 
   let currentPrintPoint = null;
@@ -1948,43 +1964,47 @@ async function bootstrap() {
       `
       : "";
 
-    detailPanelEl.innerHTML = `
-      <div class="detailTop">
-        <div class="detailTitleRow">
-          <div class="detailTitle">${title}</div>
-          <div class="detailSubTitle">${subtitleLine}</div>
+    const contentHtml = `
+      <div class="detailPanel detailPanelInWindow">
+        <div class="detailTop">
+          <div class="detailTitleRow">
+            <div class="detailTitle">${title}</div>
+            <div class="detailSubTitle">${subtitleLine}</div>
+          </div>
+          <button id="closeDetailPanelBtn" class="detailCloseBtn" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-        <button id="closeDetailPanelBtn" class="detailCloseBtn" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        <div class="detailMeta">
+          <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> <span>${address}</span></div>
+          <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> <span>${telHref ? `<a href="tel:${escapeHtml(telHref)}">${safePhone}</a>` : safePhone}</span></div>
+        </div>
+        <div class="detailFavRow">
+          <button id="detailLikeBtn" class="detailIconBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="좋아요"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg></button>
+          <button id="detailFavBtn" class="detailIconBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="즐겨찾기"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
+          ${bookingBtnHtml}
+        </div>
+        <div class="detailDivider"></div>
+        <table class="detailInfoTable">
+          <tbody>
+            <tr>
+              <td class="detailLabelCell">대상 :</td>
+              <td class="detailValueCell detailAudienceList">${audienceText}</td>
+            </tr>
+            <tr>
+              <td class="detailLabelCell">혜택 :</td>
+              <td class="detailValueCell benefitText">${benefit}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="detailMeta">
-        <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> <span>${address}</span></div>
-        <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> <span>${telHref ? `<a href="tel:${escapeHtml(telHref)}">${safePhone}</a>` : safePhone}</span></div>
-      </div>
-      <div class="detailFavRow">
-        <button id="detailLikeBtn" class="detailIconBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="좋아요"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg></button>
-        <button id="detailFavBtn" class="detailIconBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="즐겨찾기"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
-        ${bookingBtnHtml}
-      </div>
-      <div class="detailDivider"></div>
-      <table class="detailInfoTable">
-        <tbody>
-          <tr>
-            <td class="detailLabelCell">대상 :</td>
-            <td class="detailValueCell detailAudienceList">${audienceText}</td>
-          </tr>
-          <tr>
-            <td class="detailLabelCell">혜택 :</td>
-            <td class="detailValueCell benefitText">${benefit}</td>
-          </tr>
-        </tbody>
-      </table>
     `;
 
-    detailPanelEl.classList.remove("hidden");
-    const finalAnchor = anchorLatLng || selectedDetailAnchor || new naver.maps.LatLng(point.lat, point.lng);
-    selectedDetailAnchor = finalAnchor;
-    placeDetailPanelAboveMarker(finalAnchor);
-    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor));
+    const targetAnchor = (anchorLatLng && typeof anchorLatLng.lat === "function")
+      ? anchorLatLng
+      : new naver.maps.LatLng(point.lat, point.lng);
+    selectedDetailAnchor = targetAnchor;
+
+    detailInfoWindow.setContent(contentHtml);
+    detailInfoWindow.open(map, targetAnchor);
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
@@ -2668,7 +2688,7 @@ async function bootstrap() {
             map.setZoom(13, true);
             updateZoomLabel();
           }
-          openDetailAfterMapMove(v, v.pos);
+          openDetailAfterMapMove(v, v.pos, marker);
           clickCountsById[selectedFacilityId] = getClickCount(selectedFacilityId) + 1;
           renderRankPanel();
           recordFacilityClick(selectedFacilityId)
