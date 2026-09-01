@@ -665,6 +665,8 @@ async function bootstrap() {
   let renderedMarkers = [];
   let activeMarkerMap = new Map();
   let activeClusterMarkerMap = new Map();
+  let currentLocationMarker = null;
+  let currentUserLatLng = null;
   let initialBoundsListener = null;
   let renderTimer = null;
   let selectedCategory = "";
@@ -2704,20 +2706,73 @@ async function bootstrap() {
   if (btnZoomIn) btnZoomIn.addEventListener("click", () => { closeDetailPanel(); map.setZoom(map.getZoom() + 1, true); updateZoomLabel(); });
   if (btnZoomOut) btnZoomOut.addEventListener("click", () => { closeDetailPanel(); map.setZoom(map.getZoom() - 1, true); updateZoomLabel(); });
   if (zoomLevelBtn) zoomLevelBtn.addEventListener("click", () => { closeDetailPanel(); map.setCenter(defaultCenter); map.setZoom(defaultZoom, true); updateZoomLabel(); });
+  const updateCurrentLocationMarker = (lat, lng, panTo = false) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 30) return;
+    currentUserLatLng = new naver.maps.LatLng(lat, lng);
+
+    if (!currentLocationMarker) {
+      currentLocationMarker = new naver.maps.Marker({
+        position: currentUserLatLng,
+        map,
+        icon: {
+          content: `
+            <div class="myLocationBeaconWrap" title="현재 내 위치 (클릭 시 화면 이동)">
+              <div class="myLocationRipple"></div>
+              <div class="myLocationRadarRing"></div>
+              <div class="myLocationCoreDot"></div>
+              <div class="myLocationPinLabel">📍 현재 내 위치</div>
+            </div>
+          `,
+          anchor: new naver.maps.Point(16, 16),
+        },
+        zIndex: 99999,
+      });
+
+      naver.maps.Event.addListener(currentLocationMarker, "click", () => {
+        if (currentUserLatLng) {
+          map.panTo(currentUserLatLng);
+          map.setZoom(16, true);
+          updateZoomLabel();
+        }
+      });
+    } else {
+      currentLocationMarker.setPosition(currentUserLatLng);
+      currentLocationMarker.setMap(map);
+    }
+
+    if (panTo) {
+      map.panTo(currentUserLatLng);
+      map.setZoom(Math.max(map.getZoom(), 16), true);
+      updateZoomLabel();
+      renderVisibleMarkers();
+    }
+  };
+
   if (btnLocate && navigator.geolocation) {
     btnLocate.addEventListener("click", () => {
       closeDetailPanel();
+      btnLocate.style.opacity = "0.6";
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const here = new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-          map.setCenter(here);
-          map.setZoom(Math.max(map.getZoom(), 16), true);
-          updateZoomLabel();
+          btnLocate.style.opacity = "1";
+          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, true);
         },
-        () => alert("현재 위치를 가져오지 못했습니다."),
-        { enableHighAccuracy: true, timeout: 7000 }
+        () => {
+          btnLocate.style.opacity = "1";
+          alert("현재 위치를 가져오지 못했습니다. 브라우저 위치 접근 권한을 확인해 주세요.");
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
       );
     });
+
+    // Request location once gracefully on startup
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, false);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
   }
 
   const brandLogoEl = document.getElementById("brandLogo");

@@ -6110,3 +6110,95 @@ button:active {
   font-weight: 800;
 }
 
+/* Animated Current Location Marker (GPS Live Beacon) */
+.myLocationBeaconWrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 99999 !important;
+}
+
+.myLocationRipple {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.4);
+  animation: myLocRippleAnim 2.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.myLocationRadarRing {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.25);
+  animation: myLocRadarAnim 2.2s ease-out infinite;
+}
+
+.myLocationCoreDot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.9), 0 2px 6px rgba(0, 0, 0, 0.35);
+  z-index: 3;
+}
+
+.myLocationPinLabel {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  letter-spacing: -0.2px;
+}
+
+@keyframes myLocRippleAnim {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes myLocRadarAnim {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
