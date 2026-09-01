@@ -176,26 +176,75 @@ def get_store_and_neighbors(facility_id):
     neighbors.sort(key=lambda x: x[1])
     return target, neighbors[:5]
 
-async def capture_map(page, facility_id, port=8080):
-    timestamp = int(time.time())
-    url = f"http://127.0.0.1:{port}/map_only_light.html?facility_id={facility_id}&rings=0&nocache={timestamp}"
-    print(f"[PosterRenderer] Loading map URL: {url}")
-    try:
-        await page.goto(url, wait_until="networkidle", timeout=10000)
-    except Exception as e:
-        print(f"[PosterRenderer] Warning on page.goto: {e}")
-    await asyncio.sleep(2)
-    
-    map_locator = page.locator("#map")
-    map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
-    try:
-        await map_locator.screenshot(path=str(map_path), timeout=5000)
-    except Exception as e:
-        print(f"[PosterRenderer] Locator screenshot failed, taking full page: {e}")
-        await page.screenshot(path=str(map_path))
-    return map_path
+def create_stylized_pillow_map(store, neighbors, width=880, height=550):
+    img = Image.new("RGBA", (width, height), "#F1F5F9")
+    draw = ImageDraw.Draw(img)
 
-def draw_poster(store, neighbors, map_path):
+    font_bold_path, font_reg_path = get_font_paths()
+
+    # 1. Subtle background grid & road patterns
+    for x in range(0, width, 40):
+        draw.line([(x, 0), (x, height)], fill="#E2E8F0", width=1)
+    for y in range(0, height, 40):
+        draw.line([(0, y), (width, y)], fill="#E2E8F0", width=1)
+
+    # Main stylized roads
+    draw.line([(0, height * 0.45), (width, height * 0.55)], fill="#CBD5E1", width=16)
+    draw.line([(width * 0.35, 0), (width * 0.45, height)], fill="#CBD5E1", width=14)
+    draw.line([(0, height * 0.7), (width, height * 0.3)], fill="#E2E8F0", width=8)
+
+    cx, cy = width // 2, height // 2
+
+    # 2. Radius rings
+    draw.ellipse([cx - 200, cy - 140, cx + 200, cy + 140], outline="#93C5FD", width=2)
+    draw.ellipse([cx - 100, cy - 70, cx + 100, cy + 70], outline="#60A5FA", width=2)
+    draw.text((cx + 105, cy - 70), "500m", fill="#3B82F6", font=get_font(font_bold_path, 12, True))
+    draw.text((cx + 205, cy - 140), "1km 반경", fill="#2563EB", font=get_font(font_bold_path, 12, True))
+
+    # 3. Neighbor pins
+    font_badge = get_font(font_bold_path, 12, True)
+    font_pin_name = get_font(font_bold_path, 13, True)
+
+    angles = [-140, -40, 45, 130, 200]
+    radii = [150, 170, 130, 160, 180]
+
+    for idx, item in enumerate(neighbors[:5]):
+        ang = math.radians(angles[idx % len(angles)])
+        r = radii[idx % len(radii)]
+        nx = int(cx + r * math.cos(ang))
+        ny = int(cy + (r * 0.7) * math.sin(ang))
+
+        # Pin circle
+        draw.ellipse([nx - 14, ny - 14, nx + 14, ny + 14], fill="#1E3A8A", outline="#FFFFFF", width=2)
+        draw.text((nx, ny), str(idx + 1), fill="#FFFFFF", font=font_badge, anchor="mm")
+
+        # Pin label
+        n_title = (item[0].get("name") if isinstance(item, tuple) else item.get("name", "")) or f"이웃가게 {idx+1}"
+        if len(n_title) > 10:
+            n_title = n_title[:9] + ".."
+        draw.text((nx, ny + 20), n_title, fill="#1E293B", font=font_pin_name, anchor="mm")
+
+    # 4. Center Target Pin
+    draw.ellipse([cx - 30, cy - 30, cx + 30, cy + 30], fill=(239, 68, 68, 60))
+    draw.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], fill="#EF4444", outline="#FFFFFF", width=3)
+    draw.text((cx, cy), "★", fill="#FFFFFF", font=get_font(font_bold_path, 16, True), anchor="mm")
+
+    # Center Store Title Pill
+    title = store.get("name") or "본 매장"
+    pill_w = max(180, len(title) * 16 + 40)
+    pill_h = 36
+    px1 = cx - pill_w // 2
+    py1 = cy - 65
+    draw.rounded_rectangle([px1, py1, px1 + pill_w, py1 + pill_h], radius=10, fill="#1E3A8A", outline="#FFFFFF", width=2)
+    draw.text((cx, py1 + pill_h // 2), f"📍 {title}", fill="#FFFFFF", font=get_font(font_bold_path, 15, True), anchor="mm")
+
+    # Bottom notice bar
+    draw.rounded_rectangle([20, height - 42, width - 20, height - 12], radius=8, fill=(255, 255, 255, 235), outline="#CBD5E1", width=1)
+    draw.text((width // 2, height - 27), "📱 상생지도 모바일 앱 & QR 스캔 시 주변 모든 혜택 매장이 실시간 연동됩니다.", fill="#475569", font=get_font(font_bold_path, 13, True), anchor="mm")
+
+    return img
+
+def draw_poster(store, neighbors, map_path=None):
     p_width, p_height = 1000, 1414
     pamphlet = Image.new("RGBA", (p_width, p_height), "#F3F3ED")
     draw = ImageDraw.Draw(pamphlet)
@@ -280,9 +329,11 @@ def draw_poster(store, neighbors, map_path):
         except Exception as e:
             print("Map paste error:", e)
     else:
-        # Fallback map box
-        draw.rounded_rectangle([60, 350, 940, 900], radius=14, fill="#E2E8F0", outline="#CBD5E1", width=2)
-        draw.text((500, 625), f"위치: {store.get('address', '가맹점 위치')}", fill="#475569", font=font_body_bold, anchor="mm")
+        styled_map = create_stylized_pillow_map(store, neighbors, width=880, height=550)
+        map_x1, map_y1 = 60, 350
+        map_x2, map_y2 = map_x1 + 880, map_y1 + 550
+        pamphlet.paste(styled_map, (map_x1, map_y1))
+        draw.rounded_rectangle([map_x1, map_y1, map_x2, map_y2], radius=14, outline="#D2C9BD", width=2)
         
     # Neighbors Table
     draw.text((60, 930), "주변 나라사랑가게", fill="#1E1E1E", font=font_section)
@@ -361,58 +412,4 @@ def generate_poster(facility_id, port=None):
     store, neighbors = get_store_and_neighbors(facility_id)
     map_path = None
     
-    launch_args = [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-software-rasterizer",
-        "--disable-extensions",
-        "--js-flags=--max-old-space-size=128",
-        "--no-zygote"
-    ]
-    
-    try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True, args=launch_args)
-            context = browser.new_context(
-                viewport={"width": 880, "height": 550},
-                device_scale_factor=1
-            )
-            page = context.new_page()
-            html_file = (BASE_DIR / "web" / "map_only_light.html").resolve()
-            url = f"{html_file.as_uri()}?facility_id={facility_id}&rings=0"
-            try:
-                page.goto(url, wait_until="domcontentloaded", timeout=8000)
-                try:
-                    page.wait_for_function("window.__MAP_READY === true", timeout=4000)
-                except Exception:
-                    time.sleep(1.0)
-            except Exception as e:
-                print(f"[PosterRenderer] Warning on page.goto: {e}")
-                time.sleep(1.0)
-                
-            map_locator = page.locator("#map")
-            map_path = BASE_DIR / f"temp_map_poster_{facility_id}.png"
-            try:
-                map_locator.screenshot(path=str(map_path), timeout=3000)
-            except Exception as e:
-                print(f"[PosterRenderer] Locator screenshot failed: {e}")
-                page.screenshot(path=str(map_path))
-                
-            page.close()
-            context.close()
-            browser.close()
-    except Exception as e:
-        print(f"[PosterRenderer] Playwright capture error: {e}")
-
-    img_bytes = draw_poster(store, neighbors, map_path)
-    
-    if map_path and Path(map_path).exists():
-        try:
-            Path(map_path).unlink()
-        except Exception:
-            pass
-            
-    return img_bytes
+    return draw_poster(store, neighbors, None)

@@ -177,7 +177,49 @@ async def capture_map(page, facility_id, port=8080):
         await page.screenshot(path=str(map_path))
     return map_path
 
-def draw_table_stand(store, map_path):
+def create_stylized_pillow_map(store, width=680, height=440):
+    img = Image.new("RGBA", (width, height), "#F1F5F9")
+    draw = ImageDraw.Draw(img)
+
+    font_bold_path, font_reg_path = get_font_paths()
+
+    # Grid & roads
+    for x in range(0, width, 40):
+        draw.line([(x, 0), (x, height)], fill="#E2E8F0", width=1)
+    for y in range(0, height, 40):
+        draw.line([(0, y), (width, y)], fill="#E2E8F0", width=1)
+
+    draw.line([(0, height * 0.45), (width, height * 0.55)], fill="#CBD5E1", width=14)
+    draw.line([(width * 0.4, 0), (width * 0.5, height)], fill="#CBD5E1", width=12)
+
+    cx, cy = width // 2, height // 2
+
+    # Radius rings
+    draw.ellipse([cx - 160, cy - 110, cx + 160, cy + 110], outline="#93C5FD", width=2)
+    draw.ellipse([cx - 80, cy - 55, cx + 80, cy + 55], outline="#60A5FA", width=2)
+    draw.text((cx + 85, cy - 55), "500m", fill="#3B82F6", font=get_font(font_bold_path, 11, True))
+
+    # Center Pin
+    draw.ellipse([cx - 24, cy - 24, cx + 24, cy + 24], fill=(239, 68, 68, 60))
+    draw.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill="#EF4444", outline="#FFFFFF", width=3)
+    draw.text((cx, cy), "★", fill="#FFFFFF", font=get_font(font_bold_path, 14, True), anchor="mm")
+
+    # Center Title Pill
+    title = store.get("name") or "본 매장"
+    pill_w = max(160, len(title) * 15 + 36)
+    pill_h = 32
+    px1 = cx - pill_w // 2
+    py1 = cy - 52
+    draw.rounded_rectangle([px1, py1, px1 + pill_w, py1 + pill_h], radius=8, fill="#1E3A8A", outline="#FFFFFF", width=2)
+    draw.text((cx, py1 + pill_h // 2), f"📍 {title}", fill="#FFFFFF", font=get_font(font_bold_path, 13, True), anchor="mm")
+
+    # Bottom notice bar
+    draw.rounded_rectangle([15, height - 36, width - 15, height - 10], radius=6, fill=(255, 255, 255, 235), outline="#CBD5E1", width=1)
+    draw.text((width // 2, height - 23), "📱 QR 스캔 시 스마트폰에서 실시간 상생지도가 열립니다.", fill="#475569", font=get_font(font_bold_path, 12, True), anchor="mm")
+
+    return img
+
+def draw_table_stand(store, map_path=None):
     p_width, p_height = 800, 1200
     stand = Image.new("RGBA", (p_width, p_height), "#F3F3ED")
     draw = ImageDraw.Draw(stand)
@@ -249,8 +291,11 @@ def draw_table_stand(store, map_path):
         except Exception as e:
             print("Stand map paste error:", e)
     else:
-        draw.rounded_rectangle([60, 315, 740, 755], radius=14, fill="#E2E8F0", outline="#CBD5E1", width=2)
-        draw.text((400, 535), f"위치: {store.get('address', '가맹점 위치')}", fill="#475569", font=font_header_sub, anchor="mm")
+        styled_map = create_stylized_pillow_map(store, width=680, height=440)
+        map_x1, map_y1 = 60, 315
+        map_x2, map_y2 = map_x1 + 680, map_y1 + 440
+        stand.paste(styled_map, (map_x1, map_y1))
+        draw.rounded_rectangle([map_x1, map_y1, map_x2, map_y2], radius=14, outline="#D2C9BD", width=2)
 
     # 7. Bottom Section
     draw.text((60, 810), "[ 우대 대상 ]", fill="#1E3A8A", font=font_label, anchor="lm")
@@ -295,65 +340,7 @@ def draw_table_stand(store, map_path):
     return output_buf.getvalue()
 
 def generate_stand(facility_id, port=None):
-    if not port:
-        port = int(os.environ.get("PORT", 8080))
     store = get_store_info(facility_id)
     if not store:
         raise ValueError(f"Facility {facility_id} not found.")
-    
-    launch_args = [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-software-rasterizer",
-        "--disable-extensions",
-        "--js-flags=--max-old-space-size=128",
-        "--no-zygote"
-    ]
-    
-    map_path = None
-    try:
-        from playwright.sync_api import sync_playwright
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True, args=launch_args)
-            context = browser.new_context(
-                viewport={"width": 680, "height": 440},
-                device_scale_factor=1
-            )
-            page = context.new_page()
-            html_file = (BASE_DIR / "web" / "map_only_light.html").resolve()
-            url = f"{html_file.as_uri()}?facility_id={facility_id}&rings=0"
-            try:
-                page.goto(url, wait_until="domcontentloaded", timeout=8000)
-                try:
-                    page.wait_for_function("window.__MAP_READY === true", timeout=4000)
-                except Exception:
-                    time.sleep(1.0)
-            except Exception as e:
-                print(f"[StandRenderer] Warning on page.goto: {e}")
-                time.sleep(1.0)
-            
-            map_locator = page.locator("#map")
-            map_path = BASE_DIR / f"temp_map_stand_{facility_id}.png"
-            try:
-                map_locator.screenshot(path=str(map_path), timeout=3000)
-            except Exception as e:
-                print(f"[StandRenderer] Locator screenshot failed: {e}")
-                page.screenshot(path=str(map_path))
-                
-            page.close()
-            context.close()
-            browser.close()
-    except Exception as e:
-        print(f"[StandRenderer] Playwright capture error: {e}")
-
-    img_bytes = draw_table_stand(store, map_path=map_path)
-    
-    if map_path and Path(map_path).exists():
-        try:
-            Path(map_path).unlink()
-        except Exception:
-            pass
-            
-    return img_bytes
+    return draw_table_stand(store, map_path=None)
