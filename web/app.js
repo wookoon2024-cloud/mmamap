@@ -529,6 +529,7 @@ async function bootstrap() {
   });
 
   let renderedMarkers = [];
+  let activeMarkerMap = new Map();
   let initialBoundsListener = null;
   let renderTimer = null;
   let selectedCategory = "";
@@ -2337,52 +2338,71 @@ async function bootstrap() {
     };
     updateDebugStatus(`데이터: ${points.length}개 | 화면마커: ${visible.length}개 | 줌: ${map.getZoom()}`);
     // eslint-disable-next-line no-console
-    console.log(`[MMAMap Debug] Total points: ${points.length}, Visible: ${visible.length}, Zoom: ${map.getZoom()}`);
+    const nextMarkerMap = new Map();
 
-    renderedMarkers.forEach((m) => m.setMap(null));
-    renderedMarkers = [];
-    hoverInfoWindow.close();
+    for (let i = 0; i < visible.length; i++) {
+      const v = visible[i];
+      const key = getFacilityKey(v);
 
-    for (const v of visible) {
-      const baseZIndex = 100 + renderedMarkers.length;
-      const marker = new naver.maps.Marker({ position: v.pos, map, icon: getMarkerIconByPoint(v), zIndex: baseZIndex });
-      marker.__facilityKey = getFacilityKey(v);
+      if (activeMarkerMap.has(key)) {
+        // Reuse existing marker without destroying/recreating DOM (NO FLICKERING)
+        nextMarkerMap.set(key, activeMarkerMap.get(key));
+      } else {
+        const baseZIndex = 100 + i;
+        const marker = new naver.maps.Marker({
+          position: v.pos,
+          map,
+          icon: getMarkerIconByPoint(v),
+          zIndex: baseZIndex,
+        });
+        marker.__facilityKey = key;
 
-      naver.maps.Event.addListener(marker, "mouseover", () => {
-        marker.setZIndex(50000);
-        const sub = [...new Set([v.subtitle, toCategoryLabel(v.category)].filter(Boolean))].join(" · ");
-        hoverInfoWindow.setContent(`
-          <div style="padding:8px 10px;min-width:160px;font-size:12px;line-height:1.4;">
-            <div style="font-weight:700;color:#1f2d45;">${escapeHtml(v.title)}</div>
-            ${sub ? `<div style="margin-top:2px;color:#54698f;">${escapeHtml(sub)}</div>` : ""}
-          </div>
-        `);
-        hoverInfoWindow.open(map, marker);
-      });
-      naver.maps.Event.addListener(marker, "mouseout", () => {
-        marker.setZIndex(baseZIndex);
-        hoverInfoWindow.close();
-      });
-      naver.maps.Event.addListener(marker, "click", () => {
-        if (selectedFacilityId && selectedFacilityId !== marker.__facilityKey) hideDetailPanelOnly();
-        selectedFacilityId = marker.__facilityKey;
-        if (map.getZoom() < 12) {
-          map.setZoom(13, true);
-          updateZoomLabel();
-        }
-        openDetailAfterMapMove(v, v.pos);
-        clickCountsById[selectedFacilityId] = getClickCount(selectedFacilityId) + 1;
-        renderRankPanel();
-        recordFacilityClick(selectedFacilityId)
-          .then((resp) => {
-            clickCountsById[selectedFacilityId] = Number(resp.clickCount || clickCountsById[selectedFacilityId] || 0);
-            renderRankPanel();
-          })
-          .catch(() => {});
-      });
+        naver.maps.Event.addListener(marker, "mouseover", () => {
+          marker.setZIndex(50000);
+          const sub = [...new Set([v.subtitle, toCategoryLabel(v.category)].filter(Boolean))].join(" · ");
+          hoverInfoWindow.setContent(`
+            <div style="padding:8px 10px;min-width:160px;font-size:12px;line-height:1.4;">
+              <div style="font-weight:700;color:#1f2d45;">${escapeHtml(v.title)}</div>
+              ${sub ? `<div style="margin-top:2px;color:#54698f;">${escapeHtml(sub)}</div>` : ""}
+            </div>
+          `);
+          hoverInfoWindow.open(map, marker);
+        });
+        naver.maps.Event.addListener(marker, "mouseout", () => {
+          marker.setZIndex(baseZIndex);
+          hoverInfoWindow.close();
+        });
+        naver.maps.Event.addListener(marker, "click", () => {
+          if (selectedFacilityId && selectedFacilityId !== marker.__facilityKey) hideDetailPanelOnly();
+          selectedFacilityId = marker.__facilityKey;
+          if (map.getZoom() < 12) {
+            map.setZoom(13, true);
+            updateZoomLabel();
+          }
+          openDetailAfterMapMove(v, v.pos);
+          clickCountsById[selectedFacilityId] = getClickCount(selectedFacilityId) + 1;
+          renderRankPanel();
+          recordFacilityClick(selectedFacilityId)
+            .then((resp) => {
+              clickCountsById[selectedFacilityId] = Number(resp.clickCount || clickCountsById[selectedFacilityId] || 0);
+              renderRankPanel();
+            })
+            .catch(() => {});
+        });
 
-      renderedMarkers.push(marker);
+        nextMarkerMap.set(key, marker);
+      }
     }
+
+    // Remove markers that left the visible viewport
+    activeMarkerMap.forEach((marker, key) => {
+      if (!nextMarkerMap.has(key)) {
+        marker.setMap(null);
+      }
+    });
+
+    activeMarkerMap = nextMarkerMap;
+    renderedMarkers = Array.from(activeMarkerMap.values());
 
     if (selectedBeforeRender) {
       if (!ENABLE_DETAIL_PANEL) {
@@ -2626,6 +2646,22 @@ async function bootstrap() {
 
   naver.maps.Event.addListener(map, "zoom_changed", updateZoomLabel);
   naver.maps.Event.addListener(map, "idle", scheduleRender);
+
+  naver.maps.Event.addListener(map, "dragstart", () => {
+    if (!isMarkerRepositioning) {
+      closeDetailPanel();
+    }
+  });
+
+  naver.maps.Event.addListener(map, "zoom_start", () => {
+    if (!isMarkerRepositioning) {
+      closeDetailPanel();
+    }
+  });
+
+  naver.maps.Event.addListener(map, "click", () => {
+    closeDetailPanel();
+  });
 
   // Sidebar toggle listener for collapsible sidebar
   const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
