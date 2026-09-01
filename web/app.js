@@ -676,6 +676,7 @@ async function bootstrap() {
   let selectedDetailAnchor = null;
   let selectedDetailScreenPoint = null;
   let isMarkerRepositioning = false;
+  let lastMarkerClickTime = 0;
   let centerMoveAnimId = null;
   const ENABLE_DETAIL_PANEL = true;
   let rankingTab = "popular";
@@ -1637,13 +1638,12 @@ async function bootstrap() {
     isMarkerRepositioning = true;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
     const targetId = getFacilityKey(point);
+    openDetailInfo(point, selectedDetailAnchor);
     moveMarkerToLowerArea(latLng, () => {
       isMarkerRepositioning = false;
-      renderVisibleMarkers();
-      setTimeout(() => renderVisibleMarkers(), 120);
       if (selectedFacilityId !== targetId) return;
       if (!ENABLE_DETAIL_PANEL) return;
-      openDetailInfo(point, selectedDetailAnchor);
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
     });
   };
 
@@ -2644,6 +2644,7 @@ async function bootstrap() {
           hoverInfoWindow.close();
         });
         naver.maps.Event.addListener(marker, "click", () => {
+          lastMarkerClickTime = Date.now();
           if (selectedFacilityId && selectedFacilityId !== marker.__facilityKey) hideDetailPanelOnly();
           selectedFacilityId = marker.__facilityKey;
           if (map.getZoom() < 12) {
@@ -2979,6 +2980,7 @@ async function bootstrap() {
   });
 
   naver.maps.Event.addListener(map, "click", () => {
+    if (Date.now() - lastMarkerClickTime < 350) return;
     closeDetailPanel();
   });
 
