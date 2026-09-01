@@ -33,7 +33,7 @@ const HUB_MENU_TREE = [
     children: [
       {
         key: "store_guide",
-        label: "이용안내 (나라사랑/명문가)",
+        label: "이용안내",
         title: "상생가게 이용안내",
       },
       {
@@ -43,7 +43,7 @@ const HUB_MENU_TREE = [
       },
       {
         key: "store_poster_guide",
-        label: "맞춤 홍보물 인쇄 안내",
+        label: "맞춤 홍보물 인쇄",
         title: "가맹점 맞춤 홍보물 인쇄 안내",
       },
     ],
@@ -59,8 +59,8 @@ const HUB_MENU_TREE = [
       },
       {
         key: "finance_overview",
-        label: "장병내일준비적금 (군적금)",
-        title: "장병내일준비적금(군적금) 금융혜택 안내",
+        label: "장병내일준비적금",
+        title: "장병내일준비적금 금융혜택 안내",
       },
     ],
   },

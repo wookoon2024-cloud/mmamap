@@ -30,8 +30,8 @@ body::before {
   --rank-left: 292px;
   --hub-nav-left: 230px;
   --hub-nav-right: clamp(460px, 34vw, 760px);
-  --hub-col-width: 142px;
-  --hub-col-gap: 6px;
+  --hub-col-width: 168px;
+  --hub-col-gap: 18px;
 }
 
 * {
@@ -177,6 +177,7 @@ button:active {
   display: block;
   width: 100%;
   letter-spacing: -0.01em;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
