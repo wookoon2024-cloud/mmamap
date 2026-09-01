@@ -779,6 +779,48 @@
           });
         }
 
+    function getBubbleDims(group) {
+      const w = group.length > 1 ? 240 : 190;
+      const h = 40 + (group.length - 1) * 26;
+      return { w: w + 20, h: h + 20 };
+    }
+
+    function getBubbleBox(m, dir, dims) {
+      const w = dims.w;
+      const h = dims.h;
+      let x1, y1, x2, y2;
+      if (dir === "top") {
+        x1 = m.avgX - w / 2;
+        y1 = m.avgY - 40 - h;
+        x2 = m.avgX + w / 2;
+        y2 = m.avgY - 40;
+      } else if (dir === "bottom") {
+        x1 = m.avgX - w / 2;
+        y1 = m.avgY + 40;
+        x2 = m.avgX + w / 2;
+        y2 = m.avgY + 40 + h;
+      } else if (dir === "left") {
+        x1 = m.avgX - 40 - w;
+        y1 = m.avgY - h / 2;
+        x2 = m.avgX - 40;
+        y2 = m.avgY + h / 2;
+      } else if (dir === "right") {
+        x1 = m.avgX + 40;
+        y1 = m.avgY - h / 2;
+        x2 = m.avgX + 40 + w;
+        y2 = m.avgY + h / 2;
+      }
+      return { x1, y1, x2, y2 };
+    }
+
+    function getPinBox(m) {
+      return { x1: m.avgX - 25, y1: m.avgY - 25, x2: m.avgX + 25, y2: m.avgY + 25 };
+    }
+
+    function intersect(b1, b2) {
+      return !(b1.x2 < b2.x1 || b1.x1 > b2.x2 || b1.y2 < b2.y1 || b1.y1 > b2.y2);
+    }
+
         // 5. Initialize Naver Map
         await loadNaverMapSDK();
         const mapTargetId = tplType === "table_stand" ? "mapStand" : "mapPoster";
@@ -830,45 +872,215 @@
           zIndex: 9999
         });
 
-        // Smart quadrant directional placement to guarantee 0 overlap
-        const fixedDirections = ["label-top", "label-right", "label-left", "label-bottom", "label-right"];
-        neighbors.forEach((n, idx) => {
-          const distStr = formatDistance(n.dist);
-          let nName = n.name || "이웃 가게";
-          if (nName.length > 13) nName = nName.slice(0, 12) + "..";
+        let dynamicMarkers = [];
+        function renderDynamicMarkers() {
+          dynamicMarkers.forEach(m => m.setMap(null));
+          dynamicMarkers = [];
 
-          // Calculate angle relative to center store
-          const dY = (n.lat - sLat) * 111000;
-          const dX = (n.lng - sLng) * 111000 * Math.cos(sLat * Math.PI / 180);
-          const angle = Math.atan2(dY, dX) * (180 / Math.PI); // -180 to 180
+          const projection = map.getProjection();
+          if (!projection) return;
 
-          let posClass = fixedDirections[idx % fixedDirections.length];
-          if (angle >= 45 && angle < 135) {
-            posClass = "label-top";
-          } else if (angle >= -45 && angle < 45) {
-            posClass = "label-right";
-          } else if (angle >= -135 && angle < -45) {
-            posClass = "label-bottom";
-          } else {
-            posClass = "label-left";
+          const mainPixel = projection.fromCoordToOffset(new naver.maps.LatLng(sLat, sLng));
+          const mainPinBox = { x1: mainPixel.x - 30, y1: mainPixel.y - 30, x2: mainPixel.x + 30, y2: mainPixel.y + 30 };
+          const mainLabelBox = { x1: mainPixel.x - 110, y1: mainPixel.y - 85, x2: mainPixel.x + 110, y2: mainPixel.y - 45 };
+
+          const neighborPixels = neighbors.map(n => {
+            const coord = new naver.maps.LatLng(n.lat, n.lng);
+            const pixel = projection.fromCoordToOffset(coord);
+            return {
+              ...n,
+              coord: coord,
+              x: pixel.x,
+              y: pixel.y
+            };
+          });
+
+          // Group nearby markers if screen distance < 65px
+          const pixelGroupThreshold = 65;
+          const groupedNeighbors = [];
+          neighborPixels.forEach(n => {
+            let foundGroup = null;
+            for (const group of groupedNeighbors) {
+              const dx = group[0].x - n.x;
+              const dy = group[0].y - n.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < pixelGroupThreshold) {
+                foundGroup = group;
+                break;
+              }
+            }
+            if (foundGroup) {
+              foundGroup.push(n);
+            } else {
+              groupedNeighbors.push([n]);
+            }
+          });
+
+          groupedNeighbors.forEach(group => {
+            group.avgDistance = group.reduce((sum, g) => sum + g.dist, 0) / group.length;
+            group.avgX = group.reduce((sum, g) => sum + g.x, 0) / group.length;
+            group.avgY = group.reduce((sum, g) => sum + g.y, 0) / group.length;
+            group.avgLat = group.reduce((sum, g) => sum + g.lat, 0) / group.length;
+            group.avgLng = group.reduce((sum, g) => sum + g.lng, 0) / group.length;
+          });
+
+          const groupCandidates = groupedNeighbors.map((group, idx) => {
+            const dims = getBubbleDims(group);
+            const dx = group.avgX - mainPixel.x;
+            const dy = group.avgY - mainPixel.y;
+            const angleRad = Math.atan2(-dy, dx);
+            const angleDeg = angleRad * 180 / Math.PI;
+
+            let preferredDir = "top";
+            let disallowedDir = "bottom";
+            if (angleDeg >= -45 && angleDeg <= 45) {
+              preferredDir = "right";
+              disallowedDir = "left";
+            } else if (angleDeg > 45 && angleDeg < 135) {
+              preferredDir = "top";
+              disallowedDir = "bottom";
+            } else if (angleDeg >= 135 || angleDeg <= -135) {
+              preferredDir = "left";
+              disallowedDir = "right";
+            } else {
+              preferredDir = "bottom";
+              disallowedDir = "top";
+            }
+
+            const allDirs = ["top", "bottom", "left", "right"];
+            const allowed = [preferredDir];
+            allDirs.forEach(d => {
+              if (d !== preferredDir && d !== disallowedDir) allowed.push(d);
+            });
+            allowed.push(disallowedDir);
+
+            return {
+              group: group,
+              dims: dims,
+              avgX: group.avgX,
+              avgY: group.avgY,
+              avgLat: group.avgLat,
+              avgLng: group.avgLng,
+              allowed: allowed,
+              disallowed: disallowedDir,
+              index: idx
+            };
+          });
+
+          let bestAssignment = null;
+          let minPenalty = Infinity;
+
+          function evaluate(dirs) {
+            let penalty = 0;
+            const boxes = [];
+            const mapContainerEl = document.getElementById(mapTargetId);
+            const mapWidth = mapContainerEl?.offsetWidth || 900;
+            const mapHeight = mapContainerEl?.offsetHeight || 500;
+            const borderPadding = 20;
+
+            for (let i = 0; i < groupCandidates.length; i++) {
+              const cand = groupCandidates[i];
+              const dir = dirs[i];
+              const box = getBubbleBox(cand, dir, cand.dims);
+              boxes.push(box);
+
+              // 1. Boundary check
+              if (box.x1 < borderPadding || box.x2 > mapWidth - borderPadding || 
+                  box.y1 < borderPadding || box.y2 > mapHeight - borderPadding) {
+                penalty += 100000;
+              }
+              // 2. Main store collision
+              if (intersect(box, mainPinBox) || intersect(box, mainLabelBox)) {
+                penalty += 50000;
+              }
+              // 3. Collision with other group pins
+              for (let j = 0; j < groupCandidates.length; j++) {
+                if (i === j) continue;
+                if (intersect(box, getPinBox(groupCandidates[j]))) {
+                  penalty += 20000;
+                }
+              }
+              // 4. Direction preference
+              const prefIdx = cand.allowed.indexOf(dir);
+              penalty += prefIdx * 100;
+              if (dir === cand.disallowed) penalty += 500;
+            }
+
+            // 5. Overlap between bubbles
+            for (let i = 0; i < boxes.length; i++) {
+              for (let j = i + 1; j < boxes.length; j++) {
+                if (intersect(boxes[i], boxes[j])) {
+                  penalty += 100000;
+                }
+              }
+            }
+            return penalty;
           }
 
-          new naver.maps.Marker({
-            position: new naver.maps.LatLng(n.lat, n.lng),
-            map: map,
-            icon: {
-              content: `
-                <div class="marker-neighbor">
-                  <div class="marker-neighbor-label ${posClass}">
-                    ${nName} <span style="color: #2563eb; font-size: 13px;">(${distStr})</span>
+          function solve(index, currentDirs) {
+            if (index === groupCandidates.length) {
+              const p = evaluate(currentDirs);
+              if (p < minPenalty) {
+                minPenalty = p;
+                bestAssignment = [...currentDirs];
+              }
+              return;
+            }
+            const cand = groupCandidates[index];
+            for (const dir of cand.allowed) {
+              currentDirs.push(dir);
+              solve(index + 1, currentDirs);
+              currentDirs.pop();
+            }
+          }
+
+          solve(0, []);
+
+          // Render the grouped bubbles
+          groupCandidates.forEach((cand, idx) => {
+            const chosenDir = (bestAssignment && bestAssignment[idx]) || cand.allowed[0];
+            const group = cand.group;
+
+            let bubbleContent = "";
+            if (group.length === 1) {
+              const n = group[0];
+              let nName = n.name || "이웃 가게";
+              if (nName.length > 13) nName = nName.slice(0, 12) + "..";
+              bubbleContent = `<strong>${nName}</strong> <span style="color: #2563eb; font-size: 13px;">(${formatDistance(n.dist)})</span>`;
+            } else {
+              bubbleContent = group.map((n, i) => {
+                let nName = n.name || "이웃 가게";
+                if (nName.length > 11) nName = nName.slice(0, 10) + "..";
+                return `
+                  <div style="font-size: 13px; line-height: 1.35; white-space: nowrap; ${i > 0 ? 'border-top: 1px solid #e2e8f0; margin-top: 4px; padding-top: 4px;' : ''}">
+                    <strong>${nName}</strong> <span style="color: #2563eb; font-size: 12px;">(${formatDistance(n.dist)})</span>
                   </div>
-                </div>
-              `,
-              anchor: new naver.maps.Point(17, 34)
-            },
-            zIndex: 100 + idx
+                `;
+              }).join("");
+            }
+
+            const marker = new naver.maps.Marker({
+              position: new naver.maps.LatLng(cand.avgLat, cand.avgLng),
+              map: map,
+              icon: {
+                content: `
+                  <div class="marker-neighbor">
+                    <div class="marker-neighbor-label label-${chosenDir}" style="padding: ${group.length > 1 ? '6px 12px' : '7px 13px'}; text-align: left;">
+                      ${bubbleContent}
+                    </div>
+                  </div>
+                `,
+                anchor: new naver.maps.Point(17, 34)
+              },
+              zIndex: 100 + idx
+            });
+            dynamicMarkers.push(marker);
           });
-        });
+        }
+
+        // Render on load and on any map zoom/pan change
+        renderDynamicMarkers();
+        naver.maps.Event.addListener(map, "idle", renderDynamicMarkers);
 
         window.__MAP_READY = true;
         if (window.parent && window.parent.postMessage) {

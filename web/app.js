@@ -165,9 +165,11 @@ function getTheaterMarkerImage(title) {
 }
 
 function getNormalizedCategory(rawCategory, title) {
+  const label = toCategoryLabel(rawCategory || "");
+  if (label && label !== "기타") return label;
   const t = String(title || "");
-  if (/CGV/i.test(t) || /롯데시네마/.test(t)) return "문화";
-  return toCategoryLabel(rawCategory || "");
+  if (/CGV/i.test(t) || /롯데시네마/.test(t) || /메가박스/.test(t)) return "문화";
+  return label || "기타";
 }
 
 function inferRegionFromAddress(address, lat, lng) {
