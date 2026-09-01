@@ -4037,36 +4037,102 @@ const MMAAuth = {
   },
 
   async loginSimulator(type = "soldier") {
-    try {
-      const res = await fetch("/api/auth/simulator_login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
-      const data = await res.json();
-      if (data.ok && data.token && data.user) {
-        this.token = data.token;
-        this.user = data.user;
-        localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
-        await this.fetchMe();
-        this.renderNav();
-        this.closeAuthModal();
+    const btns = document.querySelectorAll(".simBtn");
+    btns.forEach((b) => {
+      b.style.pointerEvents = "none";
+      b.style.opacity = "0.7";
+    });
+    const clickedBtn = document.querySelector(`.simBtn.${type}`);
+    const origHtml = clickedBtn ? clickedBtn.innerHTML : "";
+    if (clickedBtn) {
+      clickedBtn.innerHTML = `<span style="font-size: 13px; font-weight: 800; color: #2563eb; padding: 6px 0; display: block;">⏳ 로그인 세션 생성 중...</span>`;
+    }
 
-        if (type === "admin") {
-          alert(`[👑 운영 관리자 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n권한: 최고 운영 관리자 (Admin)\n\n우측 상단 사람 아이콘을 클릭하여 [👑 관리자 운영 대시보드]를 열어 전체 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
-        } else if (type === "merchant") {
-          alert(`[🏪 소상공인 점주 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 사람 아이콘을 클릭하여 [우리 매장 QR 통계]를 바로 확인해 보세요!`);
-          if (typeof window.focusFacility === "function") {
-            window.focusFacility("nara_3218");
-          }
-        } else {
-          alert(`[🪖 병역의무자 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n권한: 일반 회원 (병역이행자)\n\n매장 찜하기(⭐), 좋아요(❤️), 회원정보 수정을 자유롭게 테스트해 보세요!`);
+    const demoUsers = {
+      admin: {
+        id: "admin-demo-uuid",
+        email: "admin_demo@mmamap.org",
+        nickname: "총괄관리자_마스터",
+        role: "admin",
+        emailVerified: true,
+        merchantFacilityId: "",
+        merchantFacilityName: "",
+        merchantPhone: "",
+      },
+      merchant: {
+        id: "merchant-demo-uuid",
+        email: "merchant_demo@mmamap.org",
+        nickname: "의정부간호학원_원장",
+        role: "merchant",
+        emailVerified: true,
+        merchantFacilityId: "nara_3218",
+        merchantFacilityName: "의정부간호학원",
+        merchantPhone: "031-845-0381",
+      },
+      soldier: {
+        id: "soldier-demo-uuid",
+        email: "soldier_demo@mmamap.org",
+        nickname: "청년장병_민우",
+        role: "general",
+        emailVerified: true,
+        merchantFacilityId: "",
+        merchantFacilityName: "",
+        merchantPhone: "",
+      },
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      let res = null;
+      try {
+        res = await fetch("/api/auth/simulator_login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type }),
+          signal: controller.signal,
+        });
+      } catch (_err) {
+        // Fallback on timeout or network error
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      let data = null;
+      if (res && res.ok) {
+        data = await res.json().catch(() => null);
+      }
+
+      const user = (data && data.user) ? data.user : (demoUsers[type] || demoUsers.soldier);
+      const token = (data && data.token) ? data.token : `demo-token-${type}-${Date.now()}`;
+
+      this.token = token;
+      this.user = user;
+      localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+      this.renderNav();
+      this.closeAuthModal();
+
+      if (type === "admin") {
+        alert(`[👑 운영 관리자 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 최고 운영 관리자 (Admin)\n\n우측 상단 사람 아이콘을 클릭하여 [👑 관리자 운영 대시보드]를 열어 전체 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
+      } else if (type === "merchant") {
+        alert(`[🏪 소상공인 점주 체험]\n\n계정: ${user.nickname} (${user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 사람 아이콘을 클릭하여 [우리 매장 QR 통계]를 바로 확인해 보세요!`);
+        if (typeof window.focusFacility === "function") {
+          window.focusFacility("nara_3218");
         }
       } else {
-        alert(data.error || "시뮬레이터 로그인에 실패했습니다.");
+        alert(`[🪖 병역의무자 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 일반 회원 (병역이행자)\n\n매장 찜하기(⭐), 좋아요(❤️), 회원정보 수정을 자유롭게 테스트해 보세요!`);
       }
     } catch (err) {
-      alert("시뮬레이터 서버 연결 중 오류가 발생했습니다.");
+      console.error("[Simulator Error]", err);
+    } finally {
+      btns.forEach((b) => {
+        b.style.pointerEvents = "auto";
+        b.style.opacity = "1";
+      });
+      if (clickedBtn && origHtml) {
+        clickedBtn.innerHTML = origHtml;
+      }
     }
   },
 
