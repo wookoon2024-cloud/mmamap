@@ -1331,9 +1331,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             conn.commit()
         finally:
             conn.close()
-        # Redirect to map with store selected
+        # Redirect to mobile landing page
         self.send_response(HTTPStatus.FOUND)
-        self.send_header("Location", f"/?fid={facility_id}")
+        self.send_header("Location", f"/mobile_landing.html?facility_id={facility_id}&src={source}")
         self.end_headers()
 
     def _handle_analytics_visit(self):

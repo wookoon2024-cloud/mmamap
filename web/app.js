@@ -1994,10 +1994,20 @@ async function bootstrap() {
   };
 
   const focusFacility = (facilityId) => {
-    const target = pointByFacilityKey.get(facilityId);
+    if (!facilityId) return;
+    let target = pointByFacilityKey.get(facilityId);
+    if (!target) {
+      for (const p of points) {
+        if (p.facilityId === facilityId || getFacilityKey(p) === facilityId) {
+          target = p;
+          break;
+        }
+      }
+    }
     if (!target) return;
-    if (selectedFacilityId && selectedFacilityId !== facilityId) hideDetailPanelOnly();
-    selectedFacilityId = facilityId;
+    const key = getFacilityKey(target);
+    if (selectedFacilityId && selectedFacilityId !== key) hideDetailPanelOnly();
+    selectedFacilityId = key;
 
     selectedCategory = "";
     selectedAudience = "";
@@ -2008,14 +2018,15 @@ async function bootstrap() {
     renderRankPanel();
 
     const targetZoom = Math.max(map.getZoom(), 16);
-    if (map.getZoom() !== targetZoom) {
-      map.setZoom(targetZoom, false);
-      updateZoomLabel();
-    }
+    map.setZoom(targetZoom, false);
+    updateZoomLabel();
 
     const pos = new naver.maps.LatLng(target.lat, target.lng);
-    openDetailAfterMapMove(target, pos);
-    renderVisibleMarkers();
+    map.panTo(pos);
+    setTimeout(() => {
+      openDetailAfterMapMove(target, pos);
+      renderVisibleMarkers();
+    }, 150);
   };
   window.focusFacility = focusFacility;
 
@@ -2826,16 +2837,20 @@ async function bootstrap() {
     console.error("Auth init error:", authErr);
   }
 
-  // Handle URL QR Scan Entry (?fid=...&src=...)
+  // Handle URL QR Scan Entry (?fid=...&src=... or ?facility_id=... or ?focus=...)
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    const targetFid = urlParams.get("fid") || urlParams.get("facility_id");
+    const targetFid = urlParams.get("fid") || urlParams.get("facility_id") || urlParams.get("focus");
     const scanSrc = urlParams.get("src") || urlParams.get("source") || "poster";
     if (targetFid) {
+      if (typeof closeIntroPopup === "function") closeIntroPopup();
       fetch(`/api/qr_scan?facility_id=${encodeURIComponent(targetFid)}&src=${encodeURIComponent(scanSrc)}`).catch(() => {});
       setTimeout(() => {
         focusFacility(targetFid);
-      }, 600);
+      }, 400);
+      setTimeout(() => {
+        focusFacility(targetFid);
+      }, 1000);
     }
   } catch (_e) {}
 
