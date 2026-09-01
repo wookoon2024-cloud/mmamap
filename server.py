@@ -1070,7 +1070,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 if len(new_password) < 6:
                     self._json(HTTPStatus.BAD_REQUEST, {"error": "비밀번호는 최소 6자 이상이어야 합니다."})
                     return
-                conn.execute("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", (hash_password(new_password), now_ms(), user["id"]))
+                conn.execute("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", (make_password_hash(new_password), now_ms(), user["id"]))
             
             conn.commit()
         finally:
@@ -1080,6 +1080,78 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             "ok": True,
             "message": "회원 정보가 성공적으로 수정되었습니다.",
             "user": user
+        })
+
+    def _handle_auth_simulator_login(self):
+        body = self._read_json_body()
+        sim_type = str(body.get("type", "soldier")).strip().lower()
+
+        if sim_type == "merchant":
+            email = "merchant_demo@mmamap.org"
+            nickname = "의정부간호학원_원장"
+            role = "merchant"
+            facility_id = "nara_3218"
+            facility_name = "의정부간호학원"
+            phone = "031-845-0381"
+        else: # soldier / general user
+            email = "soldier_demo@mmamap.org"
+            nickname = "청년장병_민우"
+            role = "general"
+            facility_id = ""
+            facility_name = ""
+            phone = ""
+
+        conn = self._db()
+        try:
+            row = conn.execute("SELECT id, email, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at FROM users WHERE email = ?", (email,)).fetchone()
+            if not row:
+                user_id = str(uuid.uuid4())
+                pw_hash = make_password_hash("demo1234!")
+                created_at = now_ms()
+                conn.execute(
+                    """
+                    INSERT INTO users (id, email, password_hash, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at)
+                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+                    """,
+                    (user_id, email, pw_hash, nickname, role, facility_id, facility_name, phone, created_at)
+                )
+            else:
+                user_id = row["id"]
+                conn.execute(
+                    """
+                    UPDATE users SET nickname = ?, role = ?, merchant_facility_id = ?, merchant_facility_name = ?, merchant_phone = ?, email_verified = 1
+                    WHERE id = ?
+                    """,
+                    (nickname, role, facility_id, facility_name, phone, user_id)
+                )
+
+            token = secrets.token_hex(32)
+            token_expires = now_ms() + (30 * 86400 * 1000)
+            conn.execute(
+                "INSERT INTO user_sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+                (token, user_id, token_expires, now_ms())
+            )
+            conn.commit()
+
+            user_data = {
+                "id": user_id,
+                "email": email,
+                "nickname": nickname,
+                "role": role,
+                "emailVerified": True,
+                "merchantFacilityId": facility_id,
+                "merchantFacilityName": facility_name,
+                "merchantPhone": phone,
+                "createdAt": now_ms(),
+            }
+        finally:
+            conn.close()
+
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "token": token,
+            "user": user_data,
+            "message": f"[{user_data['nickname']}] 계정으로 시뮬레이터 로그인되었습니다!"
         })
 
     def _handle_user_toggle_favorite(self):
@@ -1636,6 +1708,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return
         if parsed_url.path == "/api/auth/profile":
             self._handle_auth_update_profile()
+            return
+        if parsed_url.path == "/api/auth/simulator_login":
+            self._handle_auth_simulator_login()
             return
         if parsed_url.path == "/api/user/favorite":
             self._handle_user_toggle_favorite()

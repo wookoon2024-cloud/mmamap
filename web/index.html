@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=33.0" />
+    <link rel="stylesheet" href="./styles.css?v=34.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -579,9 +579,33 @@
       <div id="liveDebugLogList"></div>
     </div>
 
-    <div class="versionBadge">v12.3</div>
+    <!-- 계정 체험 시뮬레이터 (Account Simulator Widget) -->
+    <aside id="accountSimulatorWidget" class="accountSimulatorWidget" aria-label="계정 체험 시뮬레이터">
+      <div class="simHeader">
+        <span class="simTitle">🎮 계정 체험 시뮬레이터</span>
+        <button type="button" id="simToggleBtn" class="simToggleBtn" title="접기/펼치기">−</button>
+      </div>
+      <div id="simBody" class="simBody">
+        <button type="button" class="simBtn soldier" onclick="window.MMAAuth.loginSimulator('soldier')">
+          <span class="simIcon">🪖</span>
+          <div class="simText">
+            <strong>병역의무자 체험</strong>
+            <small>일반회원 · 찜/후기/혜택</small>
+          </div>
+        </button>
+        <button type="button" class="simBtn merchant" onclick="window.MMAAuth.loginSimulator('merchant')">
+          <span class="simIcon">🏪</span>
+          <div class="simText">
+            <strong>소상공인 점주 체험</strong>
+            <small>의정부간호학원 · QR통계</small>
+          </div>
+        </button>
+      </div>
+    </aside>
 
-    <script src="./config.js?v=6.3"></script>
-    <script src="./app.js?v=76.0"></script>
+    <div class="versionBadge">v12.4</div>
+
+    <script src="./config.js?v=6.4"></script>
+    <script src="./app.js?v=77.0"></script>
   </body>
 </html>

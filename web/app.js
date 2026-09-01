@@ -1993,6 +1993,7 @@ async function bootstrap() {
     updateZoomLabel();
     scheduleRender();
   };
+  window.focusFacility = focusFacility;
 
   const getRankingRows = () => {
     const allRows = [...pointByFacilityKey.entries()]
@@ -3764,7 +3765,48 @@ const MMAAuth = {
     if (modal) modal.classList.add("hidden");
   },
 
+  async loginSimulator(type = "soldier") {
+    try {
+      const res = await fetch("/api/auth/simulator_login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json();
+      if (data.ok && data.token && data.user) {
+        this.token = data.token;
+        this.user = data.user;
+        localStorage.setItem("mma_auth_token", this.token);
+        this.renderNav();
+        this.closeAuthModal();
+
+        if (type === "merchant") {
+          alert(`[🏪 소상공인 점주 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 사람 아이콘을 클릭하여 [우리 매장 QR 통계]를 바로 확인해 보세요!`);
+          if (typeof window.focusFacility === "function") {
+            window.focusFacility("nara_3218");
+          }
+        } else {
+          alert(`[🪖 병역의무자 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n권한: 일반 회원 (병역이행자)\n\n매장 찜하기(⭐), 좋아요(❤️), 회원정보 수정을 자유롭게 테스트해 보세요!`);
+        }
+      } else {
+        alert(data.error || "시뮬레이터 로그인에 실패했습니다.");
+      }
+    } catch (err) {
+      alert("시뮬레이터 서버 연결 중 오류가 발생했습니다.");
+    }
+  },
+
   bindEvents() {
+    // Simulator Toggle
+    const simToggle = document.getElementById("simToggleBtn");
+    const simWidget = document.getElementById("accountSimulatorWidget");
+    if (simToggle && simWidget) {
+      simToggle.onclick = () => {
+        simWidget.classList.toggle("collapsed");
+        simToggle.textContent = simWidget.classList.contains("collapsed") ? "+" : "−";
+      };
+    }
+
     // Top Close buttons
     const authClose = document.getElementById("authCloseBtn");
     const authBackdrop = document.getElementById("authBackdrop");
