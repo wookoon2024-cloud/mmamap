@@ -416,6 +416,20 @@ button:active {
   color: #0f172a;
 }
 
+.introRoleList a,
+.introLink {
+  color: #059669;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+.introRoleList a:hover,
+.introLink:hover {
+  color: #047857;
+}
+
 .introPopupFoot {
   display: flex;
   align-items: center;
