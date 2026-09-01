@@ -850,7 +850,7 @@ button:active {
 .authRoleBox {
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px 10px;
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -858,22 +858,37 @@ button:active {
   cursor: pointer;
   transition: all 0.15s ease;
   background: #f8fafc;
+  gap: 4px;
 }
 
 .authRoleBox .roleIcon {
-  font-size: 24px;
-  margin-bottom: 4px;
+  font-size: 26px;
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+.authRoleBox .roleText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
 
 .authRoleBox strong {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 800;
   color: #0f172a;
+  display: block;
+  line-height: 1.25;
 }
 
 .authRoleBox small {
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 600;
   color: #64748b;
-  margin-top: 2px;
+  display: block;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .authRoleOption input:checked + .authRoleBox {
