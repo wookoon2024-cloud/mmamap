@@ -2916,10 +2916,136 @@ const MMAAuth = {
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   },
 
+  resetAuthForms() {
+    this.selectedMerchantStore = null;
+    this.isEmailVerified = false;
+    this.isMerchantVerified = false;
+    this.isNicknameChecked = false;
+
+    // Reset Login Form
+    const loginEmail = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginError = document.getElementById("loginErrorMsg");
+    if (loginEmail) loginEmail.value = "";
+    if (loginPassword) loginPassword.value = "";
+    if (loginError) {
+      loginError.textContent = "";
+      loginError.classList.add("hidden");
+    }
+
+    // Reset Register Form
+    const regEmail = document.getElementById("regEmail");
+    const regEmailStatus = document.getElementById("regEmailStatus");
+    const regEmailCode = document.getElementById("regEmailCode");
+    const regEmailCodeWrap = document.getElementById("regEmailCodeWrap");
+    const regEmailCodeStatus = document.getElementById("regEmailCodeStatus");
+    const btnSendEmail = document.getElementById("btnSendEmailCode");
+    const btnVerifyEmail = document.getElementById("btnVerifyEmailCode");
+
+    if (regEmail) regEmail.value = "";
+    if (regEmailStatus) {
+      regEmailStatus.textContent = "";
+      regEmailStatus.className = "authHelpText";
+    }
+    if (regEmailCode) regEmailCode.value = "";
+    if (regEmailCodeWrap) regEmailCodeWrap.classList.add("hidden");
+    if (regEmailCodeStatus) {
+      regEmailCodeStatus.textContent = "";
+      regEmailCodeStatus.className = "authHelpText";
+    }
+    if (btnSendEmail) {
+      btnSendEmail.disabled = false;
+      btnSendEmail.textContent = "인증번호 발송";
+    }
+    if (btnVerifyEmail) {
+      btnVerifyEmail.disabled = false;
+      btnVerifyEmail.className = "authSubBtn";
+      btnVerifyEmail.textContent = "인증 확인";
+    }
+
+    const regNick = document.getElementById("regNickname");
+    const regNickStatus = document.getElementById("regNicknameStatus");
+    if (regNick) regNick.value = "";
+    if (regNickStatus) {
+      regNickStatus.textContent = "";
+      regNickStatus.className = "authHelpText";
+    }
+
+    const regPw = document.getElementById("regPassword");
+    const regPwConfirm = document.getElementById("regPasswordConfirm");
+    const regPwStatus = document.getElementById("regPwStatus");
+    if (regPw) regPw.value = "";
+    if (regPwConfirm) regPwConfirm.value = "";
+    if (regPwStatus) {
+      regPwStatus.textContent = "";
+      regPwStatus.className = "authHelpText";
+    }
+
+    // Reset Role Selection to General
+    const radioGen = document.querySelector("input[name='regRole'][value='general']");
+    if (radioGen) {
+      radioGen.checked = true;
+      document.querySelectorAll(".authRoleOption").forEach((opt) => {
+        opt.classList.remove("active");
+        if (opt.querySelector("input[value='general']")) opt.classList.add("active");
+      });
+    }
+    const merchSection = document.getElementById("merchantVerifySection");
+    if (merchSection) merchSection.classList.add("hidden");
+
+    const storeSearch = document.getElementById("merchantStoreSearch");
+    const storeResults = document.getElementById("storeSearchResults");
+    const selectedStoreCard = document.getElementById("selectedStoreCard");
+    const merchCodeInput = document.getElementById("merchantCodeInput");
+    const merchCodeWrap = document.getElementById("merchantCodeInputWrap");
+    const merchCodeStatus = document.getElementById("merchantCodeStatus");
+    const btnSendMerch = document.getElementById("btnSendMerchantCode");
+    const btnVerifyMerch = document.getElementById("btnVerifyMerchantCode");
+
+    if (storeSearch) storeSearch.value = "";
+    if (storeResults) {
+      storeResults.innerHTML = "";
+      storeResults.classList.add("hidden");
+    }
+    if (selectedStoreCard) selectedStoreCard.classList.add("hidden");
+    if (merchCodeInput) merchCodeInput.value = "";
+    if (merchCodeWrap) merchCodeWrap.classList.add("hidden");
+    if (merchCodeStatus) {
+      merchCodeStatus.textContent = "";
+      merchCodeStatus.className = "authHelpText";
+    }
+    if (btnSendMerch) {
+      btnSendMerch.disabled = false;
+      btnSendMerch.textContent = "매장 전화로 인증번호 요청";
+    }
+    if (btnVerifyMerch) {
+      btnVerifyMerch.disabled = false;
+      btnVerifyMerch.className = "authSubBtn";
+      btnVerifyMerch.textContent = "인증 확인";
+    }
+
+    // Reset Checkboxes
+    const agreeAll = document.getElementById("agreeAll");
+    const agreeTerms = document.getElementById("agreeTerms");
+    const agreePrivacy = document.getElementById("agreePrivacy");
+    const agreeMarketing = document.getElementById("agreeMarketing");
+    if (agreeAll) agreeAll.checked = false;
+    if (agreeTerms) agreeTerms.checked = false;
+    if (agreePrivacy) agreePrivacy.checked = false;
+    if (agreeMarketing) agreeMarketing.checked = false;
+
+    const regError = document.getElementById("registerErrorMsg");
+    if (regError) {
+      regError.textContent = "";
+      regError.classList.add("hidden");
+    }
+  },
+
   openAuthModal(tab = "login") {
     const backdrop = document.getElementById("authBackdrop");
     const modal = document.getElementById("authModal");
     if (!backdrop || !modal) return;
+    this.resetAuthForms();
     backdrop.classList.remove("hidden");
     modal.classList.remove("hidden");
     this.switchAuthTab(tab);
@@ -2930,6 +3056,7 @@ const MMAAuth = {
     const modal = document.getElementById("authModal");
     if (backdrop) backdrop.classList.add("hidden");
     if (modal) modal.classList.add("hidden");
+    this.resetAuthForms();
   },
 
   switchAuthTab(tab) {
