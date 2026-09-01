@@ -663,7 +663,7 @@ button:active {
 .authModalBody {
   flex: 1;
   overflow-y: auto;
-  padding: 22px 24px;
+  padding: 16px 20px;
 }
 
 .authModalBody.hidden {
@@ -672,27 +672,27 @@ button:active {
 
 .authWelcome h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   color: #0f172a;
 }
 
 .authWelcome p {
-  margin: 6px 0 16px;
-  font-size: 13.5px;
+  margin: 4px 0 12px;
+  font-size: 13px;
   color: #64748b;
 }
 
 .authForm {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .authInputGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .authInputGroup.hidden {
@@ -700,17 +700,17 @@ button:active {
 }
 
 .authInputGroup label {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #334155;
 }
 
 .authInputGroup input {
-  height: 42px;
-  padding: 0 14px;
+  height: 38px;
+  padding: 0 12px;
   border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
   font-family: inherit;
   color: #0f172a;
   outline: none;
@@ -723,7 +723,7 @@ button:active {
 
 .authInputWithBtn {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .authInputWithBtn input {
@@ -731,13 +731,13 @@ button:active {
 }
 
 .authSubBtn {
-  height: 42px;
-  padding: 0 14px;
+  height: 38px;
+  padding: 0 12px;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f8fafc;
   color: #334155;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
@@ -760,9 +760,9 @@ button:active {
 }
 
 .authHelpText {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .authHelpText.success {
@@ -774,15 +774,15 @@ button:active {
 }
 
 .authSubmitBtn {
-  height: 46px;
+  height: 42px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #2563eb;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 800;
   cursor: pointer;
-  margin-top: 6px;
+  margin-top: 4px;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   transition: all 0.15s ease;
 }
@@ -793,12 +793,12 @@ button:active {
 }
 
 .authErrorMsg {
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 
@@ -808,9 +808,9 @@ button:active {
 
 .authSwitchWrap {
   text-align: center;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #64748b;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .authLinkBtn {
@@ -818,7 +818,7 @@ button:active {
   background: transparent;
   color: #2563eb;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12.5px;
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
@@ -826,21 +826,21 @@ button:active {
 
 /* Role Selector in Register */
 .authRoleSelectWrap {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .authRoleLabel {
   display: block;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #334155;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .authRoleOptions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .authRoleOption input {
@@ -849,8 +849,8 @@ button:active {
 
 .authRoleBox {
   border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px 10px;
+  border-radius: 10px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -858,12 +858,12 @@ button:active {
   cursor: pointer;
   transition: all 0.15s ease;
   background: #f8fafc;
-  gap: 4px;
+  gap: 3px;
 }
 
 .authRoleBox .roleIcon {
-  font-size: 26px;
-  margin-bottom: 2px;
+  font-size: 22px;
+  margin-bottom: 0px;
   line-height: 1;
 }
 
@@ -871,30 +871,30 @@ button:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .authRoleBox strong {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: #0f172a;
   display: block;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .authRoleBox small {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   color: #64748b;
   display: block;
-  line-height: 1.35;
+  line-height: 1.25;
   white-space: normal;
 }
 
 .authRoleOption input:checked + .authRoleBox {
   border-color: #2563eb;
   background: #eff6ff;
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 
 .authRoleOption input:checked + .authRoleBox strong {
@@ -905,12 +905,12 @@ button:active {
 .merchantVerifySection {
   border: 1.5px solid #dcfce7;
   background: #f9fdfa;
-  border-radius: 14px;
-  padding: 14px 16px;
+  border-radius: 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .merchantVerifySection.hidden {
@@ -919,24 +919,24 @@ button:active {
 
 .merchantVerifyHead h4 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: #166534;
 }
 
 .merchantVerifyHead p {
-  margin: 4px 0 0;
-  font-size: 12px;
+  margin: 2px 0 0;
+  font-size: 11.5px;
   color: #15803d;
 }
 
 .storeSearchResults {
-  max-height: 180px;
+  max-height: 150px;
   overflow-y: auto;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .storeSearchResults.hidden {
@@ -944,7 +944,7 @@ button:active {
 }
 
 .storeSearchItem {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   transition: background 0.12s ease;
@@ -959,26 +959,26 @@ button:active {
 }
 
 .storeSearchItem strong {
-  font-size: 13.5px;
+  font-size: 13px;
   color: #0f172a;
   display: block;
 }
 
 .storeSearchItem span {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #64748b;
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .selectedStoreCard {
   border: 1px solid #86efac;
   background: #ffffff;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .selectedStoreCard.hidden {
@@ -986,30 +986,30 @@ button:active {
 }
 
 .selectedStoreInfo strong {
-  font-size: 15px;
+  font-size: 14px;
   color: #0f172a;
-  display: block;
-  margin-top: 4px;
-}
-
-.selectedStoreAddr {
-  font-size: 12px;
-  color: #64748b;
   display: block;
   margin-top: 2px;
 }
 
+.selectedStoreAddr {
+  font-size: 11.5px;
+  color: #64748b;
+  display: block;
+  margin-top: 1px;
+}
+
 .selectedStorePhone {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #166534;
-  margin-top: 4px;
+  margin-top: 2px;
   font-weight: 600;
 }
 
 .selectedStoreBadge {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 5px;
   background: #f1f5f9;
   color: #475569;
   border-radius: 4px;
@@ -1018,32 +1018,32 @@ button:active {
 /* Legal Agreements */
 .authAgreementsWrap {
   border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
+  padding-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .authAgreeCheck {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12.5px;
   color: #334155;
   cursor: pointer;
 }
 
 .authAgreeCheck input {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   accent-color: #2563eb;
 }
 
 .authAgreeSubList {
-  padding-left: 24px;
+  padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .authAgreeSubList a {
