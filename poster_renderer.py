@@ -375,21 +375,14 @@ def generate_poster(facility_id, port=None):
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            try:
-                browser = p.chromium.launch(headless=True, args=launch_args)
-            except Exception as e:
-                print(f"[PosterRenderer] Playwright chromium missing ({e}), installing...")
-                import subprocess
-                subprocess.run(["playwright", "install", "chromium"], check=False)
-                browser = p.chromium.launch(headless=True, args=launch_args)
-                
+            browser = p.chromium.launch(headless=True, args=launch_args)
             context = browser.new_context(
                 viewport={"width": 880, "height": 550},
                 device_scale_factor=1
             )
             page = context.new_page()
-            base_url = f"http://127.0.0.1:{port}"
-            url = f"{base_url}/map_only_light.html?facility_id={facility_id}&rings=0"
+            html_file = (BASE_DIR / "web" / "map_only_light.html").resolve()
+            url = f"{html_file.as_uri()}?facility_id={facility_id}&rings=0"
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=8000)
                 try:
