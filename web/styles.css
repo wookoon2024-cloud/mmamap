@@ -5037,6 +5037,134 @@ button:active {
   font-weight: bold;
 }
 
+/* ============================================================
+   RESPONSIVE MOBILE VIEWPORT OPTIMIZATIONS (< 640px)
+============================================================ */
+@media (max-width: 640px) {
+  /* 1. Header & Controls: No Overlap */
+  .brandLogo {
+    top: 4px !important;
+    left: 4px !important;
+  }
+  .brandLogo img {
+    height: 32px !important;
+    max-width: 130px !important;
+  }
+  .headerRightControls {
+    top: 6px !important;
+    right: 6px !important;
+    gap: 4px !important;
+  }
+  .headerRightControls .rankPanel {
+    display: none !important; /* Hide long rank panel to prevent header collisions */
+  }
+  .authNavBtn {
+    height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 11.5px !important;
+    gap: 4px !important;
+  }
+  .authNavBtn.admin {
+    padding: 0 6px !important;
+    font-size: 11px !important;
+  }
+  .profileBtn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+  }
+
+  /* 2. Intro Modal on Mobile: Fits Perfectly */
+  .introPopup {
+    width: min(94vw, 420px) !important;
+    max-height: 88vh !important;
+    border-radius: 16px !important;
+  }
+  .introPopupHead {
+    padding: 12px 14px 10px !important;
+  }
+  .introPopupHead h2 {
+    font-size: 16px !important;
+  }
+  .introCloseBtn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 18px !important;
+  }
+  .introPopupBody {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    grid-template-columns: 1fr !important;
+  }
+  .introRoleCard {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+  .introRoleBanner {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    border-radius: 10px !important;
+  }
+  .roleBannerIcon {
+    font-size: 20px !important;
+  }
+  .roleBannerTitle {
+    font-size: 14px !important;
+  }
+  .roleBannerSub {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+  .introRoleList {
+    font-size: 12px !important;
+    gap: 6px !important;
+    padding-left: 14px !important;
+    line-height: 1.4 !important;
+  }
+  .introPopupFoot {
+    padding: 10px 14px !important;
+    gap: 8px !important;
+  }
+  .introNeverLabel {
+    font-size: 11.5px !important;
+    gap: 5px !important;
+    white-space: nowrap !important;
+  }
+  .introConfirmBtn {
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 3. Auth Modal on Mobile */
+  .authModal {
+    width: min(94vw, 400px) !important;
+    max-height: 90vh !important;
+    border-radius: 16px !important;
+  }
+  .authModalHead {
+    padding: 12px 14px !important;
+  }
+  .authModalBody {
+    padding: 12px 14px !important;
+  }
+
+  /* 4. Left Sidebar on Mobile: Clean width */
+  .legendBar {
+    top: 48px !important;
+    max-width: min(320px, calc(100vw - 16px)) !important;
+    max-height: calc(100vh - 100px) !important;
+    overflow-y: auto !important;
+    padding: 30px 8px 6px !important;
+    border-radius: 12px !important;
+  }
+  .sidebarToggleBtn {
+    top: 48px !important;
+  }
+}
+
 @media print {
   body * {
     visibility: hidden;
