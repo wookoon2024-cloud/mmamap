@@ -2655,6 +2655,30 @@ async function bootstrap() {
     });
   }
 
+  // Mobile bottom sheet toggle listener
+  const mobileSheetHandle = document.getElementById("mobileSheetHandle");
+  if (mobileSheetHandle && legendBar) {
+    mobileSheetHandle.addEventListener("click", () => {
+      const isExpanded = legendBar.classList.contains("mobile-expanded");
+      if (isExpanded) {
+        legendBar.classList.remove("mobile-expanded");
+        legendBar.classList.add("mobile-collapsed");
+        const chevron = document.getElementById("mobileSheetChevron");
+        if (chevron) chevron.textContent = "▲";
+      } else {
+        legendBar.classList.add("mobile-expanded");
+        legendBar.classList.remove("mobile-collapsed");
+        const chevron = document.getElementById("mobileSheetChevron");
+        if (chevron) chevron.textContent = "▼";
+      }
+    });
+  }
+
+  // Initialize mobile bottom sheet as collapsed on mobile screens
+  if (window.innerWidth <= 768 && legendBar) {
+    legendBar.classList.add("mobile-collapsed");
+  }
+
   // Sidebar real-time search box handler
   const performKeywordSearch = (query) => {
     if (!query) return;

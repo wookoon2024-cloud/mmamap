@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=26.0" />
+    <link rel="stylesheet" href="./styles.css?v=27.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -398,6 +398,15 @@
     </section>
 
     <div class="legendBar">
+      <!-- Mobile Bottom Sheet Handle -->
+      <div id="mobileSheetHandle" class="mobileSheetHandle">
+        <div class="mobileSheetBar"></div>
+        <div class="mobileSheetTitle">
+          <span>🔍 상점 검색 및 카테고리 필터</span>
+          <span id="mobileSheetChevron" class="mobileSheetChevron">▲</span>
+        </div>
+      </div>
+
       <div class="sidebarSearchWrap">
         <input type="text" id="sidebarSearchInput" placeholder="상점명, 혜택, 주소 검색..." aria-label="상점 검색" />
       </div>
@@ -508,9 +517,9 @@
       <div id="liveDebugLogList"></div>
     </div>
 
-    <div class="versionBadge">v11.4</div>
+    <div class="versionBadge">v11.5</div>
 
-    <script src="./config.js?v=5.4"></script>
-    <script src="./app.js?v=67.0"></script>
+    <script src="./config.js?v=5.5"></script>
+    <script src="./app.js?v=68.0"></script>
   </body>
 </html>

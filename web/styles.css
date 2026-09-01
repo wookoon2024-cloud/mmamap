@@ -2496,33 +2496,46 @@ button:active {
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: 6px;
-  background: #2f6ff2;
+  border-radius: 50% !important;
+  background: #2563eb;
   cursor: pointer;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.profileBtn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .profileBtn::before {
   content: "";
   position: absolute;
-  left: 11px;
-  top: 6px;
-  width: 14px;
-  height: 14px;
+  left: 50%;
+  top: 7px;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #fff;
+  background: #ffffff;
 }
 
 .profileBtn::after {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 20px;
+  left: 50%;
+  top: 21px;
+  transform: translateX(-50%);
   width: 20px;
-  height: 10px;
-  border-radius: 10px 10px 6px 6px;
-  background: #fff;
+  height: 12px;
+  border-radius: 10px 10px 0 0;
+  background: #ffffff;
 }
 
 .favoritesPanel {
@@ -4746,10 +4759,20 @@ button:active {
 }
 
 
-/* Reduce Brand Logo Height to 32px to look neat inside 50px header */
+/* Align Brand Logo with top: 8px header controls */
+.brandLogo {
+  top: 8px !important;
+  left: 12px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
 .brandLogo img {
   height: 32px !important;
-  margin-top: 9px !important;
+  margin: 0 !important;
+  width: auto !important;
 }
 
 /* Tighter row gap for categories/audience lists */
@@ -5051,31 +5074,47 @@ button:active {
   font-weight: bold;
 }
 
+/* Hide mobile bottom sheet drag handle on desktop */
+.mobileSheetHandle {
+  display: none !important;
+}
+
 /* ============================================================
-   RESPONSIVE MOBILE VIEWPORT OPTIMIZATIONS (< 640px)
+   RESPONSIVE MOBILE VIEWPORT & BOTTOM SHEET (< 768px)
 ============================================================ */
-@media (max-width: 640px) {
-  /* 1. Header & Controls: No Overlap */
+@media (max-width: 768px) {
+  /* 1. Header & Controls: Precise Y-Alignment & Centered Person Icon */
   .brandLogo {
-    top: 4px !important;
-    left: 4px !important;
+    top: 8px !important;
+    left: 8px !important;
+    height: 34px !important;
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    z-index: 1200 !important;
   }
   .brandLogo img {
-    height: 32px !important;
-    max-width: 130px !important;
+    height: 28px !important;
+    width: auto !important;
+    margin: 0 !important;
+    display: block !important;
   }
   .headerRightControls {
-    top: 6px !important;
-    right: 6px !important;
+    top: 8px !important;
+    right: 8px !important;
+    height: 34px !important;
+    display: flex !important;
+    align-items: center !important;
     gap: 4px !important;
+    z-index: 1200 !important;
   }
   .headerRightControls .rankPanel {
-    display: none !important; /* Hide long rank panel to prevent header collisions */
+    display: none !important; /* Hide long rank ticker to prevent overlap */
   }
   .authNavBtn {
     height: 32px !important;
-    padding: 0 8px !important;
-    font-size: 11.5px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
     gap: 4px !important;
   }
   .authNavBtn.admin {
@@ -5085,10 +5124,123 @@ button:active {
   .profileBtn {
     width: 32px !important;
     height: 32px !important;
-    font-size: 13px !important;
+    border-radius: 50% !important;
+    background: #2563eb !important;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.25) !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .profileBtn::before {
+    left: 50% !important;
+    top: 6px !important;
+    transform: translateX(-50%) !important;
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+  }
+  .profileBtn::after {
+    left: 50% !important;
+    top: 18px !important;
+    transform: translateX(-50%) !important;
+    width: 18px !important;
+    height: 10px !important;
+    border-radius: 9px 9px 0 0 !important;
+    background: #ffffff !important;
   }
 
-  /* 2. Intro Modal on Mobile: Fits Perfectly */
+  /* 2. Hide Desktop Toggle Button on Mobile */
+  .sidebarToggleBtn {
+    display: none !important;
+  }
+
+  /* 3. Mobile Bottom Sheet Mode for .legendBar (Slides Up/Down from Bottom) */
+  .legendBar {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 22px 22px 0 0 !important;
+    box-shadow: 0 -10px 36px rgba(15, 23, 42, 0.22) !important;
+    border: 1px solid #dce5f3 !important;
+    border-bottom: 0 !important;
+    background: #ffffff !important;
+    z-index: 1000 !important;
+    padding: 8px 16px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    transform: translateY(calc(100% - 48px)) !important; /* Default: Collapsed down */
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    max-height: 75vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .legendBar.mobile-expanded {
+    transform: translateY(0) !important;
+  }
+
+  .legendBar.mobile-collapsed {
+    transform: translateY(calc(100% - 48px)) !important;
+  }
+
+  /* Mobile Sheet Drag Handle */
+  .mobileSheetHandle {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 0 8px;
+    width: 100%;
+    user-select: none;
+    touch-action: pan-y;
+  }
+
+  .mobileSheetBar {
+    width: 40px;
+    height: 5px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    margin-bottom: 6px;
+  }
+
+  .mobileSheetTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1e293b;
+    padding: 0 4px;
+  }
+
+  .mobileSheetChevron {
+    font-size: 12px;
+    font-weight: 900;
+    color: #2563eb;
+    transition: transform 0.25s ease;
+  }
+
+  .legendBar.mobile-expanded .mobileSheetChevron {
+    transform: rotate(180deg);
+  }
+
+  /* Hide extra panels in mobile sheet: keep ONLY 1. Search/Region, 2. Store Categories, 3. Audience Categories */
+  .newStorePanel,
+  #newStorePanel,
+  .sourceStatsBox,
+  #sourceStatsBox {
+    display: none !important;
+  }
+
+  /* 4. Intro Modal on Mobile */
   .introPopup {
     width: min(94vw, 420px) !important;
     max-height: 88vh !important;
@@ -5152,7 +5304,7 @@ button:active {
     white-space: nowrap !important;
   }
 
-  /* 3. Auth Modal on Mobile */
+  /* 5. Auth Modal on Mobile */
   .authModal {
     width: min(94vw, 400px) !important;
     max-height: 90vh !important;
@@ -5165,17 +5317,12 @@ button:active {
     padding: 12px 14px !important;
   }
 
-  /* 4. Left Sidebar on Mobile: Clean width */
-  .legendBar {
-    top: 48px !important;
-    max-width: min(320px, calc(100vw - 16px)) !important;
-    max-height: calc(100vh - 100px) !important;
-    overflow-y: auto !important;
-    padding: 30px 8px 6px !important;
-    border-radius: 12px !important;
-  }
-  .sidebarToggleBtn {
-    top: 48px !important;
+  /* 6. Map Tools Position */
+  .mapTools {
+    right: 8px !important;
+    bottom: 58px !important;
+    top: auto !important;
+    transform: none !important;
   }
 }
 
