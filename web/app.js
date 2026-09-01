@@ -3817,7 +3817,6 @@ const MMAAuth = {
     const monthEl = document.getElementById("kpiMonthScans");
     const chartContainer = document.getElementById("dailyChartContainer");
     const sourceList = document.getElementById("sourceBreakdownList");
-    const printBtn = document.getElementById("btnMerchantPrintAction");
 
     if (storeTitle) storeTitle.textContent = data.storeName || this.user.merchantFacilityName;
     if (storeCat) storeCat.textContent = data.storeCategory || "가맹점";
@@ -3825,15 +3824,6 @@ const MMAAuth = {
     if (totalEl) totalEl.innerHTML = `${data.stats.totalScans}<small>회</small>`;
     if (todayEl) todayEl.innerHTML = `${data.stats.todayScans}<small>회</small>`;
     if (monthEl) monthEl.innerHTML = `${data.stats.monthScans}<small>회</small>`;
-
-    if (printBtn) {
-      printBtn.onclick = () => {
-        this.closeMerchantStatsModal();
-        if (typeof openPrintModal === "function") {
-          openPrintModal(data.facilityId);
-        }
-      };
-    }
 
     // Render Daily Chart
     if (chartContainer && data.stats.daily) {
