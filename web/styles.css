@@ -30,8 +30,8 @@ body::before {
   --rank-left: 292px;
   --hub-nav-left: 230px;
   --hub-nav-right: clamp(460px, 34vw, 760px);
-  --hub-col-width: 128px;
-  --hub-col-gap: 2px;
+  --hub-col-width: 142px;
+  --hub-col-gap: 6px;
 }
 
 * {
@@ -61,7 +61,7 @@ button:active {
 }
 
 .brandLogo img {
-  height: 50px;
+  height: 48px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -75,7 +75,7 @@ button:active {
   height: 50px;
   z-index: 1085;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, var(--hub-col-width)));
+  grid-template-columns: repeat(4, minmax(0, var(--hub-col-width)));
   column-gap: var(--hub-col-gap);
   align-items: center;
   justify-content: flex-start;
@@ -89,35 +89,36 @@ button:active {
   border-radius: 0;
   background: transparent;
   color: #1a2438;
-  font-size: 16px;
-  font-weight: 700;
-  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   padding: 0;
   cursor: pointer;
   white-space: nowrap;
   position: relative;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   width: 100%;
   text-align: center;
+  transition: color 0.15s ease;
 }
 
 .hubPrimaryBtn:hover {
-  color: #2558cb;
+  color: #1e3a8a;
 }
 
 .hubPrimaryBtn.active {
-  color: #2558cb;
+  color: #1e3a8a;
 }
 
 .hubPrimaryBtn.active::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 10%;
+  right: 10%;
   bottom: 0;
   height: 3px;
   border-radius: 3px;
-  background: #2558cb;
+  background: #1e3a8a;
 }
 
 .hubMega {
@@ -125,12 +126,13 @@ button:active {
   top: 50px;
   left: 0;
   right: 0;
-  z-index: 1115;
-  background: rgba(226, 233, 245, 0.97);
-  border-top: 1px solid #d8e0ef;
-  border-bottom: 1px solid #ccd6ea;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-  padding: 12px 0 14px;
+  z-index: 10000;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 2px solid #cbd5e1;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  padding: 14px 0 18px;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
 }
 
 .hubMega.hidden {
@@ -141,7 +143,7 @@ button:active {
   max-width: none;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, var(--hub-col-width)));
+  grid-template-columns: repeat(4, minmax(0, var(--hub-col-width)));
   column-gap: var(--hub-col-gap);
   row-gap: 8px;
   padding-left: var(--hub-nav-left);
@@ -151,47 +153,38 @@ button:active {
 
 .hubMegaCol {
   min-height: auto;
+  padding: 0 4px;
 }
 
-.hubMegaTitle {
-  border: 0;
-  background: transparent;
-  text-align: left;
-  padding: 0 0 8px;
-  width: 100%;
-  font-size: 21px;
-  font-weight: 800;
-  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  letter-spacing: -0.02em;
-  color: #1b2b49;
-  cursor: pointer;
-  line-height: 1.2;
-}
-
-.hubMegaCol.active .hubMegaTitle {
-  color: #2558cb;
+.hubMegaItems {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .hubSecondaryBtn {
   border: 0;
   background: transparent;
-  color: #2b3e62;
-  border-radius: 0;
-  min-height: 24px;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: #334155;
+  border-radius: 6px;
+  min-height: 28px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   text-align: center;
-  padding: 2px 0;
+  padding: 5px 8px;
   cursor: pointer;
   display: block;
   width: 100%;
   letter-spacing: -0.01em;
+  transition: all 0.15s ease;
 }
 
 .hubSecondaryBtn:hover {
-  color: #1f4ec9;
-  text-decoration: underline;
+  color: #1e3a8a;
+  background: #f1f5f9;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .hubPanel {
@@ -199,15 +192,19 @@ button:active {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1310;
-  width: min(680px, calc(100vw - 28px));
+  z-index: 10050;
+  width: min(660px, calc(100vw - 28px));
+  height: 580px;
   max-height: min(86vh, 860px);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border: 0;
-  border-radius: 0;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-  box-shadow: 0 34px 72px rgba(15, 23, 42, 0.28);
-  padding: 14px 16px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  animation: modalFadeIn 0.2s ease-out;
 }
 
 .hubPanel.hidden {
@@ -217,8 +214,9 @@ button:active {
 .hubModalBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 1300;
-  background: rgba(15, 23, 42, 0.32);
+  z-index: 10040;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
 }
 
 .hubModalBackdrop.hidden {
@@ -331,46 +329,162 @@ button:active {
 }
 
 .hubPanelClose {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 0;
-  background: #254f97;
-  color: #ffffff;
-  font-size: 17px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 20px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.hubPanelClose:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .hubPanelTop {
-  padding: 10px 44px 10px 16px;
-  margin: -14px -16px 0;
-  border-radius: 0;
-  background: #2f62be;
+  padding: 16px 22px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 20px 20px 0 0;
 }
 
 .hubPanelTitle {
-  margin-top: 2px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.hubSubTabs {
+  display: flex;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0 16px;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.hubSubTabBtn {
+  padding: 11px 16px;
+  border: 0;
+  background: transparent;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.hubSubTabBtn:hover {
+  color: #1e3a8a;
+}
+
+.hubSubTabBtn.active {
+  color: #1e3a8a;
+  border-bottom-color: #1e3a8a;
+  background: #ffffff;
 }
 
 .hubPanelBody {
-  padding: 12px 8px 8px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
   background: #ffffff;
 }
 
 .hubPanelNotice {
-  margin-top: 8px;
+  margin-bottom: 16px;
   font-size: 13px;
-  font-weight: 400;
-  color: #435777;
+  font-weight: 500;
+  color: #475569;
   line-height: 1.5;
+  background: #f1f5f9;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.hubCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  transition: box-shadow 0.15s ease;
+}
+
+.hubCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.hubCard h4 {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hubCard p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.hubCard ul {
+  margin: 6px 0 0 18px;
+  padding: 0;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.hubBadge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #2563eb;
+  margin-bottom: 6px;
+}
+
+.hubBtnLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: #1e3a8a;
+  color: #ffffff !important;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  margin-top: 10px;
+  transition: background 0.15s ease;
+}
+
+.hubBtnLink:hover {
+  background: #172554;
 }
 
 .hubInfoSection {
@@ -389,33 +503,33 @@ button:active {
   margin: 0;
   font-size: 14px;
   font-weight: 800;
-  color: #1f3d74;
+  color: #1e3a8a;
   padding-left: 8px;
-  border-left: 3px solid #2f6ff2;
+  border-left: 3px solid #1e3a8a;
 }
 
 .hubInfoSection p {
   margin: 7px 0 0;
   font-size: 13px;
-  color: #2a3f64;
-  line-height: 1.52;
+  color: #334155;
+  line-height: 1.55;
 }
 
 .hubBrief {
   margin-top: 7px;
-  color: #35507c;
+  color: #475569;
   font-weight: 500;
 }
 
 .hubInlineLink {
-  color: #1e4fb8;
-  font-size: 12px;
+  color: #2563eb;
+  font-size: 12.5px;
   word-break: break-all;
   text-decoration: underline;
 }
 
 .hubInlineLink:hover {
-  color: #173f97;
+  color: #1d4ed8;
 }
 
 .hubSourceList {

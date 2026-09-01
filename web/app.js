@@ -28,163 +28,76 @@ const AUDIENCE_LEGEND_IMAGE_ORDER = ["a.png", "b.png", "c.png", "d.png", "e.png"
 const APP_DATA_LAST_UPDATED = "2026-04-08";
 const HUB_MENU_TREE = [
   {
-    key: "benefit_map",
-    label: "서비스안내",
+    key: "store_hub",
+    label: "상생가게 안내",
     children: [
       {
-        key: "map_use_guide",
-        label: "지도 이용안내",
-        title: "군필지도 이용안내",
-        summary: ["병역이행자와 병역명문가를 위한 혜택 가게 정보를 한 화면에서 확인할 수 있도록 제공하는 통합 지도입니다."],
-        target: "현역/예비군/사회복무요원 및 가족",
-        conditions: "위치 권한 허용 시 내 주변 검색 정확도 향상",
-        steps: ["상단 분류 또는 대상자 필터를 선택합니다.", "지도에서 원하는 가게 마커를 선택합니다.", "상세 패널에서 혜택 내용을 확인합니다."],
+        key: "store_guide",
+        label: "이용안내 (나라사랑/명문가)",
+        title: "상생가게 이용안내",
       },
       {
-        key: "map_terms",
-        label: "이용약관",
-        title: "군필지도 이용약관",
+        key: "store_join",
+        label: "참여가게 등록 신청",
+        title: "상생가게 참여가게 등록 안내",
       },
       {
-        key: "map_privacy",
-        label: "개인정보처리방침",
-        title: "군필지도 개인정보처리방침",
-      },
-      {
-        key: "map_location_notice",
-        label: "위치정보 안내",
-        title: "군필지도 위치정보 안내",
-      },
-      {
-        key: "map_board_policy",
-        label: "게시판 운영정책",
-        title: "군필지도 게시판 운영정책",
+        key: "store_poster_guide",
+        label: "맞춤 홍보물 인쇄 안내",
+        title: "가맹점 맞춤 홍보물 인쇄 안내",
       },
     ],
   },
   {
-    key: "nara_store",
-    label: "나라사랑가게",
+    key: "card_finance",
+    label: "카드 & 금융",
     children: [
       {
-        key: "nara_how_to_use",
-        label: "이용방법",
-        title: "나라사랑가게 이용방법",
-        summary: ["가게별 대상과 혜택 조건을 먼저 확인합니다.", "현장 방문 시 신분 확인 후 혜택을 적용받습니다.", "혜택 내역은 가게 사정에 따라 달라질 수 있습니다."],
-        target: "병역의무 이행자, 국가유공자 등 안내 대상",
-        conditions: "신분 확인 가능 서류 또는 카드 지참",
-        steps: ["지도에서 나라사랑가게를 선택합니다.", "상세정보의 대상/혜택 조건을 확인합니다.", "매장 방문 후 안내에 따라 혜택을 적용받습니다."],
+        key: "nara_card_info",
+        label: "나라사랑카드 혜택",
+        title: "나라사랑카드 혜택 비교 및 이용안내",
       },
-      {
-        key: "nara_join_store",
-        label: "참여가게 등록",
-        title: "나라사랑가게 참여가게 등록",
-        summary: ["지역사회와 함께하는 자발적 참여 프로그램입니다.", "참여 가게는 지도와 안내 채널에 노출됩니다.", "실제 이용이 늘수록 참여 효과가 더 커집니다."],
-        target: "가게 운영자/프랜차이즈 점주",
-        conditions: "업종 및 지역 운영 기준 충족 필요",
-        steps: ["참여 신청 버튼으로 등록 안내 페이지를 확인합니다.", "기본 가게 정보와 제공 혜택을 제출합니다.", "승인 후 지도 서비스에 순차 반영됩니다."],
-      },
-    ],
-  },
-  {
-    key: "myeongmunga_store",
-    label: "병역명문가가게",
-    children: [
-      {
-        key: "mmg_how_to_use",
-        label: "이용방법",
-        title: "병역명문가가게 이용방법",
-        summary: ["병역명문가 대상 혜택 가게를 지도에서 찾을 수 있습니다.", "가게별 제공 혜택과 적용 범위를 사전 확인하세요.", "현장 확인 절차에 따라 혜택이 적용됩니다."],
-        target: "병역명문가 대상자",
-        conditions: "병역명문가 증빙 필요",
-        steps: ["병역명문가가게 메뉴에서 상세 정보를 선택합니다.", "대상 요건과 혜택을 확인합니다.", "방문 시 증빙 후 혜택을 이용합니다."],
-      },
-      {
-        key: "mmg_join_store",
-        label: "참여가게 등록",
-        title: "병역명문가가게 참여 안내",
-        summary: ["병역명문가 예우 문화에 동참하는 참여 모델입니다.", "참여 가게는 공공 안내 채널에 함께 소개됩니다.", "자발적 참여가 지역 예우 문화를 만듭니다."],
-        target: "참여 희망 가게",
-        conditions: "운영기관 참여 기준 준수",
-        steps: ["신청 안내 페이지에서 절차를 확인합니다.", "가게 정보와 혜택 항목을 제출합니다.", "승인 후 지도와 연계 채널에 반영됩니다."],
-      },
-    ],
-  },
-  {
-    key: "nara_card",
-    label: "나라사랑카드",
-    children: [
-      {
-        key: "card_benefits",
-        label: "혜택안내",
-        title: "나라사랑카드 혜택안내",
-        summary: ["카드 혜택은 카드사/시기별로 달라질 수 있습니다.", "사용처와 실적 조건을 함께 확인해야 합니다.", "공식 안내 기준으로 최신 혜택을 확인하세요."],
-        target: "나라사랑카드 이용 대상자",
-        conditions: "카드사별 실적/기간 조건 적용",
-        steps: ["공식 혜택 페이지를 확인합니다.", "혜택 항목별 조건을 점검합니다.", "필요 시 카드사 고객센터로 상세 문의합니다."],
-      },
-    ],
-  },
-  {
-    key: "finance",
-    label: "혜택모음",
-    children: [
       {
         key: "finance_overview",
-        label: "군적금/금융혜택",
-        title: "군적금/금융혜택 안내",
-      },
-      {
-        key: "benefit_transport",
-        label: "교통",
-        title: "교통 혜택 안내",
-      },
-      {
-        key: "benefit_comm_sub",
-        label: "통신/구독",
-        title: "통신/구독 혜택 안내",
-      },
-      {
-        key: "benefit_job_cert",
-        label: "취업·자격증 지원",
-        title: "취업·자격증 지원 안내",
-      },
-      {
-        key: "benefit_housing_welfare",
-        label: "주거·복지",
-        title: "주거·복지 혜택 안내",
-      },
-      {
-        key: "benefit_medical_legal",
-        label: "의료·심리·법률",
-        title: "의료·심리·법률 지원 안내",
-      },
-      {
-        key: "benefit_local",
-        label: "지자체 혜택",
-        title: "지자체 혜택 안내",
-      },
-      {
-        key: "benefit_discharge",
-        label: "전역예정자 가이드",
-        title: "전역예정자 가이드",
-      },
-      {
-        key: "benefit_career_center",
-        label: "병역진로센터",
-        title: "병역진로센터 안내",
+        label: "장병내일준비적금 (군적금)",
+        title: "장병내일준비적금(군적금) 금융혜택 안내",
       },
     ],
   },
   {
-    key: "review_board",
-    label: "공유게시판",
+    key: "benefits_hub",
+    label: "군·청년 혜택모음",
     children: [
       {
-        key: "review_board_entry",
+        key: "tab_life",
+        label: "생활 · 통신 · 교통",
+        title: "생활 · 통신 · 교통 혜택",
+      },
+      {
+        key: "tab_career",
+        label: "취업 · 자격증 · 진로",
+        title: "취업 · 자격증 · 진로 지원",
+      },
+      {
+        key: "tab_medical",
+        label: "의료 · 법률 · 지자체",
+        title: "의료 · 법률 · 지자체 복지혜택",
+      },
+    ],
+  },
+  {
+    key: "community_hub",
+    label: "소통 & 정보",
+    children: [
+      {
+        key: "board",
         label: "공유등록 게시판",
-        title: "공유등록 게시판",
-        summary: ["서비스 이용 후기와 의견을 자유롭게 남겨주세요."],
+        title: "군필지도 공유등록 게시판",
+      },
+      {
+        key: "map_info_policy",
+        label: "서비스 소개 & 약관",
+        title: "군필지도 서비스 소개 및 이용약관",
       },
     ],
   },
@@ -695,305 +608,297 @@ async function bootstrap() {
     return { primary, secondary };
   };
 
-  const buildSecondaryGuideHtml = (secondary) => {
-    if (secondary?.key === "map_terms") {
+  const buildSecondaryGuideHtml = (secondary, activeTab) => {
+    const key = secondary?.key;
+
+    // 1. 상생가게 안내
+    if (key === "store_guide") {
+      const currentTab = activeTab || "nara";
       return `
-        <section class="hubInfoSection">
-          <h4>이용약관 요약</h4>
-          <p>본 서비스는 공공 안내 목적의 정보 제공 서비스입니다. 사용자는 관련 법령 및 공서양속을 준수해야 하며, 권리침해·허위정보 게시를 금지합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>게시물 책임과 제한</h4>
-          <p>게시글 책임은 작성자에게 있으며, 운영자는 법령 위반, 권리침해, 서비스 운영 방해 게시물에 대해 사전 통지 없이 제한·삭제할 수 있습니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>면책</h4>
-          <p>외부기관 원천 데이터 반영 시점 차이로 일부 정보가 실제와 다를 수 있으며, 최종 이용 전 공식 기관/매장 안내를 확인해 주세요.</p>
-        </section>
+        <div class="hubSubTabs">
+          <button type="button" class="hubSubTabBtn ${currentTab === 'nara' ? 'active' : ''}" data-hub-tab="nara">⭐ 나라사랑가게</button>
+          <button type="button" class="hubSubTabBtn ${currentTab === 'mmg' ? 'active' : ''}" data-hub-tab="mmg">🎖️ 병역명문가가게</button>
+        </div>
+        <div class="hubPanelBody">
+          ${currentTab === 'nara' ? `
+            <div class="hubCard">
+              <span class="hubBadge">제도 목적</span>
+              <h4>병역이행자 일상 혜택 지원</h4>
+              <p>동원훈련 이수자, 현역병, 사회복무요원 등 국가를 위해 헌신하는 청년들에게 실질적인 할인 혜택(5~20% 자율 할인)을 제공하는 병무청 지정 참여 매장입니다.</p>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">우대 대상 및 신분 확인</span>
+              <h4>필요 증빙 서류 지참</h4>
+              <p>방문 시 매장 직원에게 아래 신분증 또는 서류를 제시하시면 즉시 혜택이 적용됩니다.</p>
+              <ul>
+                <li><b>예비군</b>: 당해연도 동원훈련 이수 필증, 병력동원훈련 입영확인서, 모범예비군증</li>
+                <li><b>복무자</b>: 군인신분증(현역), 복무확인서, 사회복무요원증</li>
+                <li><b>병역명문가</b>: 병역명문가증 (본인/가족)</li>
+              </ul>
+            </div>
+          ` : `
+            <div class="hubCard">
+              <span class="hubBadge">제도 개요</span>
+              <h4>3대(1~3대) 성실 복무 가문 예우</h4>
+              <p>조부, 부, 백부, 숙부 및 본인·형제·사촌형제 등 3대 가족 모두가 현역 복무를 성실히 마친 명문가 가문을 선정하여 포상 및 국·공립, 민간 시설 할인 예우를 제공합니다.</p>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">예우 혜택</span>
+              <h4>국공립 및 민간 가맹 시설 우대</h4>
+              <p>전국 국립공원, 자연휴양림, 문화재 감면 및 병무청과 협약된 민간 명문가가게에서 진료비/이용료 할인(10~30%)을 받으실 수 있습니다.</p>
+              <p style="margin-top:8px; font-size:12px; color:#64748b;">※ 병무청 누리집에서 병역명문가 신청 및 증 발급 후 이용 가능합니다.</p>
+            </div>
+          `}
+        </div>
       `;
     }
 
-    if (secondary?.key === "map_privacy") {
+    if (key === "store_join") {
       return `
-        <section class="hubInfoSection">
-          <h4>수집 항목</h4>
-          <p>공유게시판: 닉네임(선택), 게시내용, 비밀번호(암호화 저장), 작성/수정 시각</p>
-          <p>기능 이용: 클라이언트 토큰, 좋아요/즐겨찾기/클릭 이용기록</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>이용 목적</h4>
-          <p>게시판 운영, 서비스 품질 개선, 인기/좋아요/즐겨찾기 통계 제공</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>보유 및 파기</h4>
-          <p>게시글 및 기능 로그는 운영 목적 범위 내 보관 후 지체 없이 파기합니다. 이용자는 게시글 삭제 요청을 할 수 있습니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>권리행사 및 문의</h4>
-          <p>개인정보 열람·정정·삭제 요청: 운영자 문의 채널(이메일/게시판 공지 채널)로 접수</p>
-        </section>
+        <div class="hubPanelBody">
+          <div class="hubCard">
+            <span class="hubBadge">가맹점 상생 동참</span>
+            <h4>나라사랑가게 참여 신청 안내</h4>
+            <p>우리 동네 청년 장병과 예비군, 병역명문가를 응원하는 착한 가게에 동참해 보세요! 병무청 공식 인증 스티커 및 군필지도 상생 플랫폼에 우선 노출됩니다.</p>
+          </div>
+          <div class="hubCard">
+            <h4>신청 및 심사 절차</h4>
+            <ul>
+              <li><b>1단계</b>: 병무청 공식 누리집 온라인 신청서 접수</li>
+              <li><b>2단계</b>: 관할 지방병무청 서류 확인 및 참여 협약 체결</li>
+              <li><b>3단계</b>: 나라사랑가게 인증 스티커 배부 및 군필지도 등록</li>
+            </ul>
+            <a class="hubBtnLink" href="https://www.mma.go.kr/contents.do?mc=mma0003358" target="_blank" rel="noopener noreferrer">
+              병무청 공식 참여신청 바로가기 ↗
+            </a>
+          </div>
+        </div>
       `;
     }
 
-    if (secondary?.key === "map_location_notice") {
+    if (key === "store_poster_guide") {
       return `
-        <section class="hubInfoSection">
-          <h4>위치정보 이용 안내</h4>
-          <p>내 위치 버튼 사용 시 브라우저 위치권한을 통해 현재 위치를 지도 중심으로 이동합니다.</p>
-          <p>위치 권한은 단말/브라우저 설정에서 언제든지 철회할 수 있습니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>유의사항</h4>
-          <p>위치 정확도는 단말 및 네트워크 환경에 따라 달라질 수 있으며, 실내·지하에서는 오차가 발생할 수 있습니다.</p>
-        </section>
+        <div class="hubPanelBody">
+          <div class="hubCard">
+            <span class="hubBadge">홍보물 자동 제작</span>
+            <h4>지도 결합형 맞춤 홍보물 인쇄 서비스</h4>
+            <p>가맹점주님을 위해 주변 상생지도와 혜택 정보, QR코드가 결합된 고화질 홍보물을 3초 만에 무료로 생성해 드립니다.</p>
+          </div>
+          <div class="hubCard">
+            <h4>지원 규격 (3종)</h4>
+            <ul>
+              <li><b>A4 포스터</b>: 출입문, 카운터, 벽면 부착용 (상생지도 결합형)</li>
+              <li><b>미니 테이블 스탠드</b>: 카운터 결제대, 테이블 거치용</li>
+              <li><b>도어행거 (문고리형)</b>: 손잡이에 거는 슬림형</li>
+            </ul>
+            <p style="margin-top: 10px; font-size: 12.5px; color: #475569;">💡 <b>이용 방법</b>: 지도에서 매장 핀을 클릭한 뒤, 상세창의 <b>[맞춤 홍보물 인쇄]</b> 버튼을 누르면 즉시 고화질 이미지를 다운로드하거나 인쇄/PDF로 저장하실 수 있습니다.</p>
+          </div>
+        </div>
       `;
     }
 
-    if (secondary?.key === "map_board_policy") {
+    // 2. 카드 & 금융
+    if (key === "nara_card_info") {
       return `
-        <section class="hubInfoSection">
-          <h4>게시판 운영정책</h4>
-          <p>공유게시판은 서비스 이용경험 공유를 위한 공간입니다. 욕설·비방·홍보성 도배·개인정보 노출 게시물은 제한될 수 있습니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>권리침해 신고</h4>
-          <p>명예훼손, 저작권 침해, 개인정보 침해 신고가 접수되면 검토 후 임시조치 또는 삭제가 진행될 수 있습니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>수정/삭제 기준</h4>
-          <p>작성 시 입력한 비밀번호로 본인 게시글 수정/삭제가 가능합니다. 법령 위반 게시물은 운영정책에 따라 별도 조치됩니다.</p>
-        </section>
+        <div class="hubPanelBody">
+          <div class="hubCard">
+            <span class="hubBadge">발급 대상</span>
+            <h4>KB국민 & IBK기업 나라사랑카드 혜택 비교</h4>
+            <p>병역판정검사 시 발급받아 군 복무 중 급여 통장 및 전역 후에도 지속 이용 가능한 대표적인 청년 특화 체크카드입니다.</p>
+          </div>
+          <div class="hubCard">
+            <h4>주요 혜택 비교</h4>
+            <ul>
+              <li><b>대중교통</b>: 전국 버스/지하철 20% 청구할인 (KB국민/IBK 공통)</li>
+              <li><b>편의점/PX</b>: PX 및 GS25/CU 10~20% 현장 할인 및 환급</li>
+              <li><b>영화/외식</b>: CGV/롯데시네마 3,000~5,000원 할인, 아웃백/빕스 할인</li>
+              <li><b>통신/쇼핑</b>: 통신요금 자동이체 할인, 놀이공원 50% 현장할인</li>
+            </ul>
+            <a class="hubBtnLink" href="https://www.narasarang.or.kr/#/nasaca/WNL01010000T" target="_blank" rel="noopener noreferrer">
+              나라사랑포털 카드 혜택 상세 보기 ↗
+            </a>
+          </div>
+        </div>
       `;
     }
 
-    if (secondary?.key === "nara_how_to_use") {
+    if (key === "finance_overview") {
       return `
-        <section class="hubInfoSection">
-          <h4>목적</h4>
-          <p>일상생활에서 실질적 혜택을 통해 병역이행자에게 응원과 감동을 전하는 나라사랑가게를 선정·운영합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>대상업체</h4>
-          <p>음식점, 숙박업소, 카페, 헬스장, 이미용실, 개인병원 등</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>혜택</h4>
-          <p>가게 자율 선택(예: 5%, 10% 할인 등)</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>병역이행자 범위</h4>
-          <p>동원훈련 이수자, 현역병, 사회복무요원 등 복무자, 병역명문가</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>선정 절차</h4>
-          <p>희망업체(기관) 신청서 접수 → 지방병무청 심사·선정 → 협약 및 인증 스티커 배부</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>등록·관리</h4>
-          <p>누리집 나라사랑가게 메뉴를 통해 등록·관리합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>대상 확인</h4>
-          <p>아래 서류 및 신분증 확인</p>
-          <ul class="hubTextList">
-            <li>예비군: 당해연도 동원훈련 이수자 교육훈련 소집필증, 병력동원훈련소집 입영확인서, 모범예비군증</li>
-            <li>복무중인자(현역·사회복무요원 등): 복무확인서, 사회복무요원증</li>
-            <li>병역명문가: 병역명문가증</li>
-          </ul>
-        </section>
+        <div class="hubPanelBody">
+          <div class="hubCard">
+            <span class="hubBadge">자산 형성 지원</span>
+            <h4>장병내일준비적금 (최대 연 5%대 + 정부 100% 매칭)</h4>
+            <p>병역의무 복무자의 전역 후 목돈 마련을 돕는 최고 금리 비과세 적금 상품입니다.</p>
+          </div>
+          <div class="hubCard">
+            <h4>적금 주요 조건 & 혜택</h4>
+            <ul>
+              <li><b>가입 대상</b>: 현역병, 상근예비역, 사회복무요원, 의무경찰/소방, 대체복무요원</li>
+              <li><b>월 납입 한도</b>: 은행별 최대 20만원 (개인당 최대 40만원, 2개 은행)</li>
+              <li><b>정부 매칭지원금</b>: 원리금의 100%에 상당하는 매칭 지원금 지급 (전역 시 수령)</li>
+              <li><b>비과세 혜택</b>: 이자소득세(15.4%) 전액 비과세</li>
+            </ul>
+            <a class="hubBtnLink" href="https://www.narasarang.or.kr/#/soltomw/WST03000000T" target="_blank" rel="noopener noreferrer">
+              장병내일준비적금 안내 바로가기 ↗
+            </a>
+          </div>
+        </div>
       `;
     }
 
-    if (secondary?.key === "nara_join_store" || secondary?.key === "mmg_join_store") {
+    // 3. 군·청년 혜택모음 (3개 탭 분기)
+    if (key === "tab_life" || key === "tab_career" || key === "tab_medical" || key === "benefits_hub") {
+      let currentTab = activeTab;
+      if (!currentTab) {
+        if (key === "tab_career") currentTab = "career";
+        else if (key === "tab_medical") currentTab = "medical";
+        else currentTab = "life";
+      }
+
       return `
-        <section class="hubInfoSection">
-          <h4>참여가게 등록 안내</h4>
-          <p>나라사랑가게 참여가게 등록은 아래 병무청 페이지에서 진행해 주세요.</p>
-          <p><a class="hubInlineLink" href="https://www.mma.go.kr/contents.do?mc=mma0003358" target="_blank" rel="noopener noreferrer">https://www.mma.go.kr/contents.do?mc=mma0003358</a></p>
-        </section>
+        <div class="hubSubTabs">
+          <button type="button" class="hubSubTabBtn ${currentTab === 'life' ? 'active' : ''}" data-hub-tab="life">🚗 생활 · 통신 · 교통</button>
+          <button type="button" class="hubSubTabBtn ${currentTab === 'career' ? 'active' : ''}" data-hub-tab="career">🎓 취업 · 자격증 · 진로</button>
+          <button type="button" class="hubSubTabBtn ${currentTab === 'medical' ? 'active' : ''}" data-hub-tab="medical">🏥 의료 · 법률 · 지자체</button>
+        </div>
+        <div class="hubPanelBody">
+          ${currentTab === 'life' ? `
+            <div class="hubCard">
+              <span class="hubBadge">교통 혜택</span>
+              <h4>KTX/SRT 및 고속·시외버스 할인</h4>
+              <p>군 장병 포상·위로휴가 시 KTX/SRT 10~30% 할인 및 TMO(철도수송지원반)를 통한 무임 지원이 제공됩니다.</p>
+              <a class="hubBtnLink" href="https://www.korail.com/ticket/discountSystem/cheerUp" target="_blank" rel="noopener noreferrer">코레일 힘내라 청춘/장병할인 ↗</a>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">통신 혜택</span>
+              <h4>군인 전용 요금제 및 데이터 무제한</h4>
+              <p>SKT/KT/LGU+ 통신 3사 및 알뜰폰 군인 전용 요금제(월 3만원대 100GB+ 무제한) 이용 가능.</p>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">주거 / 복지</span>
+              <h4>청년 주택청약 및 군 복지 지원</h4>
+              <p>청년 주택드림 청약통장 전환 가입 및 LH 청년 매입임대/행복주택 지원 혜택.</p>
+            </div>
+          ` : currentTab === 'career' ? `
+            <div class="hubCard">
+              <span class="hubBadge">자격증 지원</span>
+              <h4>국가기술자격증 응시료 지원 & 군 취득</h4>
+              <p>한국산업인력공단 연계 군 장병 국가자격증 연 2회 무료 응시 및 온라인 강의 지원.</p>
+              <a class="hubBtnLink" href="https://www.q-net.or.kr/" target="_blank" rel="noopener noreferrer">Q-Net 큐넷 자격증 안내 ↗</a>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">병역진로센터</span>
+              <h4>맞춤형 군 특기 및 진로 상담</h4>
+              <p>입영 전 전공·적성에 맞는 군 복무 분야를 설계하고 취업과 연계하는 전문 상담 프로그램.</p>
+              <a class="hubBtnLink" href="https://www.mma.go.kr/" target="_blank" rel="noopener noreferrer">병무청 병역진로센터 ↗</a>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">전역 예정자</span>
+              <h4>국방전직교육원 맞춤형 취업 연계</h4>
+              <p>전역 예정 장병을 위한 일자리 매칭, 기업 채용박람회 및 무료 직무 교육 지원.</p>
+            </div>
+          ` : `
+            <div class="hubCard">
+              <span class="hubBadge">의료 지원</span>
+              <h4>국군병원 및 협약 의료기관 감면</h4>
+              <p>군 병원 외래/입원 진료 지원 및 전국 보훈병원, 지정 협약 병의원 비급여 진료비 할인.</p>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">무료 법률·심리</span>
+              <h4>대한법률구조공단 및 장병 심리상담 지원</h4>
+              <p>국가유공자/군 장병 대상 무료 민·형사 법률 구조 상담 및 전문 심리상담 콜센터 지원.</p>
+              <a class="hubBtnLink" href="https://www.klac.or.kr/" target="_blank" rel="noopener noreferrer">대한법률구조공단 ↗</a>
+            </div>
+            <div class="hubCard">
+              <span class="hubBadge">지자체 혜택</span>
+              <h4>전국 지자체별 군 복무 청년 상해보험 무료 가입</h4>
+              <p>서울, 경기 등 주요 시·도 거주 장병 대상 군 복무 중 사고에 대한 상해보험 자동 가입 지원.</p>
+            </div>
+          `}
+        </div>
       `;
     }
 
-    if (secondary?.key === "mmg_how_to_use") {
+    // 4. 소통 & 정보 (서비스 소개 & 약관)
+    if (key === "map_info_policy") {
+      const currentTab = activeTab || "intro";
       return `
-        <section class="hubInfoSection">
-          <h4>제도 개요(요약)</h4>
-          <p>병역명문가 선양사업은 병역의무를 성실히 이행한 가문의 자긍심을 높이고, 희생과 헌신에 대한 존경과 감사를 확산하기 위해 병무청이 2004년부터 추진해 온 제도입니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>병역명문가의 의미</h4>
-          <p>3대(1대~3대) 직계비속 남성이 모두 현역복무 등을 성실히 마친 가문을 말합니다.</p>
-          <p class="hubBrief">가족 모두 징집 또는 지원에 따라 장교·준사관·부사관·병으로 복무를 마쳤거나, 의무복무 후 계속 복무 중인 경우 등을 포함합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>예우 및 선양</h4>
-          <p>선정된 병역명문가는 포상·시상과 함께 국·공립, 지자체, 민간 예우시설 협약을 통해 시설 이용료 감면·면제 등 예우를 받을 수 있습니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>법적 근거</h4>
-          <p>병역법 제82조의3(병역명문가 선정 등), 제82조의4(병역명문가 포상 및 예우)</p>
-        </section>
+        <div class="hubSubTabs">
+          <button type="button" class="hubSubTabBtn ${currentTab === 'intro' ? 'active' : ''}" data-hub-tab="intro">🗺️ 서비스 소개</button>
+          <button type="button" class="hubSubTabBtn ${currentTab === 'terms' ? 'active' : ''}" data-hub-tab="terms">📜 이용약관</button>
+          <button type="button" class="hubSubTabBtn ${currentTab === 'privacy' ? 'active' : ''}" data-hub-tab="privacy">🔒 개인정보방침</button>
+          <button type="button" class="hubSubTabBtn ${currentTab === 'location' ? 'active' : ''}" data-hub-tab="location">📍 위치정보 안내</button>
+        </div>
+        <div class="hubPanelBody">
+          ${currentTab === 'intro' ? `
+            <div class="hubCard">
+              <span class="hubBadge">군필지도 (GP Map)</span>
+              <h4>병역이행자 & 명문가를 위한 원스톱 상생 플랫폼</h4>
+              <p>군필지도는 대한민국 청년 장병, 예비군, 사회복무요원, 그리고 병역명문가를 위한 전국 혜택 가게를 한눈에 찾고 이용할 수 있도록 제작된 비영리 공익 안내 지도 서비스입니다.</p>
+            </div>
+            <div class="hubCard">
+              <h4>주요 기능</h4>
+              <ul>
+                <li><b>위치 기반 가맹점 탐색</b>: 내 주변 혜택 가게 1초 검색 및 카테고리 필터링</li>
+                <li><b>원터치 홍보물 생성</b>: 가맹점주를 위한 A4 상생지도 포스터/스탠드 자동 인쇄</li>
+                <li><b>실시간 공유게시판</b>: 혜택 이용 후기 및 팁 공유 커뮤니티</li>
+              </ul>
+            </div>
+          ` : currentTab === 'terms' ? `
+            <div class="hubCard">
+              <h4>이용약관 요약</h4>
+              <p>본 서비스는 공공 안내 목적의 정보 제공 서비스입니다. 사용자는 관련 법령 및 공서양속을 준수해야 하며, 권리침해·허위정보 게시를 금지합니다.</p>
+            </div>
+            <div class="hubCard">
+              <h4>게시물 책임과 제한</h4>
+              <p>게시글의 법적 책임은 작성자 본인에게 있으며, 운영자는 법령 위반, 비방, 허위광고 게시물에 대해 사전 통보 없이 삭제/제한 조치를 취할 수 있습니다.</p>
+            </div>
+          ` : currentTab === 'privacy' ? `
+            <div class="hubCard">
+              <h4>개인정보 처리방침</h4>
+              <p><b>수집 항목</b>: 공유게시판 닉네임, 게시글 본문, 암호화 비밀번호</p>
+              <p><b>이용 목적</b>: 커뮤니티 운영 및 부정 게시물 방지</p>
+              <p><b>보유 기간</b>: 게시글 삭제 시 즉시 완전 파기</p>
+            </div>
+          ` : `
+            <div class="hubCard">
+              <h4>위치정보 이용 안내</h4>
+              <p>내 위치 찾기 기능은 사용자의 브라우저 GPS 권한 허용 시에만 일시적으로 현재 지도를 이동하기 위해 사용되며, 서버에 위치 기록을 별도 저장하지 않습니다.</p>
+            </div>
+          `}
+        </div>
       `;
     }
 
-    if (secondary?.key === "card_benefits") {
-      return `
-        <section class="hubInfoSection">
-          <h4>나라사랑카드 이용안내</h4>
-          <p>나라사랑카드는 병역의무 이행자 대상 통합 카드 서비스로, 발급/이용/재발급 등 카드 관련 주요 안내를 확인할 수 있습니다.</p>
-          <p class="hubBrief">최신 세부 내용과 신청·이용 절차는 아래 공식 페이지에서 확인 후 진행해 주세요.</p>
-          <p><a class="hubInlineLink" href="https://www.narasarang.or.kr/#/nasaca/WNL01010000T" target="_blank" rel="noopener noreferrer">https://www.narasarang.or.kr/#/nasaca/WNL01010000T</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "finance_overview") {
-      return `
-        <section class="hubInfoSection">
-          <h4>군적금(장병내일준비적금) 안내</h4>
-          <p>복무 중 자산형성을 지원하는 군적금 제도 안내로, 가입 대상·가입 방법·만기 수령 관련 내용을 확인할 수 있습니다.</p>
-          <p class="hubBrief">세부 조건(대상, 납입, 지원 항목, 신청 절차)은 아래 국방부 안내 페이지에서 최신 기준으로 확인 후 진행해 주세요.</p>
-          <p><a class="hubInlineLink" href="https://www.narasarang.or.kr/#/soltomw/WST03000000T" target="_blank" rel="noopener noreferrer">https://www.narasarang.or.kr/#/soltomw/WST03000000T</a></p>
-          <p><a class="hubInlineLink" href="https://www.narasarang.or.kr/" target="_blank" rel="noopener noreferrer">https://www.narasarang.or.kr/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_transport") {
-      return `
-        <section class="hubInfoSection">
-          <h4>교통 혜택</h4>
-          <p>KTX/SRT, 고속·시외버스, 항공 등 이동 관련 우대/할인 정보를 모아 제공합니다.</p>
-          <p class="hubBrief">노선·기간·대상 조건은 기관별로 다르므로 예매 전 공식 안내를 반드시 확인해 주세요.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.korail.com/ticket/discountSystem/cheerUp" target="_blank" rel="noopener noreferrer">https://www.korail.com/ticket/discountSystem/cheerUp</a></p>
-          <p><a class="hubInlineLink" href="https://etk.srail.kr/main.do" target="_blank" rel="noopener noreferrer">https://etk.srail.kr/main.do</a></p>
-          <p><a class="hubInlineLink" href="https://www.kobus.co.kr/" target="_blank" rel="noopener noreferrer">https://www.kobus.co.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.bustago.or.kr/newweb/kr/index.do" target="_blank" rel="noopener noreferrer">https://www.bustago.or.kr/newweb/kr/index.do</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_comm_sub") {
-      return `
-        <section class="hubInfoSection">
-          <h4>통신/구독 혜택</h4>
-          <p>통신요금제, 멤버십, OTT/교육 구독 등 생활형 혜택 정보를 제공합니다.</p>
-          <p class="hubBrief">프로모션 기간, 실적 조건, 중복 할인 여부를 함께 확인해 주세요.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.narasarang.or.kr/" target="_blank" rel="noopener noreferrer">https://www.narasarang.or.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.sktelecom.com/" target="_blank" rel="noopener noreferrer">https://www.sktelecom.com/</a></p>
-          <p><a class="hubInlineLink" href="https://www.kt.com/" target="_blank" rel="noopener noreferrer">https://www.kt.com/</a></p>
-          <p><a class="hubInlineLink" href="https://www.lguplus.com/" target="_blank" rel="noopener noreferrer">https://www.lguplus.com/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_job_cert") {
-      return `
-        <section class="hubInfoSection">
-          <h4>취업·자격증 지원</h4>
-          <p>취업 지원 프로그램, 자격증 준비, 교육·훈련 연계 정보를 한 번에 확인할 수 있도록 구성합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.mma.go.kr/" target="_blank" rel="noopener noreferrer">https://www.mma.go.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.work.go.kr/" target="_blank" rel="noopener noreferrer">https://www.work.go.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.q-net.or.kr/" target="_blank" rel="noopener noreferrer">https://www.q-net.or.kr/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_housing_welfare") {
-      return `
-        <section class="hubInfoSection">
-          <h4>주거·복지 혜택</h4>
-          <p>주거 관련 지원, 생활복지, 정책금융 연계 항목 등 정착형 혜택 정보를 제공합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.bokjiro.go.kr/" target="_blank" rel="noopener noreferrer">https://www.bokjiro.go.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.gov.kr/" target="_blank" rel="noopener noreferrer">https://www.gov.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.youthcenter.go.kr/" target="_blank" rel="noopener noreferrer">https://www.youthcenter.go.kr/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_medical_legal") {
-      return `
-        <section class="hubInfoSection">
-          <h4>의료·심리·법률 지원</h4>
-          <p>건강검진, 심리상담, 법률상담 등 생활안정 지원 정보를 모아 제공합니다.</p>
-          <p class="hubBrief">위기 상황에서는 즉시 전문기관 공식 채널을 이용해 주세요.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.mnd.go.kr/" target="_blank" rel="noopener noreferrer">https://www.mnd.go.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.klac.or.kr/" target="_blank" rel="noopener noreferrer">https://www.klac.or.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.bokjiro.go.kr/" target="_blank" rel="noopener noreferrer">https://www.bokjiro.go.kr/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_local") {
-      return `
-        <section class="hubInfoSection">
-          <h4>지자체 혜택</h4>
-          <p>시·도별 추가 지원, 지역 우대 정책, 생활밀착형 혜택을 지역 기준으로 제공합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.gov.kr/" target="_blank" rel="noopener noreferrer">https://www.gov.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.epeople.go.kr/" target="_blank" rel="noopener noreferrer">https://www.epeople.go.kr/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_discharge") {
-      return `
-        <section class="hubInfoSection">
-          <h4>전역예정자 가이드</h4>
-          <p>전역 전후에 챙겨야 할 금융·취업·복지·행정 절차를 단계별로 안내합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.narasarang.or.kr/" target="_blank" rel="noopener noreferrer">https://www.narasarang.or.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.mma.go.kr/" target="_blank" rel="noopener noreferrer">https://www.mma.go.kr/</a></p>
-        </section>
-      `;
-    }
-
-    if (secondary?.key === "benefit_career_center") {
-      return `
-        <section class="hubInfoSection">
-          <h4>병역진로센터</h4>
-          <p>병역이행자와 전역(예정)자를 위한 진로·취업 상담, 이력설계, 연계 지원 정보를 제공합니다.</p>
-        </section>
-        <section class="hubInfoSection">
-          <h4>공식 사이트</h4>
-          <p><a class="hubInlineLink" href="https://www.mma.go.kr/" target="_blank" rel="noopener noreferrer">https://www.mma.go.kr/</a></p>
-          <p><a class="hubInlineLink" href="https://www.work.go.kr/" target="_blank" rel="noopener noreferrer">https://www.work.go.kr/</a></p>
-        </section>
-      `;
-    }
-
-    const summaryText = (secondary.summary || []).find((line) => String(line || "").trim()) || "";
-    const showSummaryBrief = secondary?.key !== "map_use_guide";
     return `
-      <section class="hubInfoSection">
-        <h4>이 지도의 목적</h4>
-        <p>병역이행자와 병역명문가 등이 혜택 가게를 빠르게 찾고, 참여 가게 확산을 돕기 위해 제작한 통합 안내 지도입니다.</p>
-        ${showSummaryBrief && summaryText ? `<p class="hubBrief">${escapeHtml(summaryText)}</p>` : ""}
-      </section>
-      <section class="hubInfoSection">
-        <h4>병무청 정보 활용 범위</h4>
-        <p>병무청 안내 페이지의 가게명, 주소, 혜택 내용, 대상자 구분, 상세 링크 정보를 기준으로 지도에 표시합니다.</p>
-      </section>
+      <div class="hubPanelBody">
+        <div class="hubCard">
+          <h4>${escapeHtml(secondary?.title || "안내")}</h4>
+          <p>상세 안내 정보입니다.</p>
+        </div>
+      </div>
     `;
+  };
+
+  const bindHubSubTabs = (secondary) => {
+    if (!hubPanelEl) return;
+    const subTabBtns = hubPanelEl.querySelectorAll(".hubSubTabBtn");
+    subTabBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tabKey = btn.dataset.hubTab;
+        const html = buildSecondaryGuideHtml(secondary, tabKey);
+        hubPanelEl.innerHTML = `
+          <div class="hubPanelTop">
+            <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+            <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
+          </div>
+          ${html}
+        `;
+        const closeBtn = document.getElementById("hubPanelCloseBtn");
+        if (closeBtn) closeBtn.addEventListener("click", closeHubPanel);
+        bindHubSubTabs(secondary);
+      });
+    });
   };
 
   const openHubPanel = (primaryKey, secondaryKey) => {
@@ -1002,7 +907,7 @@ async function bootstrap() {
     if (!found) return;
     const { secondary } = found;
 
-    if (secondary?.key === "review_board_entry") {
+    if (secondary?.key === "review_board_entry" || secondary?.key === "board") {
       let reviewCurrentPage = 1;
       const REVIEW_PAGE_SIZE = 5;
       const openReviewPasswordDialog = (verifyFn) =>
@@ -1070,14 +975,14 @@ async function bootstrap() {
 
       const renderReviewLoading = () => {
         hubPanelEl.innerHTML = `
-          <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="패널 닫기">×</button>
           <div class="hubPanelTop">
-            <div class="hubPanelTitle">${escapeHtml(secondary.title)}</div>
+            <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+            <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
           </div>
           <div class="hubPanelBody">
-            <section class="hubInfoSection reviewBoardSection">
-              <div class="reviewBoardEmpty">후기 목록을 불러오는 중입니다...</div>
-            </section>
+            <div class="hubCard">
+              <p style="text-align: center; color: #64748b; padding: 24px 0; font-weight: 700;">후기 목록을 불러오는 중입니다...</p>
+            </div>
           </div>
         `;
         const closeBtn = document.getElementById("hubPanelCloseBtn");
@@ -1086,18 +991,16 @@ async function bootstrap() {
 
       const renderReviewLoadError = (message) => {
         hubPanelEl.innerHTML = `
-          <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="패널 닫기">×</button>
           <div class="hubPanelTop">
-            <div class="hubPanelTitle">${escapeHtml(secondary.title)}</div>
+            <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+            <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
           </div>
           <div class="hubPanelBody">
-            <section class="hubInfoSection reviewBoardSection">
-              <div class="reviewBoardTop">
-                <h4>등록된 후기</h4>
-              </div>
-              <div class="reviewBoardEmpty">${escapeHtml(message || "후기 서버 연결에 실패했습니다.")}</div>
-              <p class="hubPanelNotice">서버를 python server.py --host 0.0.0.0 --port 8080 으로 실행한 뒤 다시 시도해 주세요.</p>
-            </section>
+            <div class="hubCard">
+              <h4>등록된 후기</h4>
+              <p style="color: #ef4444; font-weight: bold;">${escapeHtml(message || "후기 서버 연결에 실패했습니다.")}</p>
+              <p class="hubPanelNotice" style="margin-top: 10px;">서버 상태를 확인한 뒤 다시 시도해 주세요.</p>
+            </div>
           </div>
         `;
         const closeBtn = document.getElementById("hubPanelCloseBtn");
@@ -1114,9 +1017,9 @@ async function bootstrap() {
         const content = escapeHtml(String(target.content || "")).replace(/\n/g, "<br>");
         const date = escapeHtml(formatBoardDate(target.createdAt));
         hubPanelEl.innerHTML = `
-          <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="패널 닫기">×</button>
           <div class="hubPanelTop">
-            <div class="hubPanelTitle">${escapeHtml(secondary.title)}</div>
+            <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+            <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
           </div>
           <div class="hubPanelBody">
             <section class="hubInfoSection reviewBoardSection">
@@ -1213,9 +1116,9 @@ async function bootstrap() {
             : "";
 
         hubPanelEl.innerHTML = `
-          <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="패널 닫기">×</button>
           <div class="hubPanelTop">
-            <div class="hubPanelTitle">${escapeHtml(secondary.title)}</div>
+            <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+            <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
           </div>
           <div class="hubPanelBody">
             <section class="hubInfoSection reviewBoardSection">
@@ -1264,9 +1167,9 @@ async function bootstrap() {
         }
         const titleText = isEdit ? "후기 수정" : "후기 등록";
         hubPanelEl.innerHTML = `
-          <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="패널 닫기">×</button>
           <div class="hubPanelTop">
-            <div class="hubPanelTitle">${escapeHtml(secondary.title)}</div>
+            <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+            <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
           </div>
           <div class="hubPanelBody">
             <section class="hubInfoSection reviewBoardSection">
@@ -1358,18 +1261,17 @@ async function bootstrap() {
     const mainGuideHtml = buildSecondaryGuideHtml(secondary);
 
     hubPanelEl.innerHTML = `
-      <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="패널 닫기">×</button>
       <div class="hubPanelTop">
-        <div class="hubPanelTitle">${escapeHtml(secondary.title)}</div>
+        <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
+        <button id="hubPanelCloseBtn" class="hubPanelClose" type="button" aria-label="닫기">×</button>
       </div>
-      <div class="hubPanelBody">
-        ${mainGuideHtml}
-      </div>
+      ${mainGuideHtml}
     `;
     hubPanelEl.classList.remove("hidden");
     if (hubModalBackdropEl) hubModalBackdropEl.classList.remove("hidden");
     const closeBtn = document.getElementById("hubPanelCloseBtn");
     if (closeBtn) closeBtn.addEventListener("click", closeHubPanel);
+    bindHubSubTabs(secondary);
   };
 
   const setHubPrimaryActiveUi = () => {
