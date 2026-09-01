@@ -3563,10 +3563,12 @@ const MMAAuth = {
     }
   },
 
-  async fetchAdminMembers() {
+  async fetchAdminMembers(adminKey = "") {
     try {
+      const key = adminKey || (this.user && this.user.role === "admin" ? "" : "demo");
+      const url = key ? `/api/admin/users?admin_key=${encodeURIComponent(key)}` : "/api/admin/users";
       const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
-      const res = await fetch("/api/admin/users", { headers });
+      const res = await fetch(url, { headers });
       const data = await res.json();
       if (data.ok && Array.isArray(data.users)) {
         this.adminMembers = data.users;

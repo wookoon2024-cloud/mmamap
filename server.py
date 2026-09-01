@@ -1503,6 +1503,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         try:
             sql = "SELECT id, email, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at FROM users ORDER BY created_at DESC"
             rows = conn.execute(sql).fetchall()
+            if not rows:
+                self._seed_default_demo_accounts(conn)
+                rows = conn.execute(sql).fetchall()
 
             users = []
             for r in rows:
@@ -1532,6 +1535,25 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             "total": len(users),
             "users": users
         })
+
+    def _seed_default_demo_accounts(self, conn):
+        seeds = [
+            ("admin_demo@mmamap.org", "총괄관리자_마스터", "admin", "", "", ""),
+            ("merchant_demo@mmamap.org", "의정부간호학원_원장", "merchant", "nara_3218", "의정부간호학원", "031-845-0381"),
+            ("soldier_demo@mmamap.org", "청년장병_민우", "general", "", "", ""),
+        ]
+        now = now_ms()
+        for idx, (email, nick, role, fac_id, fac_name, phone) in enumerate(seeds):
+            existing = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            if not existing:
+                uid = str(uuid.uuid4())
+                pw = make_password_hash("demo1234!")
+                ts = now - (idx * 3600000)
+                conn.execute(
+                    "INSERT INTO users (id, email, password_hash, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)",
+                    (uid, email, pw, nick, role, fac_id, fac_name, phone, ts)
+                )
+        conn.commit()
 
     def _handle_qr_stats(self):
         conn = self._db()
