@@ -26,6 +26,27 @@ WEB_DIR = BASE_DIR / "web"
 DEFAULT_DB_PATH = BASE_DIR / "outputs" / "military_benefits.db"
 
 
+def load_env_file():
+    env_file = BASE_DIR / ".env"
+    if env_file.exists():
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip().strip('"').strip("'")
+                    if k and not os.environ.get(k):
+                        os.environ[k] = v
+            print("[Server Env] Successfully loaded .env configuration (SUPABASE DIRECT)")
+        except Exception as e:
+            print(f"[Server Env] Error reading .env: {e}")
+
+load_env_file()
+
+
 def send_verification_email(to_email: str, code: str) -> bool:
     smtp_host = os.environ.get("SMTP_HOST", "").strip()
     smtp_port = int(os.environ.get("SMTP_PORT", 587))
@@ -138,8 +159,10 @@ def verify_password_hash(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(legacy, h)
 
 
+DEFAULT_SUPABASE_DB_URL = "postgresql://postgres:Whdhksgml1!@db.dsjtbnelllsawosnavjp.supabase.co:5432/postgres"
+
 def get_db_url() -> str:
-    return os.environ.get("DATABASE_URL")
+    return os.environ.get("DATABASE_URL") or DEFAULT_SUPABASE_DB_URL
 
 
 class PostgresConnWrapper:
@@ -591,12 +614,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
     def _db(self):
         db_url = get_db_url()
-        if db_url:
-            try:
-                return PostgresConnWrapper(db_url)
-            except Exception as e:
-                print(f"[Server DB] Postgres connection attempt: {e}")
-        return SQLiteConnWrapper(self.db_path)
+        return PostgresConnWrapper(db_url)
 
     def _safe_write(self, data: bytes) -> None:
         try:

@@ -4,4 +4,7 @@ window.APP_CONFIG = {
     clientId: "5im3q2kbhw", // fallback
     key: "L2W5tAOBP1AgfQ5QBsoJWd1HhwffyfCS9TKipJg2",
   },
+  supabase: {
+    url: "https://dsjtbnelllsawosnavjp.supabase.co",
+  },
 };
