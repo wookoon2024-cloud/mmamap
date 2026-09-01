@@ -146,7 +146,7 @@ class PostgresConnWrapper:
     def __init__(self, db_url):
         import psycopg2
         import psycopg2.extras
-        self.conn = psycopg2.connect(db_url, sslmode="require")
+        self.conn = psycopg2.connect(db_url, sslmode="require", keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=5)
         
     def execute(self, sql, params=None):
         sql_pg = sql.replace('?', '%s')
@@ -185,9 +185,8 @@ class SQLiteConnWrapper:
 _USE_POSTGRES = True
 
 def init_review_table(db_path: Path) -> None:
-    global _USE_POSTGRES
     db_url = get_db_url()
-    if db_url and _USE_POSTGRES:
+    if db_url:
         try:
             import psycopg2
             conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
@@ -211,8 +210,7 @@ def init_review_table(db_path: Path) -> None:
                 conn.close()
             return
         except Exception as e:
-            print(f"[Server DB] Postgres init_review_table error: {e}, falling back to SQLite.")
-            _USE_POSTGRES = False
+            print(f"[Server DB] Postgres init_review_table notice: {e}")
 
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
@@ -246,9 +244,8 @@ def init_review_table(db_path: Path) -> None:
 
 
 def init_engagement_tables(db_path: Path) -> None:
-    global _USE_POSTGRES
     db_url = get_db_url()
-    if db_url and _USE_POSTGRES:
+    if db_url:
         try:
             import psycopg2
             conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
@@ -297,8 +294,7 @@ def init_engagement_tables(db_path: Path) -> None:
                 conn.close()
             return
         except Exception as e:
-            print(f"[Server DB] Postgres init_engagement_tables error: {e}, falling back to SQLite.")
-            _USE_POSTGRES = False
+            print(f"[Server DB] Postgres init_engagement_tables notice: {e}")
 
     conn = sqlite3.connect(db_path)
     try:
@@ -465,8 +461,7 @@ def init_auth_tables(db_path: Path) -> None:
                 conn.close()
             return
         except Exception as e:
-            print(f"[Server DB] Postgres init_auth_tables error: {e}, falling back to SQLite.")
-            _USE_POSTGRES = False
+            print(f"[Server DB] Postgres init_auth_tables notice: {e}")
 
     conn = sqlite3.connect(db_path)
     try:
@@ -595,14 +590,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(WEB_DIR), **kwargs)
 
     def _db(self):
-        global _USE_POSTGRES
         db_url = get_db_url()
-        if db_url and _USE_POSTGRES:
+        if db_url:
             try:
                 return PostgresConnWrapper(db_url)
             except Exception as e:
-                print(f"[Server DB] Postgres connection failed: {e}, falling back to SQLite.")
-                _USE_POSTGRES = False
+                print(f"[Server DB] Postgres connection attempt: {e}")
         return SQLiteConnWrapper(self.db_path)
 
     def _safe_write(self, data: bytes) -> None:
