@@ -15,22 +15,23 @@
       padding: 0;
     }
     
-    body {
-      background-color: #F3F3ED;
-      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
+    html, body {
+      width: 1000px;
       margin: 0;
       padding: 0;
+      background: #F3F3ED;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
+      overflow: hidden;
     }
     
     /* A4 Poster Sheet (1000px × 1414px) */
     .sheet-poster {
       width: 1000px;
+      min-width: 1000px;
+      max-width: 1000px;
       height: 1414px;
+      min-height: 1414px;
       background: #F3F3ED;
       position: relative;
       padding: 45px 50px;
@@ -439,8 +440,18 @@
         const tplType = params.get("tpl") || "poster";
 
         const sheet = document.getElementById("posterSheet");
-        if (sheet) {
-          sheet.className = `sheet-${tplType}`;
+        if (tplType === "table_stand") {
+          document.documentElement.style.width = "800px";
+          document.body.style.width = "800px";
+          if (sheet) sheet.className = "sheet-table_stand";
+        } else if (tplType === "door_hanger") {
+          document.documentElement.style.width = "600px";
+          document.body.style.width = "600px";
+          if (sheet) sheet.className = "sheet-door_hanger";
+        } else {
+          document.documentElement.style.width = "1000px";
+          document.body.style.width = "1000px";
+          if (sheet) sheet.className = "sheet-poster";
         }
 
         // 1. Fetch data
@@ -454,10 +465,12 @@
         // 2. Populate Store Details
         document.getElementById("storeName").textContent = store.name || "본 매장";
         
-        let benefitText = store.benefit || "";
+        let rawBenefit = store.benefit || "";
+        rawBenefit = rawBenefit.replace(/<br\s*\/?>/gi, " ").replace(/&nbsp;/gi, " ").trim();
+        let benefitText = rawBenefit;
         let audienceText = "";
-        if (benefitText.includes("세부 우대대상 :") || benefitText.includes("우대 대상 :")) {
-          const parts = benefitText.split(/(?:세부\s*우대대상|우대\s*대상)\s*:/);
+        if (rawBenefit.includes("세부 우대대상 :") || rawBenefit.includes("우대 대상 :") || rawBenefit.includes("세부 우대대상:") || rawBenefit.includes("우대 대상:")) {
+          const parts = rawBenefit.split(/(?:세부\s*우대대상|우대\s*대상)\s*:/);
           benefitText = parts[0].trim();
           audienceText = parts[1] ? "우대 대상 : " + parts[1].trim() : "";
         }
@@ -488,10 +501,11 @@
         if (tbody) {
           tbody.innerHTML = "";
           neighbors.forEach((n, idx) => {
-            let nBenefit = n.benefit || "";
+            let nRaw = (n.benefit || "").replace(/<br\s*\/?>/gi, " ").replace(/&nbsp;/gi, " ").trim();
+            let nBenefit = nRaw;
             let nAudience = "병역명문가 등";
-            if (nBenefit.includes("세부 우대대상 :") || nBenefit.includes("우대 대상 :")) {
-              const parts = nBenefit.split(/(?:세부\s*우대대상|우대\s*대상)\s*:/);
+            if (nRaw.includes("세부 우대대상 :") || nRaw.includes("우대 대상 :") || nRaw.includes("세부 우대대상:") || nRaw.includes("우대 대상:")) {
+              const parts = nRaw.split(/(?:세부\s*우대대상|우대\s*대상)\s*:/);
               nBenefit = parts[0].trim();
               nAudience = parts[1] ? parts[1].trim() : nAudience;
             }

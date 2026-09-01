@@ -1545,16 +1545,22 @@ async function bootstrap() {
     const facilityId = point.facilityId || point.id || "";
     const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
 
+    const dims = {
+      poster: { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 },
+      table_stand: { w: 380, h: 570, scale: 0.475, iframeW: 800, iframeH: 1200 },
+      door_hanger: { w: 300, h: 600, scale: 0.50, iframeW: 600, iframeH: 1200 }
+    }[tplName] || { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 };
+
     container.innerHTML = `
-      <div class="print-sheet-wrap" style="width: 100%; height: 100%; min-height: 620px; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; background: #e2e8f0; border-radius: 8px; position: relative;">
+      <div class="print-sheet-wrap" style="width: 100%; height: 100%; min-height: 640px; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #e2e8f0; border-radius: 8px; position: relative;">
         <div id="printLoadingWrap" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 10; background: rgba(243,243,237,0.95); transition: opacity 0.3s ease;">
           <div class="print-loading-spinner" style="width: 40px; height: 40px; border: 3px solid #cbd5e1; border-top: 3px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite;"></div>
           <div style="font-size: 14px; font-weight: 700; color: #1e293b;">100% 공식 네이버 지도 시안 렌더링 중...</div>
         </div>
-        <div style="width: 440px; height: 622px; overflow: hidden; display: flex; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-radius: 8px; margin: 10px auto;">
+        <div style="width: ${dims.w}px; height: ${dims.h}px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-radius: 8px; margin: 10px auto; background: #F3F3ED;">
           <iframe id="printIframe" 
-                  src="./print_template.html?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=1" 
-                  style="width: 1000px; height: 1414px; border: none; transform: scale(0.44); transform-origin: top left; pointer-events: auto;"
+                  src="./print_template.html?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=4" 
+                  style="width: ${dims.iframeW}px; height: ${dims.iframeH}px; border: none; transform: scale(${dims.scale}); transform-origin: 0 0; display: block;"
                   title="${tplTitle}">
           </iframe>
         </div>
