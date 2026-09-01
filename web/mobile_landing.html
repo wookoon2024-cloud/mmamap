@@ -381,6 +381,17 @@
             const nearestList = allNeighbors.slice(0, 15);
             
             if (nearestList.length > 0) {
+              // Record mutual exposure analytics for nearby stores
+              fetch("/api/analytics/exposure", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  main_facility_id: facilityId,
+                  nearby_facility_ids: nearestList.map(n => n.item.facility_id || n.item.id),
+                  source: "mobile_landing"
+                })
+              }).catch(() => {});
+
               const listContainer = document.getElementById("nearby-list");
               const toggleBtn = document.getElementById("toggle-nearby-btn");
               let isExpanded = false;

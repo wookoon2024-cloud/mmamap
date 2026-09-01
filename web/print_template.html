@@ -753,6 +753,19 @@
           .sort((a, b) => a.dist - b.dist)
           .slice(0, 5);
 
+        // Record mutual exposure analytics for nearby stores
+        if (neighbors.length > 0) {
+          fetch("/api/analytics/exposure", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              main_facility_id: facilityId,
+              nearby_facility_ids: neighbors.map(n => n.facility_id || n.id),
+              source: tplType
+            })
+          }).catch(() => {});
+        }
+
         // 4. Render Neighbors Table (for Poster)
         const tbody = document.getElementById("neighborsTableBody");
         if (tbody) {

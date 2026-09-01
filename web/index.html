@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=41.0" />
+    <link rel="stylesheet" href="./styles.css?v=42.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -259,32 +259,48 @@
         <!-- Quick KPI Cards -->
         <div class="statsKpiGrid">
           <div class="kpiCard">
-            <span class="kpiLabel">📌 총 누적 QR 스캔</span>
+            <span class="kpiLabel">🎯 직접 QR 방문</span>
             <strong id="kpiTotalScans" class="kpiValue">0<small>회</small></strong>
+            <span id="kpiDirectSub" class="kpiSub">오늘 0회 · 이번 달 0회</span>
           </div>
-          <div class="kpiCard highlight">
-            <span class="kpiLabel">📅 오늘 스캔</span>
-            <strong id="kpiTodayScans" class="kpiValue">0<small>회</small></strong>
+          <div class="kpiCard highlight" style="border-color: #a7f3d0; background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);">
+            <span class="kpiLabel" style="color: #059669;">🤝 이웃 팜플렛 상생 노출</span>
+            <strong id="kpiIndirectExposures" class="kpiValue" style="color: #059669;">0<small>회</small></strong>
+            <span id="kpiIndirectSub" class="kpiSub" style="color: #059669;">오늘 0회 · 이번 달 0회</span>
           </div>
-          <div class="kpiCard">
-            <span class="kpiLabel">🗓️ 이번 달 스캔</span>
-            <strong id="kpiMonthScans" class="kpiValue">0<small>회</small></strong>
+          <div class="kpiCard" style="border-color: #fed7aa; background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);">
+            <span class="kpiLabel" style="color: #d97706;">🏆 총 상생 홍보 효과</span>
+            <strong id="kpiTotalReach" class="kpiValue" style="color: #d97706;">0<small>회</small></strong>
+            <span class="kpiSub">직접 방문 + 간접 노출 합계</span>
           </div>
         </div>
 
         <!-- 14-day Daily Chart -->
         <div class="statsCard">
           <div class="statsCardHead">
-            <h4>📊 최근 14일 일별 QR 스캔 추이</h4>
-            <span class="statsCardSub">청년 장병 방문 통계</span>
+            <h4>📊 최근 14일 직접 방문 & 이웃 팜플렛 노출 추이</h4>
+            <span class="statsCardSub">청년 장병 방문 & 상생 파급 효과</span>
           </div>
           <div id="dailyChartContainer" class="dailyChartContainer"></div>
+          <div style="display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: #64748b; justify-content: flex-end;">
+            <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: #2563eb; border-radius: 2px; display: inline-block;"></span> 직접 QR 스캔</span>
+            <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: #10b981; border-radius: 2px; display: inline-block;"></span> 이웃 팜플렛 상생 노출</span>
+          </div>
+        </div>
+
+        <!-- Mutual Partners Section -->
+        <div class="statsCard">
+          <div class="statsCardHead">
+            <h4>🌟 우리 매장을 함께 소개해 준 고마운 이웃 가맹점</h4>
+            <span class="statsCardSub">인근 팜플렛 & 모바일 안내 연계</span>
+          </div>
+          <div id="mutualPartnersList" class="mutualPartnersList"></div>
         </div>
 
         <!-- Source Distribution -->
         <div class="statsCard">
           <div class="statsCardHead">
-            <h4>🎯 홍보물 규격별 스캔 분포</h4>
+            <h4>🎯 홍보물 규격별 노출 분포</h4>
           </div>
           <div id="sourceBreakdownList" class="sourceBreakdownList"></div>
         </div>
@@ -682,10 +698,10 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v14.8</div>
+    <div class="versionBadge">v14.9</div>
 
-    <script src="./config.js?v=8.8"></script>
+    <script src="./config.js?v=8.9"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=101.0"></script>
+    <script src="./app.js?v=102.0"></script>
   </body>
 </html>

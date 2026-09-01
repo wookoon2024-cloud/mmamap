@@ -3774,38 +3774,81 @@ const MMAAuth = {
     const storeCat = document.getElementById("merchantStoreCategory");
     const storeAddr = document.getElementById("merchantStoreAddress");
     const totalEl = document.getElementById("kpiTotalScans");
-    const todayEl = document.getElementById("kpiTodayScans");
-    const monthEl = document.getElementById("kpiMonthScans");
+    const indirectEl = document.getElementById("kpiIndirectExposures");
+    const reachEl = document.getElementById("kpiTotalReach");
+    const directSub = document.getElementById("kpiDirectSub");
+    const indirectSub = document.getElementById("kpiIndirectSub");
     const chartContainer = document.getElementById("dailyChartContainer");
+    const partnerList = document.getElementById("mutualPartnersList");
     const sourceList = document.getElementById("sourceBreakdownList");
 
+    const stats = data.stats || {};
     if (storeTitle) storeTitle.textContent = data.storeName || this.user.merchantFacilityName;
     if (storeCat) storeCat.textContent = data.storeCategory || "가맹점";
     if (storeAddr) storeAddr.textContent = data.storeAddress || "대한민국";
-    if (totalEl) totalEl.innerHTML = `${data.stats.totalScans}<small>회</small>`;
-    if (todayEl) todayEl.innerHTML = `${data.stats.todayScans}<small>회</small>`;
-    if (monthEl) monthEl.innerHTML = `${data.stats.monthScans}<small>회</small>`;
 
-    // Render Daily Chart
-    if (chartContainer && data.stats.daily) {
-      const maxCount = Math.max(...data.stats.daily.map((d) => d.count), 5);
-      chartContainer.innerHTML = data.stats.daily
+    if (totalEl) totalEl.innerHTML = `${stats.totalScans || 0}<small>회</small>`;
+    if (indirectEl) indirectEl.innerHTML = `${stats.indirectExposures || 0}<small>회</small>`;
+    if (reachEl) reachEl.innerHTML = `${stats.totalMutualReach || (stats.totalScans || 0) + (stats.indirectExposures || 0)}<small>회</small>`;
+
+    if (directSub) directSub.textContent = `오늘 ${stats.todayScans || 0}회 · 이번 달 ${stats.monthScans || 0}회`;
+    if (indirectSub) indirectSub.textContent = `오늘 ${stats.todayIndirect || 0}회 · 이번 달 ${stats.monthIndirect || 0}회`;
+
+    // Render Daily Stacked Chart (Direct vs Indirect)
+    if (chartContainer && stats.daily) {
+      const maxCount = Math.max(...stats.daily.map((d) => d.count), 5);
+      chartContainer.innerHTML = stats.daily
         .map((d) => {
-          const heightPercent = Math.max(8, Math.round((d.count / maxCount) * 100));
+          const directPct = Math.round(((d.directCount || 0) / maxCount) * 100);
+          const indirectPct = Math.round(((d.indirectCount || 0) / maxCount) * 100);
           return `
             <div class="chartBarCol">
               <span class="chartBarValue">${d.count > 0 ? d.count : ''}</span>
-              <div class="chartBarFill" style="height: ${heightPercent}%;"></div>
+              <div style="display: flex; flex-direction: column-reverse; width: 100%; max-width: 18px; height: ${Math.max(8, Math.round((d.count / maxCount) * 100))}%;">
+                <div style="background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); height: ${d.count > 0 ? Math.round((d.directCount / d.count) * 100) : 0}%; border-radius: 0 0 3px 3px;"></div>
+                <div style="background: linear-gradient(180deg, #34d399 0%, #10b981 100%); height: ${d.count > 0 ? Math.round((d.indirectCount / d.count) * 100) : 0}%; border-radius: 3px 3px 0 0;"></div>
+              </div>
               <span class="chartBarLabel">${d.date}</span>
             </div>
           `;
         })
         .join("");
+
+      setTimeout(() => {
+        chartContainer.scrollLeft = chartContainer.scrollWidth;
+      }, 50);
+    }
+
+    // Render Mutual Partners List
+    if (partnerList) {
+      const partners = stats.mutualPartners || [];
+      if (partners.length === 0) {
+        partnerList.innerHTML = `
+          <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 13px;">
+            🤝 주변 나라사랑가게 포스터/스탠드가 인쇄되면 여기에 상생 파트너 매장이 자동 기록됩니다.
+          </div>
+        `;
+      } else {
+        partnerList.innerHTML = partners
+          .map((p, idx) => `
+            <div class="sourceItem" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #f1f5f9;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; font-weight: 800; color: #2563eb; background: #eff6ff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">${idx + 1}</span>
+                <div>
+                  <strong style="font-size: 13.5px; color: #1e293b;">${escapeHtml(p.partnerName)}</strong>
+                  <span style="font-size: 11px; color: #64748b; margin-left: 4px;">(${escapeHtml(p.partnerCategory)})</span>
+                </div>
+              </div>
+              <span style="font-weight: 700; color: #059669; font-size: 13px;">${p.count}회 상생 노출</span>
+            </div>
+          `)
+          .join("");
+      }
     }
 
     // Render Source Breakdown
-    if (sourceList && data.stats.sources) {
-      const src = data.stats.sources;
+    if (sourceList && stats.sources) {
+      const src = stats.sources;
       sourceList.innerHTML = `
         <div class="sourceItem">
           <strong>🖼️ A4 상생 포스터</strong>
@@ -3818,6 +3861,10 @@ const MMAAuth = {
         <div class="sourceItem">
           <strong>🚪 도어행거 (문고리형)</strong>
           <span>${src.door_hanger || 0}회</span>
+        </div>
+        <div class="sourceItem">
+          <strong>📱 모바일 안내 페이지 연계</strong>
+          <span>${src.mobile_landing || 0}회</span>
         </div>
       `;
     }

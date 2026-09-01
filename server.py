@@ -552,9 +552,17 @@ def init_auth_tables(db_path: Path) -> None:
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_likes_user ON user_likes (user_id)")
 
-        # Ensure qr_scan_events has source column
+        # Ensure qr_scan_events has source, is_indirect, parent_facility_id columns
         try:
             conn.execute("ALTER TABLE qr_scan_events ADD COLUMN source TEXT DEFAULT 'poster'")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE qr_scan_events ADD COLUMN is_indirect INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE qr_scan_events ADD COLUMN parent_facility_id TEXT DEFAULT ''")
         except Exception:
             pass
 
@@ -1243,50 +1251,82 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         store = FACILITIES_BY_ID.get(facility_id, {})
         conn = self._db()
         try:
-            total_row = conn.execute(
-                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ?",
+            # 1. Direct scans (is_indirect = 0 or NULL)
+            direct_total_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND (is_indirect = 0 OR is_indirect IS NULL)",
                 (facility_id,)
             ).fetchone()
-            total_scans = int(total_row["cnt"] or 0) if total_row else 0
+            total_direct_scans = int(direct_total_row["cnt"] or 0) if direct_total_row else 0
 
-            # Today's start timestamp (local)
+            # 2. Indirect exposures (is_indirect = 1)
+            indirect_total_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND is_indirect = 1",
+                (facility_id,)
+            ).fetchone()
+            total_indirect_exposures = int(indirect_total_row["cnt"] or 0) if indirect_total_row else 0
+
+            total_reach = total_direct_scans + total_indirect_exposures
+
+            # 3. Today's start timestamp (local)
             now = datetime.datetime.now()
             today_start = int(datetime.datetime(now.year, now.month, now.day).timestamp() * 1000)
-            today_row = conn.execute(
-                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND created_at >= ?",
+
+            today_direct_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND (is_indirect = 0 OR is_indirect IS NULL) AND created_at >= ?",
                 (facility_id, today_start)
             ).fetchone()
-            today_scans = int(today_row["cnt"] or 0) if today_row else 0
+            today_direct = int(today_direct_row["cnt"] or 0) if today_direct_row else 0
 
-            # This month's start timestamp
+            today_indirect_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND is_indirect = 1 AND created_at >= ?",
+                (facility_id, today_start)
+            ).fetchone()
+            today_indirect = int(today_indirect_row["cnt"] or 0) if today_indirect_row else 0
+
+            # 4. This month's start timestamp
             month_start = int(datetime.datetime(now.year, now.month, 1).timestamp() * 1000)
-            month_row = conn.execute(
-                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND created_at >= ?",
+
+            month_direct_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND (is_indirect = 0 OR is_indirect IS NULL) AND created_at >= ?",
                 (facility_id, month_start)
             ).fetchone()
-            month_scans = int(month_row["cnt"] or 0) if month_row else 0
+            month_direct = int(month_direct_row["cnt"] or 0) if month_direct_row else 0
 
-            # Daily stats for last 14 days
+            month_indirect_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND is_indirect = 1 AND created_at >= ?",
+                (facility_id, month_start)
+            ).fetchone()
+            month_indirect = int(month_indirect_row["cnt"] or 0) if month_indirect_row else 0
+
+            # 5. Daily stats for last 14 days
             daily_list = []
             for d in range(13, -1, -1):
                 day_date = (now - datetime.timedelta(days=d)).date()
                 day_start_ts = int(datetime.datetime(day_date.year, day_date.month, day_date.day).timestamp() * 1000)
                 day_end_ts = day_start_ts + (86400 * 1000)
-                d_row = conn.execute(
-                    "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND created_at >= ? AND created_at < ?",
+                d_dir = conn.execute(
+                    "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND (is_indirect = 0 OR is_indirect IS NULL) AND created_at >= ? AND created_at < ?",
                     (facility_id, day_start_ts, day_end_ts)
                 ).fetchone()
+                d_ind = conn.execute(
+                    "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND is_indirect = 1 AND created_at >= ? AND created_at < ?",
+                    (facility_id, day_start_ts, day_end_ts)
+                ).fetchone()
+                dir_cnt = int(d_dir["cnt"] or 0) if d_dir else 0
+                ind_cnt = int(d_ind["cnt"] or 0) if d_ind else 0
                 daily_list.append({
                     "date": day_date.strftime("%m.%d"),
-                    "count": int(d_row["cnt"] or 0) if d_row else 0
+                    "count": dir_cnt + ind_cnt,
+                    "directCount": dir_cnt,
+                    "indirectCount": ind_cnt
                 })
 
-            # Sources breakdown
+            # 6. Sources breakdown
             src_rows = conn.execute(
                 "SELECT source, COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? GROUP BY source",
                 (facility_id,)
             ).fetchall()
-            source_breakdown = {"poster": 0, "table_stand": 0, "door_hanger": 0, "other": 0}
+            source_breakdown = {"poster": 0, "table_stand": 0, "door_hanger": 0, "mobile_landing": 0, "other": 0}
             for r in src_rows:
                 s = str(r["source"] or "poster").lower()
                 c = int(r["cnt"] or 0)
@@ -1294,6 +1334,29 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                     source_breakdown[s] += c
                 else:
                     source_breakdown["other"] += c
+
+            # 7. Top Mutual Partner Stores (who co-exposed our store on their materials)
+            partner_rows = conn.execute(
+                """
+                SELECT parent_facility_id, COUNT(*) AS cnt 
+                FROM qr_scan_events 
+                WHERE facility_id = ? AND is_indirect = 1 AND parent_facility_id != '' 
+                GROUP BY parent_facility_id 
+                ORDER BY cnt DESC 
+                LIMIT 5
+                """,
+                (facility_id,)
+            ).fetchall()
+            mutual_partners = []
+            for pr in partner_rows:
+                p_id = str(pr["parent_facility_id"] or "")
+                p_store = FACILITIES_BY_ID.get(p_id, {})
+                mutual_partners.append({
+                    "partnerId": p_id,
+                    "partnerName": p_store.get("name") or "이웃 나라사랑가게",
+                    "partnerCategory": p_store.get("category") or "가맹점",
+                    "count": int(pr["cnt"] or 0)
+                })
         finally:
             conn.close()
 
@@ -1306,13 +1369,45 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             "storeBenefit": store.get("benefit", ""),
             "storePhone": mask_phone(store.get("phone", user.get("merchantPhone", ""))),
             "stats": {
-                "totalScans": total_scans,
-                "todayScans": today_scans,
-                "monthScans": month_scans,
+                "totalScans": total_direct_scans,
+                "indirectExposures": total_indirect_exposures,
+                "totalMutualReach": total_reach,
+                "todayScans": today_direct,
+                "todayIndirect": today_indirect,
+                "monthScans": month_direct,
+                "monthIndirect": month_indirect,
                 "daily": daily_list,
                 "sources": source_breakdown,
+                "mutualPartners": mutual_partners
             }
         })
+
+    def _handle_analytics_exposure(self):
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            body = {}
+        main_id = str(body.get("main_facility_id", "")).strip()[:100]
+        nearby_ids = body.get("nearby_facility_ids") or []
+        source = str(body.get("source", "poster")).strip()[:50]
+
+        if not isinstance(nearby_ids, list) or not nearby_ids:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing nearby_facility_ids"})
+            return
+
+        conn = self._db()
+        try:
+            now = now_ms()
+            for nid in nearby_ids[:25]:
+                nid_str = str(nid).strip()[:100]
+                if nid_str and nid_str != main_id:
+                    conn.execute(
+                        "INSERT INTO qr_scan_events (facility_id, source, created_at, is_indirect, parent_facility_id) VALUES (?, ?, ?, 1, ?)",
+                        (nid_str, source, now, main_id)
+                    )
+            conn.commit()
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "count": len(nearby_ids)})
 
     def _handle_qr_scan(self):
         parsed = urlparse(self.path)
@@ -1325,7 +1420,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         conn = self._db()
         try:
             conn.execute(
-                "INSERT INTO qr_scan_events (facility_id, source, created_at) VALUES (?, ?, ?)",
+                "INSERT INTO qr_scan_events (facility_id, source, created_at, is_indirect, parent_facility_id) VALUES (?, ?, ?, 0, '')",
                 (facility_id, source, now_ms())
             )
             conn.commit()
@@ -1754,6 +1849,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed_url = urlparse(self.path)
+        if parsed_url.path in ("/api/analytics/exposure", "/api/qr_exposure"):
+            self._handle_analytics_exposure()
+            return
         if parsed_url.path == "/api/analytics/visit":
             self._handle_analytics_visit()
             return
