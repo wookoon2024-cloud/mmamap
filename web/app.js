@@ -356,6 +356,8 @@ async function bootstrap() {
 
   const favorites = new Set();
   const likes = new Set();
+  window.MMAFavorites = favorites;
+  window.MMALikes = likes;
   const ratingsById = JSON.parse(localStorage.getItem(LS_RATINGS_KEY) || "{}");
   const clickCountsById = {};
   const likeCountsById = {};
@@ -2211,15 +2213,22 @@ async function bootstrap() {
     if (!favoritesPanel.classList.contains("hidden")) renderFavoritesPanel();
   };
 
-  function renderFavoritesPanel() {
+  function renderSavedStoresPanel(panelType = "favorites") {
     if (!favoritesListEl) return;
-    const ids = [...favorites];
+    const titleEl = document.getElementById("savedPanelTitle");
+    const isLike = panelType === "likes";
+    if (titleEl) {
+      titleEl.textContent = isLike ? "❤️ 찜한 매장 (좋아요)" : "⭐ 즐겨찾기 매장";
+    }
+
+    const setObj = isLike ? likes : favorites;
+    const ids = [...setObj];
     if (!ids.length) {
       favoritesListEl.innerHTML = `
         <div class="favoriteEmpty">
-          <div style="font-size:24px; margin-bottom:6px;">⭐</div>
-          <strong>즐겨찾기한 매장이 없습니다.</strong>
-          <p style="margin:4px 0 0; font-size:11.5px; color:#94a3b8;">지도에서 매장 핀을 클릭하고 ⭐를 눌러 찜해보세요!</p>
+          <div style="font-size:24px; margin-bottom:6px;">${isLike ? "❤️" : "⭐"}</div>
+          <strong>${isLike ? "찜한(좋아요) 매장이 없습니다." : "즐겨찾기한 매장이 없습니다."}</strong>
+          <p style="margin:4px 0 0; font-size:11.5px; color:#94a3b8;">지도에서 매장 핀을 클릭하고 ${isLike ? "❤️" : "⭐"}를 눌러보세요!</p>
         </div>
       `;
       return;
@@ -2238,13 +2247,13 @@ async function bootstrap() {
       item.type = "button";
       item.className = "favoriteItem";
       if (!point) {
-        item.innerHTML = `<div class="name">Unavailable place</div><div class="meta">Data not found</div>`;
+        item.innerHTML = `<strong class="name">데이터 없음</strong>`;
       } else {
-        const likedText = likes.has(id) ? "좋아요 등록됨" : "";
         item.innerHTML = `
-          <div class="name">${escapeHtml(point.title || "Place")}</div>
-          <div class="meta">${escapeHtml(toCategoryLabel(point.category || ""))} · ${escapeHtml(point.address || "No address")}</div>
-          ${likedText ? `<div class="meta">${escapeHtml(likedText)}</div>` : ""}
+          <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <strong class="name" style="font-size:14px; font-weight:800; color:#0f172a;">${escapeHtml(point.title || "가맹점")}</strong>
+            <span style="font-size:11px; font-weight:700; color:#2563eb; background:#eff6ff; padding:2px 6px; border-radius:6px;">${escapeHtml(toCategoryLabel(point.category || ""))}</span>
+          </div>
         `;
       }
       item.addEventListener("click", () => {
@@ -2255,7 +2264,8 @@ async function bootstrap() {
       favoritesListEl.appendChild(item);
     }
   }
-  window.renderFavoritesPanel = renderFavoritesPanel;
+  window.renderSavedStoresPanel = renderSavedStoresPanel;
+  window.renderFavoritesPanel = renderSavedStoresPanel;
 
   const legendEl = document.getElementById("categoryLegend");
   const audienceLegendEl = document.getElementById("audienceLegend");
@@ -2948,7 +2958,8 @@ const MMAAuth = {
   renderProfileDropdown() {
     const el = document.getElementById("userProfileDropdown");
     if (!el) return;
-    const favCount = (this.user ? (this.favorites ? this.favorites.size : 0) : favorites.size) || 0;
+    const favCount = (window.MMAFavorites ? window.MMAFavorites.size : (this.favorites ? this.favorites.size : 0)) || 0;
+    const likeCount = (window.MMALikes ? window.MMALikes.size : (this.likes ? this.likes.size : 0)) || 0;
 
     if (!this.user) {
       el.innerHTML = `
@@ -2969,10 +2980,18 @@ const MMAAuth = {
             </div>
             <span class="pItemArrow">›</span>
           </button>
-          <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openFavoritesFromMenu()">
+          <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openSavedStores('likes')">
+            <span class="pItemIcon">❤️</span>
+            <div class="pItemText">
+              <strong>찜한 내역 (좋아요)</strong>
+              <small>${likeCount}개 매장 찜함</small>
+            </div>
+            <span class="pItemArrow">›</span>
+          </button>
+          <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openSavedStores('favorites')">
             <span class="pItemIcon">⭐</span>
             <div class="pItemText">
-              <strong>찜한 내역 / 즐겨찾기</strong>
+              <strong>즐겨찾기 매장</strong>
               <small>${favCount}개 매장 저장됨</small>
             </div>
             <span class="pItemArrow">›</span>
@@ -3003,10 +3022,19 @@ const MMAAuth = {
       <div class="profileDropdownDivider"></div>
 
       <div class="profileDropdownSection">
-        <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openFavoritesFromMenu()">
+        <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openSavedStores('likes')">
+          <span class="pItemIcon">❤️</span>
+          <div class="pItemText">
+            <strong>찜한 내역 (좋아요)</strong>
+            <small>${likeCount}개 매장 찜함</small>
+          </div>
+          <span class="pItemArrow">›</span>
+        </button>
+
+        <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openSavedStores('favorites')">
           <span class="pItemIcon">⭐</span>
           <div class="pItemText">
-            <strong>찜한 내역 / 즐겨찾기</strong>
+            <strong>즐겨찾기 매장</strong>
             <small>${favCount}개 매장 저장됨</small>
           </div>
           <span class="pItemArrow">›</span>
@@ -3076,16 +3104,20 @@ const MMAAuth = {
     if (favEl) favEl.classList.add("hidden");
   },
 
-  openFavoritesFromMenu() {
+  openSavedStores(type = "favorites") {
     const el = document.getElementById("userProfileDropdown");
     if (el) el.classList.add("hidden");
     const favEl = document.getElementById("favoritesPanel");
     if (favEl) {
       favEl.classList.remove("hidden");
-      if (typeof window.renderFavoritesPanel === "function") {
-        window.renderFavoritesPanel();
+      if (typeof window.renderSavedStoresPanel === "function") {
+        window.renderSavedStoresPanel(type);
       }
     }
+  },
+
+  openFavoritesFromMenu() {
+    this.openSavedStores("favorites");
   },
 
   openEditProfileModal() {
@@ -3776,7 +3808,8 @@ const MMAAuth = {
       if (data.ok && data.token && data.user) {
         this.token = data.token;
         this.user = data.user;
-        localStorage.setItem("mma_auth_token", this.token);
+        localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+        await this.fetchMe();
         this.renderNav();
         this.closeAuthModal();
 

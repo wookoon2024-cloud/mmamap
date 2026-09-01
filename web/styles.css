@@ -2803,12 +2803,21 @@ button:active {
 .favoriteItem {
   width: 100%;
   text-align: left;
-  border: 1px solid #d5deee;
+  border: 1.5px solid #e2e8f0;
   border-radius: 10px;
-  background: #fff;
-  padding: 8px 10px;
+  background: #ffffff;
+  padding: 10px 12px;
   margin-bottom: 8px;
   cursor: pointer;
+  transition: all 0.15s ease;
+  display: block;
+}
+
+.favoriteItem:hover {
+  border-color: #3b82f6;
+  background: #f8faff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
 .favoriteItem .name {
