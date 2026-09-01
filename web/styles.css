@@ -5385,7 +5385,7 @@ button:active {
     border: 1px solid #dce5f3 !important;
     border-bottom: 0 !important;
     background: #ffffff !important;
-    z-index: 1000 !important;
+    z-index: 10050 !important;
     padding: 8px 16px 24px !important;
     display: flex !important;
     flex-direction: column !important;
@@ -5448,10 +5448,14 @@ button:active {
   }
 
   /* Hide extra panels in mobile sheet: keep ONLY 1. Search/Region, 2. Store Categories, 3. Audience Categories */
-  .newStorePanel,
+  .legendBar #newStorePanel,
+  .legendBar .newStorePanel,
   #newStorePanel,
-  .sourceStatsBox,
-  #sourceStatsBox {
+  .newStorePanel,
+  .legendBar #sourceStatsBox,
+  .legendBar .sourceStatsBox,
+  #sourceStatsBox,
+  .sourceStatsBox {
     display: none !important;
   }
 
