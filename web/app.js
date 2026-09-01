@@ -332,7 +332,13 @@ function formatKoreanAddress(rawAddr) {
 }
 
 function getFacilityKey(point) {
-  return toSafeId(point?.facilityId || `${point?.title || ""}_${point?.address || ""}`);
+  if (!point) return "";
+  const fid = String(point.facilityId || point.id || "").trim();
+  const title = String(point.title || "").trim();
+  const sub = String(point.subtitle || "").trim();
+  const lat = Number(point.lat || 0).toFixed(5);
+  const lng = Number(point.lng || 0).toFixed(5);
+  return toSafeId(`${fid}_${title}_${sub}_${lat}_${lng}`);
 }
 
 function normalizePhone(phone) {
