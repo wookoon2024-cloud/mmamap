@@ -2256,18 +2256,25 @@ button:active {
 
 .printPreviewArea {
   flex: 1;
-  overflow-y: auto;
-  padding: 12px;
+  overflow: hidden;
+  padding: 14px;
   background: #e2e8f0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: 0;
 }
 
 .printTemplateContainer {
   background: transparent;
   margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
 }
 
 .printModalFooter {

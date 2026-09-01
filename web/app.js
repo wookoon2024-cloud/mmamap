@@ -1578,11 +1578,10 @@ async function bootstrap() {
     const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
     const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
     const facilityId = point.facilityId || point.id || "";
-    const widthPx = tplName === "poster" ? 480 : (tplName === "table_stand" ? 340 : 280);
-    const heightPx = tplName === "poster" ? 678 : (tplName === "table_stand" ? 490 : 490);
+    const aspectRatio = tplName === "poster" ? "1000 / 1414" : (tplName === "table_stand" ? "800 / 1150" : "600 / 1200");
 
     container.innerHTML = `
-      <div class="print-sheet tpl-img-wrap" style="position: relative; width: ${widthPx}px; height: ${heightPx}px; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 4px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
+      <div class="print-sheet tpl-img-wrap" style="position: relative; width: auto; height: 100%; max-height: calc(88vh - 120px); aspect-ratio: ${aspectRatio}; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 6px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
         <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
           <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
           <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안 생성 중...</div>
@@ -1590,7 +1589,7 @@ async function bootstrap() {
         </div>
         <img id="printResultImg" 
              alt="${tplTitle} 인쇄 시안" 
-             style="position: relative; width: 100%; height: 100%; border-radius: 4px; z-index: 5; display: none; object-fit: contain;" />
+             style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px; z-index: 5; display: none;" />
       </div>
     `;
 
@@ -2659,6 +2658,36 @@ async function bootstrap() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      }
+    });
+  }
+
+  const doPdfBtn = document.getElementById("doPdfBtn");
+  if (doPdfBtn) {
+    doPdfBtn.addEventListener("click", () => {
+      if (!currentPrintBlobUrl) {
+        alert("이미지 시안이 생성된 후 인쇄하실 수 있습니다.");
+        return;
+      }
+      const printWin = window.open("", "_blank");
+      if (printWin) {
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>나라사랑가게 홍보물 인쇄</title>
+              <style>
+                @page { size: A4 portrait; margin: 0; }
+                html, body { margin: 0; padding: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: #fff; }
+                img { width: 100%; height: 100%; object-fit: contain; }
+              </style>
+            </head>
+            <body>
+              <img src="${currentPrintBlobUrl}" onload="window.focus(); window.print(); window.close();" />
+            </body>
+          </html>
+        `);
+        printWin.document.close();
       }
     });
   }
