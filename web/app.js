@@ -2220,7 +2220,13 @@ async function bootstrap() {
     if (!favoritesListEl) return;
     const ids = [...favorites];
     if (!ids.length) {
-      favoritesListEl.innerHTML = `<div class="favoriteEmpty">No favorites</div>`;
+      favoritesListEl.innerHTML = `
+        <div class="favoriteEmpty">
+          <div style="font-size:24px; margin-bottom:6px;">⭐</div>
+          <strong>즐겨찾기한 매장이 없습니다.</strong>
+          <p style="margin:4px 0 0; font-size:11.5px; color:#94a3b8;">지도에서 매장 핀을 클릭하고 ⭐를 눌러 찜해보세요!</p>
+        </div>
+      `;
       return;
     }
 
@@ -2254,6 +2260,7 @@ async function bootstrap() {
       favoritesListEl.appendChild(item);
     }
   }
+  window.renderFavoritesPanel = renderFavoritesPanel;
 
   const legendEl = document.getElementById("categoryLegend");
   const audienceLegendEl = document.getElementById("audienceLegend");
@@ -3080,7 +3087,9 @@ const MMAAuth = {
     const favEl = document.getElementById("favoritesPanel");
     if (favEl) {
       favEl.classList.remove("hidden");
-      renderFavoritesPanel();
+      if (typeof window.renderFavoritesPanel === "function") {
+        window.renderFavoritesPanel();
+      }
     }
   },
 
