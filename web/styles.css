@@ -2154,6 +2154,8 @@ button:active {
   border-radius: 18px;
   width: 900px;
   max-width: 95vw;
+  height: 88vh;
+  min-height: 560px;
   max-height: 92vh;
   display: flex;
   flex-direction: column;
@@ -2257,13 +2259,13 @@ button:active {
 .printPreviewArea {
   flex: 1;
   overflow: hidden;
-  padding: 14px;
+  padding: 16px;
   background: #e2e8f0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 0;
+  min-height: 440px;
 }
 
 .printTemplateContainer {
@@ -2274,7 +2276,6 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 0;
 }
 
 .printModalFooter {

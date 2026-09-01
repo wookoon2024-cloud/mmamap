@@ -1577,19 +1577,22 @@ async function bootstrap() {
 
     const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
     const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
-    const facilityId = point.facilityId || point.id || "";
-    const aspectRatio = tplName === "poster" ? "1000 / 1414" : (tplName === "table_stand" ? "800 / 1150" : "600 / 1200");
+    const sheetDims = {
+      poster: { width: "424px", height: "600px", aspect: "1000 / 1414" },
+      table_stand: { width: "380px", height: "546px", aspect: "800 / 1150" },
+      door_hanger: { width: "275px", height: "550px", aspect: "600 / 1200" }
+    }[tplName] || { width: "424px", height: "600px", aspect: "1000 / 1414" };
 
     container.innerHTML = `
-      <div class="print-sheet tpl-img-wrap" style="position: relative; width: auto; height: 100%; max-height: calc(88vh - 120px); aspect-ratio: ${aspectRatio}; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 6px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
-        <div id="printLoadingWrap" style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; padding: 24px; text-align: center; width: 90%;">
-          <div class="print-loading-spinner" style="width: 38px; height: 38px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-          <div id="printStepLog" style="font-size: 15px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안 생성 중...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; word-break: break-all;">[1/2] 렌더링 서버 요청 시작...</div>
+      <div class="print-sheet tpl-img-wrap" style="position: relative; width: ${sheetDims.width}; height: ${sheetDims.height}; max-height: calc(88vh - 140px); max-width: 95%; aspect-ratio: ${sheetDims.aspect}; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 8px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
+        <div id="printLoadingWrap" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 10; padding: 24px; text-align: center; background: #F3F3ED;">
+          <div class="print-loading-spinner" style="width: 44px; height: 44px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
+          <div id="printStepLog" style="font-size: 16px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안 생성 중...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 85%; word-break: break-all;">[1/2] 렌더링 서버 요청 시작...</div>
         </div>
         <img id="printResultImg" 
              alt="${tplTitle} 인쇄 시안" 
-             style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px; z-index: 5; display: none;" />
+             style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; z-index: 5; display: none;" />
       </div>
     `;
 
