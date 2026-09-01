@@ -1542,118 +1542,36 @@ async function bootstrap() {
     const container = document.getElementById("printTemplateContainer") || document.getElementById("printCanvasContainer");
     if (!container || !point) return;
 
-    if (currentPrintBlobUrl) {
-      URL.revokeObjectURL(currentPrintBlobUrl);
-      currentPrintBlobUrl = null;
-    }
-
-    const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
-    const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
     const facilityId = point.facilityId || point.id || "";
-    const sheetDims = {
-      poster: { width: "424px", height: "600px", aspect: "1000 / 1414" },
-      table_stand: { width: "380px", height: "546px", aspect: "800 / 1150" },
-      door_hanger: { width: "275px", height: "550px", aspect: "600 / 1200" }
-    }[tplName] || { width: "424px", height: "600px", aspect: "1000 / 1414" };
+    const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
 
     container.innerHTML = `
-      <div class="print-sheet tpl-img-wrap" style="position: relative; width: ${sheetDims.width}; height: ${sheetDims.height}; max-height: calc(88vh - 140px); max-width: 95%; aspect-ratio: ${sheetDims.aspect}; background: #F3F3ED; box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 8px; display: flex; justify-content: center; align-items: center; margin: 0 auto; overflow: hidden;">
-        <div id="printLoadingWrap" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 10; padding: 24px; text-align: center; background: #F3F3ED;">
-          <div class="print-loading-spinner" style="width: 44px; height: 44px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
-          <div id="printStepLog" style="font-size: 16px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안 생성 중...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 85%; word-break: break-all;">[1단계/4단계] 가맹점 정보 및 템플릿 준비 중...</div>
+      <div class="print-sheet-wrap" style="width: 100%; height: 100%; min-height: 620px; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; background: #e2e8f0; border-radius: 8px; position: relative;">
+        <div id="printLoadingWrap" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 10; background: rgba(243,243,237,0.95); transition: opacity 0.3s ease;">
+          <div class="print-loading-spinner" style="width: 40px; height: 40px; border: 3px solid #cbd5e1; border-top: 3px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite;"></div>
+          <div style="font-size: 14px; font-weight: 700; color: #1e293b;">100% 공식 네이버 지도 시안 렌더링 중...</div>
         </div>
-        <img id="printResultImg" 
-             alt="${tplTitle} 인쇄 시안" 
-             style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px; z-index: 5; display: none;" />
+        <div style="width: 440px; height: 622px; overflow: hidden; display: flex; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-radius: 8px; margin: 10px auto;">
+          <iframe id="printIframe" 
+                  src="./print_template.html?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=1" 
+                  style="width: 1000px; height: 1414px; border: none; transform: scale(0.44); transform-origin: top left; pointer-events: auto;"
+                  title="${tplTitle}">
+          </iframe>
+        </div>
       </div>
     `;
 
-    const subLog = document.getElementById("printSubLog");
+    const iframe = document.getElementById("printIframe");
     const loadingWrap = document.getElementById("printLoadingWrap");
-    const resultImg = document.getElementById("printResultImg");
-
-    const updateLog = (msg, type = "info") => {
-      if (subLog) subLog.textContent = msg;
-      addDebugLog(msg, type);
-    };
-
-    const startTime = performance.now();
-    let timerInterval = setInterval(() => {
-      const curElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
-      if (subLog && loadingWrap && loadingWrap.style.display !== "none") {
-        let stepText = "[1단계/4단계]";
-        let stageText = "가맹점 정보 및 템플릿 준비 중";
-        const sec = parseFloat(curElapsed);
-        if (sec < 3) {
-          stepText = "[1단계/4단계]";
-          stageText = "가맹점 정보 및 템플릿 준비 중";
-        } else if (sec < 10) {
-          stepText = "[2단계/4단계]";
-          stageText = "고화질 상생지도 및 폰트 렌더링 중";
-        } else if (sec < 25) {
-          stepText = "[3단계/4단계]";
-          stageText = "QR코드 및 혜택 정보 그래픽 합성 중";
-        } else {
-          stepText = "[4단계/4단계]";
-          stageText = "Render 서버 기동 및 최종 이미지 수신 대기 중";
-        }
-        subLog.textContent = `${stepText} ${stageText} (${curElapsed}초 경과)`;
-      }
-    }, 300);
-
-    try {
-      updateLog(`[1단계/4단계] ${tplTitle} 렌더링 요청 전송 (ID: ${facilityId})`, "info");
-      
-      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-      const targetUrl = isLocal 
-        ? `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`
-        : `https://mmamap-backend.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
-      
-      updateLog(`[호출] ${isLocal ? "로컬 서버" : "Render 백엔드 직접 연결"}: ${targetUrl}`, "info");
-      
-      const controller = new AbortController();
-      const fetchTimeout = setTimeout(() => controller.abort(), 90000);
-      
-      let res;
-      try {
-        res = await fetch(targetUrl, { signal: controller.signal });
-      } finally {
-        clearTimeout(fetchTimeout);
-      }
-
-      clearInterval(timerInterval);
-      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-      
-      if (!res || !res.ok) {
-        const errText = await (res ? res.text().catch(() => "") : "");
-        throw new Error(`HTTP ${res ? res.status : "Error"} (${errText || res.statusText || "서버 응답 오류"}) [${elapsed}초]`);
-      }
-      
-      const blob = await res.blob();
-      currentPrintBlobUrl = URL.createObjectURL(blob);
-      
-      resultImg.onload = () => {
-        updateLog(`[4단계/4단계 완료] ${tplTitle} 생성 성공 (${elapsed}초, ${(blob.size / 1024).toFixed(1)} KB)`, "success");
-        if (loadingWrap) loadingWrap.style.display = "none";
-        if (resultImg) resultImg.style.display = "block";
+    if (iframe) {
+      iframe.onload = () => {
+        setTimeout(() => {
+          if (loadingWrap) {
+            loadingWrap.style.opacity = "0";
+            setTimeout(() => { loadingWrap.style.display = "none"; }, 300);
+          }
+        }, 500);
       };
-      resultImg.src = currentPrintBlobUrl;
-    } catch (err) {
-      clearInterval(timerInterval);
-      console.error("[PrintModal Error]", err);
-      const totalElapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-      updateLog(`[오류] 홍보물 생성 실패 (${totalElapsed}초): ${err.message}`, "error");
-      if (loadingWrap) {
-        loadingWrap.innerHTML = `
-          <div style="color: #ef4444; font-weight: 700; font-size: 14px; margin-bottom: 6px;">홍보물 생성 오류 (${totalElapsed}초)</div>
-          <div style="font-size: 11px; background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 4px; word-break: break-all; margin-bottom: 10px; text-align: left;">
-            <div><b>상세 내용:</b> ${escapeHtml(err.message || String(err))}</div>
-            <div style="margin-top: 4px; color: #7f1d1d; font-size: 10px;">※ Render 서버가 절전 모드인 경우 첫 요청 시 약 30~50초가 소요될 수 있습니다.</div>
-          </div>
-          <button onclick="renderPrintTemplate(currentPrintPoint, '${tplName}')" style="padding: 6px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;">다시 시도</button>
-        `;
-      }
     }
   };
 
@@ -2662,26 +2580,14 @@ async function bootstrap() {
   if (doPrintBtn) {
     doPrintBtn.addEventListener("click", () => {
       if (!currentPrintPoint) return;
-      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : (currentPrintTemplate === "table_stand" ? "스탠드" : "도어행거");
-      const filename = `상생지도_${tplTitle}_${currentPrintPoint.title || "가맹점"}.png`;
+      const tplTitle = currentPrintTemplate === "poster" ? "A4포스터" : (currentPrintTemplate === "table_stand" ? "미니스탠드" : "도어행거");
+      const filename = `나라사랑가게_${tplTitle}_${currentPrintPoint.name || currentPrintPoint.title || "홍보물"}.png`;
       
-      if (currentPrintBlobUrl) {
-        const link = document.createElement("a");
-        link.href = currentPrintBlobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        addDebugLog(`[다운로드 완료] ${filename} 저장 완료!`, "success");
+      const iframe = document.getElementById("printIframe");
+      if (iframe && iframe.contentWindow && typeof iframe.contentWindow.downloadPosterImage === "function") {
+        iframe.contentWindow.downloadPosterImage(filename);
       } else {
-        const facilityId = currentPrintPoint.facilityId || currentPrintPoint.id || "";
-        const endpoint = currentPrintTemplate === "poster" ? "print_poster" : (currentPrintTemplate === "table_stand" ? "print_stand" : "print_hanger");
-        const link = document.createElement("a");
-        link.href = `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}`;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        window.print();
       }
     });
   }
@@ -2689,29 +2595,11 @@ async function bootstrap() {
   const doPdfBtn = document.getElementById("doPdfBtn");
   if (doPdfBtn) {
     doPdfBtn.addEventListener("click", () => {
-      if (!currentPrintBlobUrl) {
-        alert("이미지 시안이 생성된 후 인쇄하실 수 있습니다.");
-        return;
-      }
-      const printWin = window.open("", "_blank");
-      if (printWin) {
-        printWin.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>나라사랑가게 홍보물 인쇄</title>
-              <style>
-                @page { size: A4 portrait; margin: 0; }
-                html, body { margin: 0; padding: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: #fff; }
-                img { width: 100%; height: 100%; object-fit: contain; }
-              </style>
-            </head>
-            <body>
-              <img src="${currentPrintBlobUrl}" onload="window.focus(); window.print(); window.close();" />
-            </body>
-          </html>
-        `);
-        printWin.document.close();
+      const iframe = document.getElementById("printIframe");
+      if (iframe && iframe.contentWindow && typeof iframe.contentWindow.printPoster === "function") {
+        iframe.contentWindow.printPoster();
+      } else {
+        window.print();
       }
     });
   }
