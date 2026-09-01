@@ -2314,30 +2314,6 @@ async function bootstrap() {
       }
     }
 
-    const updateDebugStatus = (msg) => {
-      let el = document.getElementById("debugStatusBadge");
-      if (!el) {
-        el = document.createElement("div");
-        el.id = "debugStatusBadge";
-        el.style.position = "fixed";
-        el.style.bottom = "6px";
-        el.style.right = "135px";
-        el.style.background = "#0f172a";
-        el.style.color = "#38bdf8";
-        el.style.zIndex = "10000";
-        el.style.padding = "2px 8px";
-        el.style.fontSize = "11px";
-        el.style.fontFamily = "monospace";
-        el.style.borderRadius = "3px";
-        el.style.border = "1px solid #334155";
-        el.style.pointerEvents = "none";
-        el.style.fontWeight = "bold";
-        document.body.appendChild(el);
-      }
-      el.textContent = msg;
-    };
-    updateDebugStatus(`데이터: ${points.length}개 | 화면마커: ${visible.length}개 | 줌: ${map.getZoom()}`);
-    // eslint-disable-next-line no-console
     const nextMarkerMap = new Map();
 
     for (let i = 0; i < visible.length; i++) {
