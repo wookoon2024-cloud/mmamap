@@ -2513,11 +2513,12 @@ async function bootstrap() {
   const btnZoomOut = document.getElementById("btnZoomOut");
   const btnLocate = document.getElementById("btnLocate");
 
-  if (btnZoomIn) btnZoomIn.addEventListener("click", () => { map.setZoom(map.getZoom() + 1, true); updateZoomLabel(); });
-  if (btnZoomOut) btnZoomOut.addEventListener("click", () => { map.setZoom(map.getZoom() - 1, true); updateZoomLabel(); });
-  if (zoomLevelBtn) zoomLevelBtn.addEventListener("click", () => { map.setCenter(defaultCenter); map.setZoom(defaultZoom, true); updateZoomLabel(); });
+  if (btnZoomIn) btnZoomIn.addEventListener("click", () => { closeDetailPanel(); map.setZoom(map.getZoom() + 1, true); updateZoomLabel(); });
+  if (btnZoomOut) btnZoomOut.addEventListener("click", () => { closeDetailPanel(); map.setZoom(map.getZoom() - 1, true); updateZoomLabel(); });
+  if (zoomLevelBtn) zoomLevelBtn.addEventListener("click", () => { closeDetailPanel(); map.setCenter(defaultCenter); map.setZoom(defaultZoom, true); updateZoomLabel(); });
   if (btnLocate && navigator.geolocation) {
     btnLocate.addEventListener("click", () => {
+      closeDetailPanel();
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const here = new naver.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
@@ -2741,7 +2742,10 @@ async function bootstrap() {
     });
   });
 
-  naver.maps.Event.addListener(map, "zoom_changed", updateZoomLabel);
+  naver.maps.Event.addListener(map, "zoom_changed", () => {
+    updateZoomLabel();
+    closeDetailPanel();
+  });
   naver.maps.Event.addListener(map, "idle", scheduleRender);
 
   naver.maps.Event.addListener(map, "dragstart", () => {
@@ -2751,9 +2755,7 @@ async function bootstrap() {
   });
 
   naver.maps.Event.addListener(map, "zoom_start", () => {
-    if (!isMarkerRepositioning) {
-      closeDetailPanel();
-    }
+    closeDetailPanel();
   });
 
   naver.maps.Event.addListener(map, "click", () => {
