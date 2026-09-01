@@ -256,6 +256,7 @@
     }
     .neighbors-table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       border-radius: 10px;
       overflow: hidden;
@@ -268,6 +269,9 @@
       font-weight: 700;
       padding: 12px 14px;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .neighbors-table td {
       background: #ffffff;
@@ -276,7 +280,14 @@
       font-size: 15px;
       color: #334155;
       vertical-align: middle;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 48px;
     }
+    .neighbors-table th:nth-child(1), .neighbors-table td:nth-child(1) { width: 28%; }
+    .neighbors-table th:nth-child(2), .neighbors-table td:nth-child(2) { width: 44%; }
+    .neighbors-table th:nth-child(3), .neighbors-table td:nth-child(3) { width: 28%; }
     .num-pill {
       display: inline-flex;
       align-items: center;
@@ -496,7 +507,23 @@
           .sort((a, b) => a.dist - b.dist)
           .slice(0, 5);
 
-        // 4. Render Neighbors Table
+        function formatAudienceSummary(raw) {
+          if (!raw) return "병역명문가 등";
+          const items = [];
+          if (raw.includes("병역명문가")) items.push("병역명문가");
+          if (raw.includes("모범예비군") || raw.includes("모범 예비군") || raw.includes("모범예비군증")) items.push("모범예비군");
+          if (raw.includes("예비군")) items.push("예비군");
+          if (raw.includes("현역병") || raw.includes("현역")) items.push("현역병");
+          if (raw.includes("사회복무")) items.push("사회복무");
+          if (items.length > 0) {
+            return Array.from(new Set(items)).slice(0, 3).join(", ") + (items.length > 3 ? " 등" : "");
+          }
+          let clean = raw.replace(/\([^)]*\)/g, "").replace(/,?\s*(복무중인\s*사람|직원|직계가족).*/g, "");
+          clean = clean.replace(/세부\s*우대대상\s*:/g, "").trim();
+          return clean || "병역명문가 등";
+        }
+
+        // 4. Render Neighbors Table (Guaranteed 100% Single-Line Clean Layout)
         const tbody = document.getElementById("neighborsTableBody");
         if (tbody) {
           tbody.innerHTML = "";
@@ -507,10 +534,10 @@
             if (nRaw.includes("세부 우대대상 :") || nRaw.includes("우대 대상 :") || nRaw.includes("세부 우대대상:") || nRaw.includes("우대 대상:")) {
               const parts = nRaw.split(/(?:세부\s*우대대상|우대\s*대상)\s*:/);
               nBenefit = parts[0].trim();
-              nAudience = parts[1] ? parts[1].trim() : nAudience;
+              nAudience = formatAudienceSummary(parts[1] || "");
+            } else {
+              nAudience = formatAudienceSummary(nRaw);
             }
-            if (nBenefit.length > 28) nBenefit = nBenefit.slice(0, 27) + "...";
-            if (nAudience.length > 18) nAudience = nAudience.slice(0, 17) + "...";
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
@@ -540,6 +567,23 @@
 
         const map = new naver.maps.Map("map", mapOptions);
 
+        // Auto-fit bounds with padding so pins have breathing room
+        if (neighbors.length > 0) {
+          let maxDLat = 0.0025;
+          let maxDLng = 0.0035;
+          neighbors.forEach(n => {
+            const dLat = Math.abs(n.lat - sLat);
+            const dLng = Math.abs(n.lng - sLng);
+            if (dLat > maxDLat) maxDLat = dLat;
+            if (dLng > maxDLng) maxDLng = dLng;
+          });
+          maxDLat = Math.max(maxDLat * 1.4, 0.0035);
+          maxDLng = Math.max(maxDLng * 1.4, 0.0045);
+          const swCoord = new naver.maps.LatLng(sLat - maxDLat, sLng - maxDLng);
+          const neCoord = new naver.maps.LatLng(sLat + maxDLat, sLng + maxDLng);
+          map.fitBounds(new naver.maps.LatLngBounds(swCoord, neCoord), { top: 90, right: 90, bottom: 80, left: 90 });
+        }
+
         // Main Pin & Navy Banner
         new naver.maps.Marker({
           position: new naver.maps.LatLng(sLat, sLng),
@@ -555,13 +599,27 @@
           zIndex: 9999
         });
 
-        // Neighbor Gold Pins & Speech Bubbles
-        const positions = ["label-top", "label-right", "label-left", "label-bottom", "label-top"];
+        // Smart Speech Bubble direction to prevent overlaps
         neighbors.forEach((n, idx) => {
-          const posClass = positions[idx % positions.length];
           const distStr = formatDistance(n.dist);
           let nName = n.name || "이웃 가게";
           if (nName.length > 13) nName = nName.slice(0, 12) + "..";
+
+          // Calculate angle relative to center
+          const dY = (n.lat - sLat) * 111000;
+          const dX = (n.lng - sLng) * 111000 * Math.cos(sLat * Math.PI / 180);
+          const angle = Math.atan2(dY, dX) * (180 / Math.PI); // -180 to 180
+
+          let posClass = "label-top";
+          if (angle >= 45 && angle < 135) {
+            posClass = "label-top";
+          } else if (angle >= -45 && angle < 45) {
+            posClass = "label-right";
+          } else if (angle >= -135 && angle < -45) {
+            posClass = "label-bottom";
+          } else {
+            posClass = "label-left";
+          }
 
           new naver.maps.Marker({
             position: new naver.maps.LatLng(n.lat, n.lng),
