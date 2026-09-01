@@ -667,7 +667,7 @@ async function bootstrap() {
     borderColor: "transparent",
     borderWidth: 0,
     disableAnchor: true,
-    pixelOffset: new naver.maps.Point(0, -12),
+    pixelOffset: new naver.maps.Point(0, -36),
   });
 
   let renderedMarkers = [];
@@ -2666,6 +2666,7 @@ async function bootstrap() {
         marker.__facilityKey = key;
 
         naver.maps.Event.addListener(marker, "mouseover", () => {
+          if (selectedFacilityId) return;
           marker.setZIndex(50000);
           const sub = [...new Set([v.subtitle, toCategoryLabel(v.category)].filter(Boolean))].join(" · ");
           hoverInfoWindow.setContent(`
@@ -2677,6 +2678,7 @@ async function bootstrap() {
           hoverInfoWindow.open(map, marker);
         });
         naver.maps.Event.addListener(marker, "mouseout", () => {
+          if (selectedFacilityId) return;
           marker.setZIndex(baseZIndex);
           hoverInfoWindow.close();
         });
