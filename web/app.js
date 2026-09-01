@@ -1561,7 +1561,7 @@ async function bootstrap() {
         <div id="printLoadingWrap" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 10; padding: 24px; text-align: center; background: #F3F3ED;">
           <div class="print-loading-spinner" style="width: 44px; height: 44px; border: 4px solid #cbd5e1; border-top: 4px solid #1e3a8a; border-radius: 50%; animation: printSpinnerSpin 1s linear infinite; box-sizing: border-box;"></div>
           <div id="printStepLog" style="font-size: 16px; font-weight: 700; color: #1e293b; font-family: 'Pretendard', sans-serif;">${tplTitle} 원본 시안 생성 중...</div>
-          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 85%; word-break: break-all;">[1/2] 렌더링 서버 요청 시작...</div>
+          <div id="printSubLog" style="font-size: 12px; color: #475569; font-family: monospace; background: #ffffff; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; max-width: 85%; word-break: break-all;">[1단계/4단계] 가맹점 정보 및 템플릿 준비 중...</div>
         </div>
         <img id="printResultImg" 
              alt="${tplTitle} 인쇄 시안" 
@@ -1582,21 +1582,28 @@ async function bootstrap() {
     let timerInterval = setInterval(() => {
       const curElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
       if (subLog && loadingWrap && loadingWrap.style.display !== "none") {
-        let stageText = "서버 연결 중...";
+        let stepText = "[1단계/4단계]";
+        let stageText = "가맹점 정보 및 템플릿 준비 중";
         const sec = parseFloat(curElapsed);
-        if (sec < 4) {
-          stageText = "가맹점 정보 및 지도 데이터 구성 중";
+        if (sec < 3) {
+          stepText = "[1단계/4단계]";
+          stageText = "가맹점 정보 및 템플릿 준비 중";
+        } else if (sec < 10) {
+          stepText = "[2단계/4단계]";
+          stageText = "고화질 상생지도 및 폰트 렌더링 중";
         } else if (sec < 25) {
-          stageText = "고화질 지도 및 Pretendard 그래픽 렌더링 중";
+          stepText = "[3단계/4단계]";
+          stageText = "QR코드 및 혜택 정보 그래픽 합성 중";
         } else {
-          stageText = "Render 서버 최초 기동 및 이미지 합성 마무리 중";
+          stepText = "[4단계/4단계]";
+          stageText = "Render 서버 기동 및 최종 이미지 수신 대기 중";
         }
-        subLog.textContent = `[1/2] ${stageText} (${curElapsed}초 경과)`;
+        subLog.textContent = `${stepText} ${stageText} (${curElapsed}초 경과)`;
       }
-    }, 400);
+    }, 300);
 
     try {
-      updateLog(`[1/2] ${tplTitle} 렌더링 요청 전송 (ID: ${facilityId})`, "info");
+      updateLog(`[1단계/4단계] ${tplTitle} 렌더링 요청 전송 (ID: ${facilityId})`, "info");
       
       const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       const targetUrl = isLocal 
@@ -1627,7 +1634,7 @@ async function bootstrap() {
       currentPrintBlobUrl = URL.createObjectURL(blob);
       
       resultImg.onload = () => {
-        updateLog(`[2/2] ${tplTitle} 완성 (${elapsed}초, ${(blob.size / 1024).toFixed(1)} KB)`, "success");
+        updateLog(`[4단계/4단계 완료] ${tplTitle} 생성 성공 (${elapsed}초, ${(blob.size / 1024).toFixed(1)} KB)`, "success");
         if (loadingWrap) loadingWrap.style.display = "none";
         if (resultImg) resultImg.style.display = "block";
       };

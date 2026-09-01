@@ -329,8 +329,7 @@ def generate_stand(facility_id, port=None):
                 device_scale_factor=1
             )
             page = context.new_page()
-            is_render = os.environ.get("RENDER") is not None or port != 8080
-            base_url = "https://mmamap-backend.onrender.com" if is_render else f"http://127.0.0.1:{port}"
+            base_url = f"http://127.0.0.1:{port}"
             url = f"{base_url}/map_only_light.html?facility_id={facility_id}&rings=0"
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=8000)
