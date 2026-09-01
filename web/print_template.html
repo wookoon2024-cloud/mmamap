@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>나라사랑가게 맞춤 홍보물 시안</title>
-  <script src="./config.js?v=8.0"></script>
+  <script src="./config.js?v=8.3"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
@@ -16,7 +16,6 @@
     }
     
     html, body {
-      width: 1000px;
       margin: 0;
       padding: 0;
       background: #F3F3ED;
@@ -25,7 +24,7 @@
       overflow: hidden;
     }
     
-    /* A4 Poster Sheet (1000px × 1414px) */
+    /* 1. A4 Poster Sheet (1000px × 1414px) */
     .sheet-poster {
       width: 1000px;
       min-width: 1000px;
@@ -40,31 +39,39 @@
       box-sizing: border-box;
     }
 
-    /* Table Stand Sheet (800px × 1200px) */
+    /* 2. Table Stand Sheet (800px × 1200px) */
     .sheet-table_stand {
       width: 800px;
+      min-width: 800px;
+      max-width: 800px;
       height: 1200px;
+      min-height: 1200px;
+      background: #F3F3ED;
+      position: relative;
+      padding: 30px 45px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    /* 3. Door Hanger Sheet (600px × 1100px) */
+    .sheet-door_hanger {
+      width: 600px;
+      min-width: 600px;
+      max-width: 600px;
+      height: 1100px;
+      min-height: 1100px;
       background: #F3F3ED;
       position: relative;
       padding: 35px 40px;
       display: flex;
       flex-direction: column;
+      align-items: center;
       box-sizing: border-box;
+      text-align: center;
     }
 
-    /* Door Hanger Sheet (600px × 1200px) */
-    .sheet-door_hanger {
-      width: 600px;
-      height: 1200px;
-      background: #F3F3ED;
-      position: relative;
-      padding: 30px 35px;
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-    }
-
-    /* Header */
+    /* Poster Header */
     .poster-header {
       display: flex;
       align-items: center;
@@ -97,7 +104,7 @@
       letter-spacing: -0.5px;
     }
 
-    /* Store Info Card */
+    /* Poster Store Card */
     .store-card {
       background: #ffffff;
       border: 2px solid #cbd5e1;
@@ -114,7 +121,7 @@
       margin-bottom: 10px;
     }
     .store-card-benefit {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 700;
       color: #b45309;
       line-height: 1.45;
@@ -124,23 +131,7 @@
       font-size: 16px;
       font-weight: 500;
       color: #475569;
-    }
-
-    /* Stand / Hanger Big Badge */
-    .stand-badge-wrap {
-      display: none;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .stand-benefit-badge {
-      background: #1e3a8a;
-      color: #ffffff;
-      padding: 14px 30px;
-      border-radius: 30px;
-      font-size: 22px;
-      font-weight: 700;
-      display: inline-block;
-      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+      line-height: 1.4;
     }
 
     /* Map Box */
@@ -154,8 +145,10 @@
       background: #e2e8f0;
       margin-bottom: 24px;
     }
-    .sheet-table_stand .map-container { height: 460px; margin-bottom: 20px; }
-    .sheet-door_hanger .map-container { height: 400px; margin-bottom: 20px; }
+    .sheet-table_stand .map-container { 
+      height: 440px; 
+      margin-bottom: 22px; 
+    }
 
     #map {
       width: 100%;
@@ -165,8 +158,8 @@
     /* Markers & Speech Bubbles */
     .marker-main {
       position: relative;
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       background-image: url('./img/blue_pin.png');
       background-size: contain;
       background-repeat: no-repeat;
@@ -175,7 +168,7 @@
     }
     .marker-main-label {
       position: absolute;
-      bottom: 50px;
+      bottom: 48px;
       left: 50%;
       transform: translateX(-50%);
       background-color: #1e3a8a;
@@ -202,8 +195,8 @@
 
     .marker-neighbor {
       position: relative;
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       background-image: url('./img/gold_pin.png');
       background-size: contain;
       background-repeat: no-repeat;
@@ -216,38 +209,35 @@
       color: #0f172a;
       font-size: 14px;
       font-weight: 700;
-      padding: 8px 14px;
+      padding: 7px 13px;
       border-radius: 10px;
       border: 2px solid #d2c9bd;
       white-space: nowrap;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       z-index: 100;
     }
-    .label-top { bottom: 42px; left: 50%; transform: translateX(-50%); }
+    .label-top { bottom: 38px; left: 50%; transform: translateX(-50%); }
     .label-top::after {
       content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
       border-width: 6px 6px 0; border-style: solid; border-color: #ffffff transparent transparent;
     }
-    .label-right { left: 42px; top: 50%; transform: translateY(-50%); }
+    .label-right { left: 38px; top: 50%; transform: translateY(-50%); }
     .label-right::after {
       content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%);
       border-width: 6px 6px 6px 0; border-style: solid; border-color: transparent #ffffff transparent transparent;
     }
-    .label-left { right: 42px; top: 50%; transform: translateY(-50%); }
+    .label-left { right: 38px; top: 50%; transform: translateY(-50%); }
     .label-left::after {
       content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
       border-width: 6px 0 6px 6px; border-style: solid; border-color: transparent transparent transparent #ffffff;
     }
-    .label-bottom { top: 42px; left: 50%; transform: translateX(-50%); }
+    .label-bottom { top: 38px; left: 50%; transform: translateX(-50%); }
     .label-bottom::after {
       content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
       border-width: 0 6px 6px; border-style: solid; border-color: transparent transparent #ffffff;
     }
 
     /* Table Section */
-    .table-section {
-      width: 100%;
-    }
     .table-section-title {
       font-size: 26px;
       font-weight: 900;
@@ -288,6 +278,7 @@
     .neighbors-table th:nth-child(1), .neighbors-table td:nth-child(1) { width: 28%; }
     .neighbors-table th:nth-child(2), .neighbors-table td:nth-child(2) { width: 44%; }
     .neighbors-table th:nth-child(3), .neighbors-table td:nth-child(3) { width: 28%; }
+
     .num-pill {
       display: inline-flex;
       align-items: center;
@@ -302,7 +293,7 @@
       margin-right: 8px;
     }
 
-    /* Footer */
+    /* Poster Footer */
     .poster-footer {
       display: flex;
       align-items: center;
@@ -335,21 +326,197 @@
       object-fit: contain;
     }
 
-    /* Stand/Hanger specific adjustments */
-    .sheet-table_stand .table-section,
-    .sheet-door_hanger .table-section {
-      display: none;
+    /* === 2. TABLE STAND SPECIFIC STYLES === */
+    .stand-guide-line {
+      width: 100%;
+      border-top: 2px dashed #94A3B8;
+      margin-bottom: 12px;
+      position: relative;
     }
-    .sheet-table_stand .stand-badge-wrap,
-    .sheet-door_hanger .stand-badge-wrap {
+    .stand-guide-text {
+      position: absolute;
+      top: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      font-weight: 700;
+      color: #94A3B8;
+      background: #F3F3ED;
+      padding: 0 10px;
+    }
+    .stand-header-wrap {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .stand-header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-top: 4px;
+    }
+    .stand-store-title {
+      font-size: 44px;
+      font-weight: 900;
+      color: #0F172A;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .stand-benefit-badge {
+      background: #1E3A8A;
+      color: #FFFFFF;
+      padding: 14px 34px;
+      border-radius: 30px;
+      font-size: 24px;
+      font-weight: 700;
+      display: inline-block;
+      box-shadow: 0 4px 14px rgba(30, 58, 138, 0.3);
+      margin: 0 auto 20px auto;
+      text-align: center;
+    }
+    .stand-bottom-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: auto;
+      padding-top: 15px;
+      border-top: 1px solid #CBD5E1;
+    }
+    .stand-audience-box h4 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-bottom: 8px;
+    }
+    .stand-audience-box p {
+      font-size: 16px;
+      color: #475569;
+      max-width: 480px;
+      line-height: 1.4;
+    }
+    .stand-qr-box {
+      text-align: center;
+    }
+    .stand-qr-box img {
+      width: 100px;
+      height: 100px;
+      background: #FFFFFF;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid #CBD5E1;
+    }
+    .stand-qr-box span {
       display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-top: 4px;
+    }
+
+    /* === 3. DOOR HANGER SPECIFIC STYLES (NO MAP!) === */
+    .hanger-hole-wrap {
+      width: 160px;
+      height: 160px;
+      border: 2px solid #64748B;
+      border-radius: 50%;
+      position: relative;
+      margin: 15px auto 35px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hanger-cut-line {
+      position: absolute;
+      top: -35px;
+      left: 50%;
+      width: 2px;
+      height: 35px;
+      border-left: 2px dashed #64748B;
+    }
+    .hanger-hole-label {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748B;
+      white-space: nowrap;
+    }
+    .hanger-header-tag {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-bottom: 25px;
+    }
+    .hanger-welcome {
+      font-size: 24px;
+      font-weight: 700;
+      color: #64748B;
+      margin-bottom: 10px;
+    }
+    .hanger-store-name {
+      font-size: 38px;
+      font-weight: 900;
+      color: #0F172A;
+      margin-bottom: 25px;
+    }
+    .hanger-benefit-badge {
+      background: #1E3A8A;
+      color: #FFFFFF;
+      padding: 14px 28px;
+      border-radius: 25px;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 30px;
+      display: inline-block;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
+    }
+    .hanger-audience-section h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-bottom: 8px;
+    }
+    .hanger-audience-section p {
+      font-size: 15px;
+      color: #475569;
+      max-width: 480px;
+      line-height: 1.45;
+      margin-bottom: 35px;
+    }
+    .hanger-qr-card {
+      background: #FFFFFF;
+      border: 2px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    }
+    .hanger-qr-card img {
+      width: 150px;
+      height: 150px;
+      margin-bottom: 8px;
+    }
+    .hanger-qr-card span {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1E3A8A;
+    }
+    .hanger-footer-line {
+      width: 100%;
+      border-top: 2px solid #DFD7CB;
+      padding-top: 15px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748B;
+      margin-top: auto;
     }
 
     @media print {
-      body {
-        background: transparent;
-        padding: 0;
-      }
+      body { background: transparent; padding: 0; }
       .sheet-poster, .sheet-table_stand, .sheet-door_hanger {
         box-shadow: none;
         margin: 0;
@@ -361,28 +528,24 @@
 </head>
 <body>
 
-  <!-- Main Sheet Container -->
-  <div id="posterSheet" class="sheet-poster">
+  <!-- 1. A4 POSTER CONTAINER -->
+  <div id="posterTpl" class="sheet-poster" style="display: none;">
     <div class="poster-header">
       <div class="poster-logo">
-        <img src="./img/mma_logo.png" alt="대한민국 병무청" onerror="this.style.display='none'; document.getElementById('logoText').style.display='block';">
-        <span id="logoText" class="poster-logo-text" style="display: none;">대한민국 병무청</span>
+        <img src="./img/mma_logo.png" alt="대한민국 병무청" onerror="this.style.display='none';">
+        <span class="poster-logo-text">대한민국 병무청</span>
       </div>
-      <h1 id="headerMainTitle" class="poster-main-title">나라사랑가게 상생 지도</h1>
+      <h1 class="poster-main-title">나라사랑가게 상생 지도</h1>
     </div>
 
     <div class="store-card">
-      <h2 id="storeName" class="store-card-title">가맹점 이름</h2>
-      <div id="storeBenefit" class="store-card-benefit">할인 혜택 정보</div>
-      <div id="storeAudience" class="store-card-audience">우대 대상 : 모범예비군, 병역명문가, 현역병 등</div>
-    </div>
-
-    <div id="standBadgeWrap" class="stand-badge-wrap">
-      <div id="standBenefitBadge" class="stand-benefit-badge">혜택 정보</div>
+      <h2 class="store-card-title p-name">가맹점 이름</h2>
+      <div class="store-card-benefit p-benefit">할인 혜택 정보</div>
+      <div class="store-card-audience p-audience">우대 대상 : 모범예비군, 병역명문가, 현역병 등</div>
     </div>
 
     <div class="map-container">
-      <div id="map"></div>
+      <div id="mapPoster" style="width:100%; height:100%;"></div>
     </div>
 
     <div class="table-section">
@@ -391,15 +554,11 @@
         <thead>
           <tr>
             <th style="width: 28%;">이름</th>
-            <th style="width: 46%;">할인 혜택</th>
-            <th style="width: 26%;">우대 대상</th>
+            <th style="width: 44%;">할인 혜택</th>
+            <th style="width: 28%;">우대 대상</th>
           </tr>
         </thead>
-        <tbody id="neighborsTableBody">
-          <tr>
-            <td colspan="3" style="text-align: center; color: #94a3b8; padding: 20px;">주변 매장 정보를 불러오는 중...</td>
-          </tr>
-        </tbody>
+        <tbody id="neighborsTableBody"></tbody>
       </table>
     </div>
 
@@ -409,8 +568,69 @@
         <p>나라사랑가게의 정의와 병무청 공식 우대 혜택을 모바일로 바로 확인할 수 있습니다.</p>
       </div>
       <div class="footer-qr">
-        <img id="qrImg" src="" alt="모바일 상생지도 QR">
+        <img class="qr-target-img" src="" alt="모바일 상생지도 QR">
       </div>
+    </div>
+  </div>
+
+  <!-- 2. TABLE STAND CONTAINER -->
+  <div id="standTpl" class="sheet-table_stand" style="display: none;">
+    <div class="stand-guide-line">
+      <span class="stand-guide-text">아크릴 스탠드 규격 가이드선 (10cm × 15cm)</span>
+    </div>
+
+    <div class="stand-header-wrap">
+      <img src="./img/mma_logo.png" alt="대한민국 병무청" style="height: 38px; object-fit: contain;">
+      <div class="stand-header-title">대한민국 병무청 나라사랑가게 네트워크</div>
+    </div>
+
+    <h2 class="stand-store-title p-name">가맹점 이름</h2>
+    
+    <div style="text-align: center;">
+      <div class="stand-benefit-badge p-benefit">할인 혜택 정보</div>
+    </div>
+
+    <div class="map-container">
+      <div id="mapStand" style="width:100%; height:100%;"></div>
+    </div>
+
+    <div class="stand-bottom-wrap">
+      <div class="stand-audience-box">
+        <h4>[ 우대 대상 ]</h4>
+        <p class="p-audience">모범예비군, 병역명문가, 현역병 등</p>
+      </div>
+      <div class="stand-qr-box">
+        <img class="qr-target-img" src="" alt="QR">
+        <span>스마트폰 스캔</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. DOOR HANGER CONTAINER (NO MAP!) -->
+  <div id="hangerTpl" class="sheet-door_hanger" style="display: none;">
+    <div class="hanger-hole-wrap">
+      <div class="hanger-cut-line"></div>
+      <span class="hanger-hole-label">문고리 거치선 (지름 8cm)</span>
+    </div>
+
+    <div class="hanger-header-tag">대한민국 병무청 | 나라사랑가게</div>
+    <div class="hanger-welcome">환영합니다</div>
+    <h2 class="hanger-store-name p-name">가맹점 이름</h2>
+
+    <div class="hanger-benefit-badge p-benefit">할인 혜택 정보</div>
+
+    <div class="hanger-audience-section">
+      <h4>[ 우대 대상 ]</h4>
+      <p class="p-audience">모범예비군, 병역명문가, 현역병 등</p>
+    </div>
+
+    <div class="hanger-qr-card">
+      <img class="qr-target-img" src="" alt="QR">
+      <span>스마트폰 스캔 (상세 혜택)</span>
+    </div>
+
+    <div class="hanger-footer-line">
+      대한민국 병무청 × 나라사랑가게 네트워크
     </div>
   </div>
 
@@ -427,6 +647,22 @@
 
     function formatDistance(dist) {
       return dist >= 1000 ? (dist / 1000).toFixed(1) + "km" : Math.round(dist) + "m";
+    }
+
+    function formatAudienceSummary(raw) {
+      if (!raw) return "병역명문가 등";
+      const items = [];
+      if (raw.includes("병역명문가")) items.push("병역명문가");
+      if (raw.includes("모범예비군") || raw.includes("모범 예비군") || raw.includes("모범예비군증")) items.push("모범예비군");
+      if (raw.includes("예비군")) items.push("예비군");
+      if (raw.includes("현역병") || raw.includes("현역")) items.push("현역병");
+      if (raw.includes("사회복무")) items.push("사회복무");
+      if (items.length > 0) {
+        return Array.from(new Set(items)).slice(0, 3).join(", ") + (items.length > 3 ? " 등" : "");
+      }
+      let clean = raw.replace(/\([^)]*\)/g, "").replace(/,?\s*(복무중인\s*사람|직원|직계가족).*/g, "");
+      clean = clean.replace(/세부\s*우대대상\s*:/g, "").trim();
+      return clean || "병역명문가 등";
     }
 
     function loadNaverMapSDK() {
@@ -450,19 +686,23 @@
         const facilityId = params.get("facility_id") || "nara_3218";
         const tplType = params.get("tpl") || "poster";
 
-        const sheet = document.getElementById("posterSheet");
+        // Show appropriate container
+        const posterEl = document.getElementById("posterTpl");
+        const standEl = document.getElementById("standTpl");
+        const hangerEl = document.getElementById("hangerTpl");
+
         if (tplType === "table_stand") {
+          standEl.style.display = "flex";
           document.documentElement.style.width = "800px";
           document.body.style.width = "800px";
-          if (sheet) sheet.className = "sheet-table_stand";
         } else if (tplType === "door_hanger") {
+          hangerEl.style.display = "flex";
           document.documentElement.style.width = "600px";
           document.body.style.width = "600px";
-          if (sheet) sheet.className = "sheet-door_hanger";
         } else {
+          posterEl.style.display = "flex";
           document.documentElement.style.width = "1000px";
           document.body.style.width = "1000px";
-          if (sheet) sheet.className = "sheet-poster";
         }
 
         // 1. Fetch data
@@ -473,8 +713,8 @@
 
         if (!store) return;
 
-        // 2. Populate Store Details
-        document.getElementById("storeName").textContent = store.name || "본 매장";
+        // 2. Populate Store Details across all templates
+        document.querySelectorAll(".p-name").forEach(el => el.textContent = store.name || "본 매장");
         
         let rawBenefit = store.benefit || "";
         rawBenefit = rawBenefit.replace(/<br\s*\/?>/gi, " ").replace(/&nbsp;/gi, " ").trim();
@@ -485,20 +725,26 @@
           benefitText = parts[0].trim();
           audienceText = parts[1] ? "우대 대상 : " + parts[1].trim() : "";
         }
-        document.getElementById("storeBenefit").textContent = benefitText || "병역의무 이행자 맞춤 우대 할인";
-        document.getElementById("storeAudience").textContent = audienceText || "우대 대상 : 모범예비군, 병역명문가, 현역병 등";
-        
-        const standBadge = document.getElementById("standBenefitBadge");
-        if (standBadge) standBadge.textContent = benefitText || "병역의무 이행자 맞춤 우대 혜택";
+        document.querySelectorAll(".p-benefit").forEach(el => el.textContent = benefitText || "병역의무 이행자 맞춤 우대 할인");
+        document.querySelectorAll(".p-audience").forEach(el => el.textContent = audienceText || "우대 대상 : 모범예비군, 병역명문가, 현역병 등");
 
         // QR code URL
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         const qrBase = isLocal ? window.location.origin : "https://mmamap-seven.vercel.app";
         const qrTarget = `${qrBase}/api/qr_scan?facility_id=${encodeURIComponent(facilityId)}&source=${tplType}`;
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrTarget)}`;
-        document.getElementById("qrImg").src = qrApiUrl;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTarget)}`;
+        document.querySelectorAll(".qr-target-img").forEach(img => img.src = qrApiUrl);
 
-        // 3. Find 5 nearest neighbors
+        // If Door Hanger, NO MAP is needed!
+        if (tplType === "door_hanger") {
+          window.__MAP_READY = true;
+          if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage({ type: "MMA_MAP_READY" }, "*");
+          }
+          return;
+        }
+
+        // 3. Find 5 nearest neighbors for map & poster table
         const sLat = store.lat || 37.5665;
         const sLng = store.lng || 126.9780;
         const neighbors = facilities
@@ -507,23 +753,7 @@
           .sort((a, b) => a.dist - b.dist)
           .slice(0, 5);
 
-        function formatAudienceSummary(raw) {
-          if (!raw) return "병역명문가 등";
-          const items = [];
-          if (raw.includes("병역명문가")) items.push("병역명문가");
-          if (raw.includes("모범예비군") || raw.includes("모범 예비군") || raw.includes("모범예비군증")) items.push("모범예비군");
-          if (raw.includes("예비군")) items.push("예비군");
-          if (raw.includes("현역병") || raw.includes("현역")) items.push("현역병");
-          if (raw.includes("사회복무")) items.push("사회복무");
-          if (items.length > 0) {
-            return Array.from(new Set(items)).slice(0, 3).join(", ") + (items.length > 3 ? " 등" : "");
-          }
-          let clean = raw.replace(/\([^)]*\)/g, "").replace(/,?\s*(복무중인\s*사람|직원|직계가족).*/g, "");
-          clean = clean.replace(/세부\s*우대대상\s*:/g, "").trim();
-          return clean || "병역명문가 등";
-        }
-
-        // 4. Render Neighbors Table (Guaranteed 100% Single-Line Clean Layout)
+        // 4. Render Neighbors Table (for Poster)
         const tbody = document.getElementById("neighborsTableBody");
         if (tbody) {
           tbody.innerHTML = "";
@@ -551,6 +781,7 @@
 
         // 5. Initialize Naver Map
         await loadNaverMapSDK();
+        const mapTargetId = tplType === "table_stand" ? "mapStand" : "mapPoster";
         const mapOptions = {
           center: new naver.maps.LatLng(sLat, sLng),
           zoom: 16,
@@ -565,23 +796,23 @@
           scaleControl: true
         };
 
-        const map = new naver.maps.Map("map", mapOptions);
+        const map = new naver.maps.Map(mapTargetId, mapOptions);
 
-        // Auto-fit bounds with padding so pins have breathing room
+        // Auto-fit bounds with wide padding so speech bubbles never cluster or collide!
         if (neighbors.length > 0) {
-          let maxDLat = 0.0025;
-          let maxDLng = 0.0035;
+          let maxDLat = 0.003;
+          let maxDLng = 0.004;
           neighbors.forEach(n => {
             const dLat = Math.abs(n.lat - sLat);
             const dLng = Math.abs(n.lng - sLng);
             if (dLat > maxDLat) maxDLat = dLat;
             if (dLng > maxDLng) maxDLng = dLng;
           });
-          maxDLat = Math.max(maxDLat * 1.4, 0.0035);
-          maxDLng = Math.max(maxDLng * 1.4, 0.0045);
+          maxDLat = Math.max(maxDLat * 1.6, 0.0045);
+          maxDLng = Math.max(maxDLng * 1.6, 0.0060);
           const swCoord = new naver.maps.LatLng(sLat - maxDLat, sLng - maxDLng);
           const neCoord = new naver.maps.LatLng(sLat + maxDLat, sLng + maxDLng);
-          map.fitBounds(new naver.maps.LatLngBounds(swCoord, neCoord), { top: 90, right: 90, bottom: 80, left: 90 });
+          map.fitBounds(new naver.maps.LatLngBounds(swCoord, neCoord), { top: 90, right: 100, bottom: 80, left: 100 });
         }
 
         // Main Pin & Navy Banner
@@ -594,23 +825,24 @@
                 <div class="marker-main-label">${store.name || "본 매장"}</div>
               </div>
             `,
-            anchor: new naver.maps.Point(23, 46)
+            anchor: new naver.maps.Point(22, 44)
           },
           zIndex: 9999
         });
 
-        // Smart Speech Bubble direction to prevent overlaps
+        // Smart quadrant directional placement to guarantee 0 overlap
+        const fixedDirections = ["label-top", "label-right", "label-left", "label-bottom", "label-right"];
         neighbors.forEach((n, idx) => {
           const distStr = formatDistance(n.dist);
           let nName = n.name || "이웃 가게";
           if (nName.length > 13) nName = nName.slice(0, 12) + "..";
 
-          // Calculate angle relative to center
+          // Calculate angle relative to center store
           const dY = (n.lat - sLat) * 111000;
           const dX = (n.lng - sLng) * 111000 * Math.cos(sLat * Math.PI / 180);
           const angle = Math.atan2(dY, dX) * (180 / Math.PI); // -180 to 180
 
-          let posClass = "label-top";
+          let posClass = fixedDirections[idx % fixedDirections.length];
           if (angle >= 45 && angle < 135) {
             posClass = "label-top";
           } else if (angle >= -45 && angle < 45) {
@@ -632,7 +864,7 @@
                   </div>
                 </div>
               `,
-              anchor: new naver.maps.Point(18, 36)
+              anchor: new naver.maps.Point(17, 34)
             },
             zIndex: 100 + idx
           });
@@ -649,7 +881,10 @@
 
     // Public method to capture high-res PNG image
     window.downloadPosterImage = async function(filename = "나라사랑가게_홍보물.png") {
-      const sheet = document.getElementById("posterSheet");
+      const params = new URLSearchParams(window.location.search);
+      const tplType = params.get("tpl") || "poster";
+      const targetId = tplType === "table_stand" ? "standTpl" : (tplType === "door_hanger" ? "hangerTpl" : "posterTpl");
+      const sheet = document.getElementById(targetId);
       if (!sheet) return;
       
       try {
