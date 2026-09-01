@@ -329,13 +329,18 @@
       </div>
 
       <!-- Admin Tab Bar -->
-      <div class="adminTabBar">
-        <button type="button" id="adminTabBtnAnalytics" class="adminTabBtn active" onclick="window.MMAAuth.switchAdminTab('analytics')">
-          <span>📊 접속 & 통계 분석</span>
-        </button>
-        <button type="button" id="adminTabBtnMembers" class="adminTabBtn" onclick="window.MMAAuth.switchAdminTab('members')">
-          <span>👥 회원 관리</span>
-          <span id="adminMemberBadgeCount" class="adminTabBadge">0명</span>
+      <div class="adminTabBar" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="adminTabBtnAnalytics" class="adminTabBtn active" onclick="window.MMAAuth.switchAdminTab('analytics')">
+            <span>📊 접속 & 통계 분석</span>
+          </button>
+          <button type="button" id="adminTabBtnMembers" class="adminTabBtn" onclick="window.MMAAuth.switchAdminTab('members')">
+            <span>👥 회원 관리</span>
+            <span id="adminMemberBadgeCount" class="adminTabBadge">0명</span>
+          </button>
+        </div>
+        <button type="button" id="adminRefreshStatsBtn" class="adminRefreshBtn" onclick="window.MMAAuth.refreshAdminStats()" style="padding: 6px 14px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          🔄 실시간 새로고침
         </button>
       </div>
 
@@ -698,10 +703,10 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v15.5</div>
+    <div class="versionBadge">v15.6</div>
 
-    <script src="./config.js?v=9.5"></script>
+    <script src="./config.js?v=9.6"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=108.0"></script>
+    <script src="./app.js?v=109.0"></script>
   </body>
 </html>

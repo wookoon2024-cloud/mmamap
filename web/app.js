@@ -1884,6 +1884,10 @@ async function bootstrap() {
   const openDetailInfo = (point, anchorLatLng = null, screenPoint = null) => {
     if (!ENABLE_DETAIL_PANEL) return;
     if (!detailPanelEl || !point) return;
+    try {
+      const fid = point.facilityId || point.id || point.title || "unknown";
+      window.MMAAuth?.logPageVisit?.(`/facility/${encodeURIComponent(fid)}`);
+    } catch (_e) {}
     const address = normalizeTextBlock(point.address || "주소 정보 없음");
     const phone = normalizeTextBlock(point.phone || "전화번호 정보 없음");
     const benefit = formatBenefitText(point.benefit || "혜택 정보 없음");
@@ -3173,17 +3177,18 @@ const MMAAuth = {
     } catch (_e) {}
   },
 
-  async logPageVisit() {
+  async logPageVisit(customPath = "") {
     try {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/i.test(navigator.userAgent);
       const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
+      const targetPath = customPath || (window.location.pathname + window.location.search) || "/";
 
       await fetch("/api/analytics/visit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          path: window.location.pathname + window.location.search,
+          path: targetPath,
           referrer: document.referrer || "",
           device_type: deviceType,
           user_role: this.user ? this.user.role : "guest",
@@ -3740,8 +3745,10 @@ const MMAAuth = {
   adminMembers: [],
   adminMemberRoleFilter: "all",
   adminMemberSearchQuery: "",
+  lastAdminKey: "",
 
   async openAdminDashboardModal(adminKey = "") {
+    this.lastAdminKey = adminKey;
     const backdrop = document.getElementById("adminDashboardBackdrop");
     const modal = document.getElementById("adminDashboardModal");
     if (!backdrop || !modal) return;
@@ -3765,7 +3772,32 @@ const MMAAuth = {
       addDebugLog(`[Admin Error] ${err.message}`, 'error');
     }
 
-    this.fetchAdminMembers();
+    this.fetchAdminMembers(adminKey);
+  },
+
+  async refreshAdminStats() {
+    const btn = document.getElementById("adminRefreshStatsBtn");
+    if (btn) {
+      btn.textContent = "⏳ 갱신 중...";
+      btn.style.opacity = "0.7";
+    }
+    try {
+      const key = this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
+      const url = key ? `/api/admin/stats?admin_key=${encodeURIComponent(key)}` : "/api/admin/stats";
+      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (data.ok && data.stats) {
+        this.renderAdminStats(data.stats);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (btn) {
+        btn.textContent = "🔄 실시간 새로고침";
+        btn.style.opacity = "1";
+      }
+    }
   },
 
   closeAdminDashboardModal() {
