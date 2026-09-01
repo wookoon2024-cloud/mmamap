@@ -223,12 +223,22 @@ def init_review_table(db_path: Path) -> None:
               id TEXT PRIMARY KEY,
               author TEXT NOT NULL DEFAULT '',
               content TEXT NOT NULL,
-              password_hash TEXT NOT NULL,
+              user_id TEXT DEFAULT '',
+              user_role TEXT DEFAULT '',
+              password_hash TEXT NOT NULL DEFAULT '',
               created_at INTEGER NOT NULL,
               updated_at INTEGER
             )
             """
         )
+        try:
+            conn.execute("ALTER TABLE review_posts ADD COLUMN user_id TEXT DEFAULT ''")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE review_posts ADD COLUMN user_role TEXT DEFAULT ''")
+        except Exception:
+            pass
         conn.execute("CREATE INDEX IF NOT EXISTS idx_review_posts_created_at ON review_posts (created_at DESC)")
         conn.commit()
     finally:
@@ -1815,10 +1825,13 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self._json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
 
     def _serialize_row(self, row: sqlite3.Row) -> dict:
+        keys = row.keys() if hasattr(row, "keys") else []
         return {
             "id": row["id"],
             "author": row["author"],
             "content": row["content"],
+            "userId": row["user_id"] if "user_id" in keys else "",
+            "userRole": row["user_role"] if "user_role" in keys else "",
             "createdAt": int(row["created_at"] or 0),
             "updatedAt": int(row["updated_at"] or 0),
         }
@@ -1842,7 +1855,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             total = conn.execute("SELECT COUNT(*) AS cnt FROM review_posts").fetchone()["cnt"]
             rows = conn.execute(
                 """
-                SELECT id, author, content, created_at, updated_at
+                SELECT id, author, content, user_id, user_role, created_at, updated_at
                 FROM review_posts
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
@@ -1868,7 +1881,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         conn = self._db()
         try:
             row = conn.execute(
-                "SELECT id, author, content, created_at, updated_at FROM review_posts WHERE id = ?",
+                "SELECT id, author, content, user_id, user_role, created_at, updated_at FROM review_posts WHERE id = ?",
                 (review_id,),
             ).fetchone()
         finally:
@@ -1879,27 +1892,33 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self._json(HTTPStatus.OK, {"item": self._serialize_row(row)})
 
     def _handle_create_review(self):
+        user = self._get_auth_user()
+        if not user:
+            self._json(HTTPStatus.UNAUTHORIZED, {"error": "로그인 후 후기를 작성할 수 있습니다."})
+            return
+
         body = self._read_json_body()
-        author = str(body.get("author", "")).strip()[:20]
+        author = str(user.get("nickname") or user.get("email") or body.get("author", "")).strip()[:20]
         content = str(body.get("content", "")).strip()[:500]
         password = str(body.get("password", "")).strip()[:20]
         if not content:
             self._json(HTTPStatus.BAD_REQUEST, {"error": "후기 내용을 입력해 주세요."})
             return
-        if not password:
-            self._json(HTTPStatus.BAD_REQUEST, {"error": "비밀번호를 입력해 주세요."})
-            return
 
+        user_id = user.get("id") or ""
+        user_role = user.get("role") or "general"
         review_id = f"rb_{uuid.uuid4().hex}"
         created_at = now_ms()
+        password_hash = make_password_hash(password) if password else ""
+
         conn = self._db()
         try:
             conn.execute(
                 """
-                INSERT INTO review_posts (id, author, content, password_hash, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NULL)
+                INSERT INTO review_posts (id, author, content, user_id, user_role, password_hash, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
                 """,
-                (review_id, author, content, make_password_hash(password), created_at),
+                (review_id, author, content, user_id, user_role, password_hash, created_at),
             )
             conn.commit()
         finally:
@@ -1907,7 +1926,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
         self._json(
             HTTPStatus.CREATED,
-            {"ok": True, "item": {"id": review_id, "author": author, "content": content, "createdAt": created_at, "updatedAt": 0}},
+            {"ok": True, "item": {"id": review_id, "author": author, "content": content, "userId": user_id, "userRole": user_role, "createdAt": created_at, "updatedAt": 0}},
         )
 
     def _verify_password(self, review_id: str, password: str):
@@ -1936,6 +1955,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self._json(HTTPStatus.OK, {"ok": True})
 
     def _handle_update_review(self, review_id: str):
+        user = self._get_auth_user()
         body = self._read_json_body()
         author = str(body.get("author", "")).strip()[:20]
         content = str(body.get("content", "")).strip()[:500]
@@ -1944,20 +1964,26 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         if not content:
             self._json(HTTPStatus.BAD_REQUEST, {"error": "후기 내용을 입력해 주세요."})
             return
-        if not current_password:
-            self._json(HTTPStatus.BAD_REQUEST, {"error": "비밀번호 확인이 필요합니다."})
-            return
-        ok, status = self._verify_password(review_id, current_password)
-        if status == "not_found":
-            self._json(HTTPStatus.NOT_FOUND, {"error": "해당 후기를 찾을 수 없습니다."})
-            return
-        if not ok:
-            self._json(HTTPStatus.UNAUTHORIZED, {"error": "비밀번호가 일치하지 않습니다."})
-            return
 
-        updated_at = now_ms()
         conn = self._db()
         try:
+            row = conn.execute("SELECT user_id, password_hash FROM review_posts WHERE id = ?", (review_id,)).fetchone()
+            if not row:
+                self._json(HTTPStatus.NOT_FOUND, {"error": "해당 후기를 찾을 수 없습니다."})
+                return
+
+            keys = row.keys() if hasattr(row, "keys") else []
+            post_user_id = str(row["user_id"]) if "user_id" in keys and row["user_id"] else ""
+            is_admin = user and user.get("role") == "admin"
+            is_owner = user and post_user_id and str(user.get("id")) == post_user_id
+
+            if not is_admin and not is_owner:
+                if not current_password or not verify_password_hash(current_password, str(row["password_hash"] or "")):
+                    self._json(HTTPStatus.FORBIDDEN, {"error": "본인이 작성한 글만 수정할 수 있습니다."})
+                    return
+
+            updated_at = now_ms()
+            final_author = author or (user.get("nickname") if user else "") or "익명"
             if new_password:
                 conn.execute(
                     """
@@ -1965,7 +1991,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                     SET author = ?, content = ?, password_hash = ?, updated_at = ?
                     WHERE id = ?
                     """,
-                    (author, content, make_password_hash(new_password), updated_at, review_id),
+                    (final_author, content, make_password_hash(new_password), updated_at, review_id),
                 )
             else:
                 conn.execute(
@@ -1974,7 +2000,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                     SET author = ?, content = ?, updated_at = ?
                     WHERE id = ?
                     """,
-                    (author, content, updated_at, review_id),
+                    (final_author, content, updated_at, review_id),
                 )
             conn.commit()
         finally:
@@ -1982,21 +2008,27 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self._json(HTTPStatus.OK, {"ok": True})
 
     def _handle_delete_review(self, review_id: str):
+        user = self._get_auth_user()
         body = self._read_json_body()
         password = str(body.get("password", "")).strip()[:20]
-        if not password:
-            self._json(HTTPStatus.BAD_REQUEST, {"error": "비밀번호를 입력해 주세요."})
-            return
-        ok, status = self._verify_password(review_id, password)
-        if status == "not_found":
-            self._json(HTTPStatus.NOT_FOUND, {"error": "해당 후기를 찾을 수 없습니다."})
-            return
-        if not ok:
-            self._json(HTTPStatus.UNAUTHORIZED, {"error": "비밀번호가 일치하지 않습니다."})
-            return
 
         conn = self._db()
         try:
+            row = conn.execute("SELECT user_id, password_hash FROM review_posts WHERE id = ?", (review_id,)).fetchone()
+            if not row:
+                self._json(HTTPStatus.NOT_FOUND, {"error": "해당 후기를 찾을 수 없습니다."})
+                return
+
+            keys = row.keys() if hasattr(row, "keys") else []
+            post_user_id = str(row["user_id"]) if "user_id" in keys and row["user_id"] else ""
+            is_admin = user and user.get("role") == "admin"
+            is_owner = user and post_user_id and str(user.get("id")) == post_user_id
+
+            if not is_admin and not is_owner:
+                if not password or not verify_password_hash(password, str(row["password_hash"] or "")):
+                    self._json(HTTPStatus.FORBIDDEN, {"error": "본인이 작성한 글만 삭제할 수 있습니다."})
+                    return
+
             conn.execute("DELETE FROM review_posts WHERE id = ?", (review_id,))
             conn.commit()
         finally:

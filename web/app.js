@@ -531,10 +531,15 @@ async function bootstrap() {
     return Boolean(data?.ok);
   };
 
+  const getReviewAuthHeaders = () => {
+    const token = window.MMAAuth?.token || localStorage.getItem("mma_map_auth_token_v1") || "";
+    return token ? { "Authorization": `Bearer ${token}` } : {};
+  };
+
   const createReviewPost = async ({ author, content, password }) => {
     const res = await fetch(REVIEW_API_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getReviewAuthHeaders() },
       body: JSON.stringify({ author, content, password }),
     });
     const data = await readJsonSafe(res);
@@ -545,7 +550,7 @@ async function bootstrap() {
   const updateReviewPost = async ({ postId, author, content, currentPassword, newPassword }) => {
     const res = await fetch(`${REVIEW_API_BASE}/${encodeURIComponent(postId)}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getReviewAuthHeaders() },
       body: JSON.stringify({ author, content, currentPassword, newPassword }),
     });
     const data = await readJsonSafe(res);
@@ -556,7 +561,7 @@ async function bootstrap() {
   const deleteReviewPost = async ({ postId, password }) => {
     const res = await fetch(`${REVIEW_API_BASE}/${encodeURIComponent(postId)}`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getReviewAuthHeaders() },
       body: JSON.stringify({ password }),
     });
     const data = await readJsonSafe(res);
@@ -1086,6 +1091,27 @@ async function bootstrap() {
         const author = escapeHtml(String(target.author || "").trim() || "익명");
         const content = escapeHtml(String(target.content || "")).replace(/\n/g, "<br>");
         const date = escapeHtml(formatBoardDate(target.createdAt));
+
+        const currentUser = window.MMAAuth?.user;
+        const isAuthor = Boolean(
+          currentUser && (
+            (target.userId && String(target.userId) === String(currentUser.id)) ||
+            (target.author && currentUser.nickname && target.author === currentUser.nickname) ||
+            (target.author && currentUser.email && target.author === currentUser.email)
+          )
+        );
+        const isAdmin = Boolean(currentUser && currentUser.role === "admin");
+        const canModify = isAuthor || isAdmin;
+
+        const actionButtonsHtml = canModify
+          ? `
+            <div class="reviewCardActions">
+              <button id="detailReviewEditBtn" type="button" class="reviewActionBtn">수정</button>
+              <button id="detailReviewDeleteBtn" type="button" class="reviewActionBtn danger">삭제</button>
+            </div>
+          `
+          : "";
+
         hubPanelEl.innerHTML = `
           <div class="hubPanelTop">
             <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
@@ -1103,10 +1129,7 @@ async function bootstrap() {
                   <span>${date}</span>
                 </div>
                 <p>${content}</p>
-                <div class="reviewCardActions">
-                  <button id="detailReviewEditBtn" type="button" class="reviewActionBtn">수정</button>
-                  <button id="detailReviewDeleteBtn" type="button" class="reviewActionBtn danger">삭제</button>
-                </div>
+                ${actionButtonsHtml}
               </article>
             </section>
           </div>
@@ -1118,18 +1141,15 @@ async function bootstrap() {
         const editBtn = document.getElementById("detailReviewEditBtn");
         if (editBtn) {
           editBtn.addEventListener("click", async () => {
-            const confirmedPassword = await openReviewPasswordDialog((inputPw) => verifyReviewPassword(postId, inputPw));
-            if (!confirmedPassword) return;
-            renderBoardFormPage("edit", postId, confirmedPassword);
+            renderBoardFormPage("edit", postId, "");
           });
         }
         const deleteBtn = document.getElementById("detailReviewDeleteBtn");
         if (deleteBtn) {
           deleteBtn.addEventListener("click", async () => {
-            const confirmedPassword = await openReviewPasswordDialog((inputPw) => verifyReviewPassword(postId, inputPw));
-            if (!confirmedPassword) return;
+            if (!confirm("정말 이 후기를 삭제하시겠습니까?")) return;
             try {
-              await deleteReviewPost({ postId, password: confirmedPassword });
+              await deleteReviewPost({ postId, password: "" });
               await fetchReviewPosts();
               const nextTotalPages = Math.max(1, Math.ceil(reviewBoardPosts.length / REVIEW_PAGE_SIZE));
               if (reviewCurrentPage > nextTotalPages) reviewCurrentPage = nextTotalPages;
@@ -1204,7 +1224,16 @@ async function bootstrap() {
         const closeBtn = document.getElementById("hubPanelCloseBtn");
         if (closeBtn) closeBtn.addEventListener("click", closeHubPanel);
         const openWriteBtn = document.getElementById("openReviewWriteBtn");
-        if (openWriteBtn) openWriteBtn.addEventListener("click", () => renderBoardFormPage("create"));
+        if (openWriteBtn) {
+          openWriteBtn.addEventListener("click", () => {
+            if (!window.MMAAuth?.user) {
+              alert("후기 작성은 로그인 후 이용 가능합니다.");
+              window.MMAAuth?.openLoginModal();
+              return;
+            }
+            renderBoardFormPage("create");
+          });
+        }
         [...hubPanelEl.querySelectorAll(".reviewPageBtn")].forEach((btn) => {
           btn.addEventListener("click", () => {
             const pageNo = Number(btn.dataset.reviewPage || 1);
@@ -1235,7 +1264,10 @@ async function bootstrap() {
           renderBoardListPage();
           return;
         }
+        const currentUser = window.MMAAuth?.user;
+        const defaultAuthor = isEdit ? (target?.author || "") : (currentUser?.nickname || currentUser?.email || "익명");
         const titleText = isEdit ? "후기 수정" : "후기 등록";
+
         hubPanelEl.innerHTML = `
           <div class="hubPanelTop">
             <h3 class="hubPanelTitle">${escapeHtml(secondary.title)}</h3>
@@ -1247,15 +1279,14 @@ async function bootstrap() {
                 <h4>${titleText}</h4>
                 <button id="backReviewListBtn" type="button" class="reviewListBtn">목록으로</button>
               </div>
-              <p>등록 시 입력한 비밀번호는 수정/삭제할 때 필요합니다.</p>
+              <p style="margin-bottom: 8px; font-size: 12.5px; color: #64748b;">작성자: <strong>${escapeHtml(defaultAuthor)}</strong></p>
               <div class="reviewForm">
-                <input id="reviewAuthorInput" class="reviewInput" type="text" maxlength="20" placeholder="닉네임 (선택)" value="${escapeHtml(target?.author || (window.MMAAuth?.user?.nickname || ""))}" />
-                <textarea id="reviewContentInput" class="reviewTextarea" maxlength="500" placeholder="후기나 의견을 입력해 주세요.">${escapeHtml(target?.content || "")}</textarea>
-                <input id="reviewPasswordInput" class="reviewInput" type="password" maxlength="20" placeholder="${isEdit ? "새 비밀번호 입력 시 변경(선택)" : "비밀번호 (필수)"}" />
+                <input id="reviewAuthorInput" class="reviewInput" type="hidden" value="${escapeHtml(defaultAuthor)}" />
+                <textarea id="reviewContentInput" class="reviewTextarea" maxlength="500" placeholder="상생가게 이용 후기나 소중한 의견을 입력해 주세요.">${escapeHtml(target?.content || "")}</textarea>
                 ${isEdit ? "" : `
                   <label class="reviewConsentRow">
-                    <input id="reviewConsentCheck" type="checkbox" />
-                    <span>개인정보 수집·이용(게시판 운영 목적)에 동의합니다.</span>
+                    <input id="reviewConsentCheck" type="checkbox" checked />
+                    <span>게시판 운영 및 커뮤니티 가이드라인에 동의합니다.</span>
                   </label>
                 `}
                 <button id="reviewSubmitBtn" type="button" class="reviewSubmitBtn">${isEdit ? "수정완료" : "등록완료"}</button>
@@ -1272,23 +1303,17 @@ async function bootstrap() {
           submitBtn.addEventListener("click", async () => {
             const authorEl = document.getElementById("reviewAuthorInput");
             const contentEl = document.getElementById("reviewContentInput");
-            const passwordEl = document.getElementById("reviewPasswordInput");
             const consentEl = document.getElementById("reviewConsentCheck");
-            const author = String(authorEl?.value || "").trim().slice(0, 20);
+            const author = String(authorEl?.value || defaultAuthor).trim().slice(0, 20);
             const content = String(contentEl?.value || "").trim().slice(0, 500);
-            const password = String(passwordEl?.value || "").trim().slice(0, 20);
+
             if (!content) {
               alert("후기 또는 의견 내용을 입력해 주세요.");
               if (contentEl) contentEl.focus();
               return;
             }
-            if (!isEdit && !password) {
-              alert("수정/삭제용 비밀번호를 입력해 주세요.");
-              if (passwordEl) passwordEl.focus();
-              return;
-            }
             if (!isEdit && consentEl && !consentEl.checked) {
-              alert("개인정보 수집·이용 동의 후 등록할 수 있습니다.");
+              alert("커뮤니티 가이드라인에 동의 후 등록할 수 있습니다.");
               consentEl.focus();
               return;
             }
@@ -1300,10 +1325,9 @@ async function bootstrap() {
                   author,
                   content,
                   currentPassword: confirmedPassword,
-                  newPassword: password,
                 });
               } else {
-                await createReviewPost({ author, content, password });
+                await createReviewPost({ author, content });
                 reviewCurrentPage = 1;
               }
               await fetchReviewPosts();
