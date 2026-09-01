@@ -1624,27 +1624,26 @@ async function bootstrap() {
     const projection = map.getProjection?.();
     const markerPx = projection?.fromCoordToOffset?.(latLng);
     if (!markerPx) return;
+
+    const mapEl = map.getElement?.();
+    const mapRect = mapEl ? mapEl.getBoundingClientRect() : { left: 0, top: 0 };
+
     const markerHalfHeight = 35;
     const markerGap = 10;
-    const markerTopY = markerPx.y - markerHalfHeight;
-    const desiredLeft = Math.round(markerPx.x);
-    const desiredBottom = Math.round(markerTopY - markerGap);
-    detailPanelEl.style.left = `${desiredLeft}px`;
-    detailPanelEl.style.top = `${desiredBottom}px`;
+    const screenX = Math.round(mapRect.left + markerPx.x);
+    const screenY = Math.round(mapRect.top + markerPx.y - markerHalfHeight - markerGap);
+
+    detailPanelEl.style.left = `${screenX}px`;
+    detailPanelEl.style.top = `${screenY}px`;
     detailPanelEl.style.transform = "translate(-50%, -100%)";
   };
 
   const openDetailAfterMapMove = (point, latLng) => {
-    isMarkerRepositioning = true;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
-    const targetId = getFacilityKey(point);
     openDetailInfo(point, selectedDetailAnchor);
-    moveMarkerToLowerArea(latLng, () => {
-      isMarkerRepositioning = false;
-      if (selectedFacilityId !== targetId) return;
-      if (!ENABLE_DETAIL_PANEL) return;
-      placeDetailPanelAboveMarker(selectedDetailAnchor);
-    });
+    if (map.panTo) {
+      map.panTo(latLng);
+    }
   };
 
   let currentPrintPoint = null;
@@ -2958,6 +2957,12 @@ async function bootstrap() {
       
       if (currentPrintPoint) renderPrintTemplate(currentPrintPoint, currentPrintTemplate);
     });
+  });
+
+  naver.maps.Event.addListener(map, "bounds_changed", () => {
+    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
+    }
   });
 
   naver.maps.Event.addListener(map, "zoom_changed", () => {
