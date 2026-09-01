@@ -2150,6 +2150,7 @@ button:active {
 }
 
 .printModal {
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   background: #ffffff;
   border-radius: 18px;
   width: 900px;
@@ -2185,6 +2186,7 @@ button:active {
 }
 
 .printBadge {
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: #2563eb;
@@ -2196,9 +2198,11 @@ button:active {
 
 .printModalTitle {
   margin: 0;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
   font-size: 17px;
   font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.3px;
 }
 
 .printModalCloseBtn {
@@ -2237,11 +2241,13 @@ button:active {
   border: 0;
   border-bottom: 3px solid transparent;
   border-radius: 0;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: #64748b;
   cursor: pointer;
   transition: all 0.15s ease;
+  letter-spacing: -0.2px;
 }
 
 .printTabBtn:hover {
@@ -2298,6 +2304,7 @@ button:active {
 }
 
 .printBtnSecondary {
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
   padding: 8px 18px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -2313,6 +2320,7 @@ button:active {
 }
 
 .printBtnPrimary {
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
   padding: 8px 24px;
   background: #1e3a8a;
   border: 1px solid #172554;
