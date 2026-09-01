@@ -177,31 +177,68 @@ async def capture_map(page, facility_id, port=8080):
         await page.screenshot(path=str(map_path))
     return map_path
 
+def deg2num(lat_deg, lon_deg, zoom):
+    lat_rad = math.radians(lat_deg)
+    n = 2.0 ** zoom
+    xtile = (lon_deg + 180.0) / 360.0 * n
+    ytile = (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n
+    return xtile, ytile
+
 def create_stylized_pillow_map(store, width=680, height=440):
-    img = Image.new("RGBA", (width, height), "#F1F5F9")
-    draw = ImageDraw.Draw(img)
+    lat = store.get("lat") or 37.5665
+    lng = store.get("lng") or 126.9780
+    zoom = 16
 
     font_bold_path, font_reg_path = get_font_paths()
 
-    # Grid & roads
-    for x in range(0, width, 40):
-        draw.line([(x, 0), (x, height)], fill="#E2E8F0", width=1)
-    for y in range(0, height, 40):
-        draw.line([(0, y), (width, y)], fill="#E2E8F0", width=1)
-
-    draw.line([(0, height * 0.45), (width, height * 0.55)], fill="#CBD5E1", width=14)
-    draw.line([(width * 0.4, 0), (width * 0.5, height)], fill="#CBD5E1", width=12)
-
+    # 1. Fetch real map tile stitch
+    center_x, center_y = deg2num(lat, lng, zoom)
+    tile_size = 256
+    min_tx = int(center_x) - 2
+    max_tx = int(center_x) + 2
+    min_ty = int(center_y) - 1
+    max_ty = int(center_y) + 1
+    
+    stitched_w = (max_tx - min_tx + 1) * tile_size
+    stitched_h = (max_ty - min_ty + 1) * tile_size
+    canvas = Image.new("RGBA", (stitched_w, stitched_h), "#F1F5F9")
+    
+    headers = {"User-Agent": "MMAMapApp/1.0 (https://mmamap-seven.vercel.app; contact@mmamap.org)"}
+    
+    for tx in range(min_tx, max_tx + 1):
+        for ty in range(min_ty, max_ty + 1):
+            url = f"https://tile.openstreetmap.org/{zoom}/{tx}/{ty}.png"
+            try:
+                r = requests.get(url, headers=headers, verify=False, timeout=1.5)
+                if r.status_code == 200:
+                    tile_img = Image.open(BytesIO(r.content)).convert("RGBA")
+                    px = (tx - min_tx) * tile_size
+                    py = (ty - min_ty) * tile_size
+                    canvas.paste(tile_img, (px, py))
+            except Exception:
+                pass
+                
+    cx_px = int((center_x - min_tx) * tile_size)
+    cy_px = int((center_y - min_ty) * tile_size)
+    
+    crop_x1 = max(0, cx_px - width // 2)
+    crop_y1 = max(0, cy_px - height // 2)
+    img = canvas.crop((crop_x1, crop_y1, crop_x1 + width, crop_y1 + height))
+    
+    overlay = Image.new("RGBA", (width, height), (255, 255, 255, 25))
+    img.paste(overlay, (0, 0), overlay)
+    
+    draw = ImageDraw.Draw(img)
     cx, cy = width // 2, height // 2
 
     # Radius rings
-    draw.ellipse([cx - 160, cy - 110, cx + 160, cy + 110], outline="#93C5FD", width=2)
-    draw.ellipse([cx - 80, cy - 55, cx + 80, cy + 55], outline="#60A5FA", width=2)
-    draw.text((cx + 85, cy - 55), "500m", fill="#3B82F6", font=get_font(font_bold_path, 11, True))
+    draw.ellipse([cx - 160, cy - 110, cx + 160, cy + 110], outline="#3B82F6", width=2)
+    draw.ellipse([cx - 80, cy - 55, cx + 80, cy + 55], outline="#2563EB", width=2)
+    draw.text((cx + 85, cy - 55), "500m", fill="#1D4ED8", font=get_font(font_bold_path, 11, True))
 
     # Center Pin
-    draw.ellipse([cx - 24, cy - 24, cx + 24, cy + 24], fill=(239, 68, 68, 60))
-    draw.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill="#EF4444", outline="#FFFFFF", width=3)
+    draw.ellipse([cx - 24, cy - 24, cx + 24, cy + 24], fill=(239, 68, 68, 70))
+    draw.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill="#DC2626", outline="#FFFFFF", width=3)
     draw.text((cx, cy), "★", fill="#FFFFFF", font=get_font(font_bold_path, 14, True), anchor="mm")
 
     # Center Title Pill
@@ -211,11 +248,11 @@ def create_stylized_pillow_map(store, width=680, height=440):
     px1 = cx - pill_w // 2
     py1 = cy - 52
     draw.rounded_rectangle([px1, py1, px1 + pill_w, py1 + pill_h], radius=8, fill="#1E3A8A", outline="#FFFFFF", width=2)
-    draw.text((cx, py1 + pill_h // 2), f"📍 {title}", fill="#FFFFFF", font=get_font(font_bold_path, 13, True), anchor="mm")
+    draw.text((cx, py1 + pill_h // 2), title, fill="#FFFFFF", font=get_font(font_bold_path, 13, True), anchor="mm")
 
     # Bottom notice bar
-    draw.rounded_rectangle([15, height - 36, width - 15, height - 10], radius=6, fill=(255, 255, 255, 235), outline="#CBD5E1", width=1)
-    draw.text((width // 2, height - 23), "📱 QR 스캔 시 스마트폰에서 실시간 상생지도가 열립니다.", fill="#475569", font=get_font(font_bold_path, 12, True), anchor="mm")
+    draw.rounded_rectangle([15, height - 36, width - 15, height - 10], radius=6, fill=(255, 255, 255, 240), outline="#CBD5E1", width=1)
+    draw.text((width // 2, height - 23), "QR 스캔 시 스마트폰에서 실시간 상생지도가 열립니다.", fill="#334155", font=get_font(font_bold_path, 12, True), anchor="mm")
 
     return img
 

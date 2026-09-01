@@ -176,58 +176,103 @@ def get_store_and_neighbors(facility_id):
     neighbors.sort(key=lambda x: x[1])
     return target, neighbors[:5]
 
+def deg2num(lat_deg, lon_deg, zoom):
+    lat_rad = math.radians(lat_deg)
+    n = 2.0 ** zoom
+    xtile = (lon_deg + 180.0) / 360.0 * n
+    ytile = (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n
+    return xtile, ytile
+
 def create_stylized_pillow_map(store, neighbors, width=880, height=550):
-    img = Image.new("RGBA", (width, height), "#F1F5F9")
-    draw = ImageDraw.Draw(img)
-
+    lat = store.get("lat") or 37.5665
+    lng = store.get("lng") or 126.9780
+    zoom = 16
+    
     font_bold_path, font_reg_path = get_font_paths()
+    font_badge = get_font(font_bold_path, 12, True)
+    font_label = get_font(font_bold_path, 13, True)
 
-    # 1. Subtle background grid & road patterns
-    for x in range(0, width, 40):
-        draw.line([(x, 0), (x, height)], fill="#E2E8F0", width=1)
-    for y in range(0, height, 40):
-        draw.line([(0, y), (width, y)], fill="#E2E8F0", width=1)
-
-    # Main stylized roads
-    draw.line([(0, height * 0.45), (width, height * 0.55)], fill="#CBD5E1", width=16)
-    draw.line([(width * 0.35, 0), (width * 0.45, height)], fill="#CBD5E1", width=14)
-    draw.line([(0, height * 0.7), (width, height * 0.3)], fill="#E2E8F0", width=8)
-
+    # 1. Fetch real map tile stitch
+    center_x, center_y = deg2num(lat, lng, zoom)
+    tile_size = 256
+    min_tx = int(center_x) - 2
+    max_tx = int(center_x) + 2
+    min_ty = int(center_y) - 1
+    max_ty = int(center_y) + 1
+    
+    stitched_w = (max_tx - min_tx + 1) * tile_size
+    stitched_h = (max_ty - min_ty + 1) * tile_size
+    canvas = Image.new("RGBA", (stitched_w, stitched_h), "#F1F5F9")
+    
+    headers = {"User-Agent": "MMAMapApp/1.0 (https://mmamap-seven.vercel.app; contact@mmamap.org)"}
+    
+    for tx in range(min_tx, max_tx + 1):
+        for ty in range(min_ty, max_ty + 1):
+            url = f"https://tile.openstreetmap.org/{zoom}/{tx}/{ty}.png"
+            try:
+                r = requests.get(url, headers=headers, verify=False, timeout=1.5)
+                if r.status_code == 200:
+                    tile_img = Image.open(BytesIO(r.content)).convert("RGBA")
+                    px = (tx - min_tx) * tile_size
+                    py = (ty - min_ty) * tile_size
+                    canvas.paste(tile_img, (px, py))
+            except Exception:
+                pass
+                
+    cx_px = int((center_x - min_tx) * tile_size)
+    cy_px = int((center_y - min_ty) * tile_size)
+    
+    crop_x1 = max(0, cx_px - width // 2)
+    crop_y1 = max(0, cy_px - height // 2)
+    img = canvas.crop((crop_x1, crop_y1, crop_x1 + width, crop_y1 + height))
+    
+    # Soft overlay
+    overlay = Image.new("RGBA", (width, height), (255, 255, 255, 25))
+    img.paste(overlay, (0, 0), overlay)
+    
+    draw = ImageDraw.Draw(img)
     cx, cy = width // 2, height // 2
 
     # 2. Radius rings
-    draw.ellipse([cx - 200, cy - 140, cx + 200, cy + 140], outline="#93C5FD", width=2)
-    draw.ellipse([cx - 100, cy - 70, cx + 100, cy + 70], outline="#60A5FA", width=2)
-    draw.text((cx + 105, cy - 70), "500m", fill="#3B82F6", font=get_font(font_bold_path, 12, True))
-    draw.text((cx + 205, cy - 140), "1km 반경", fill="#2563EB", font=get_font(font_bold_path, 12, True))
+    draw.ellipse([cx - 220, cy - 150, cx + 220, cy + 150], outline="#3B82F6", width=2)
+    draw.ellipse([cx - 110, cy - 75, cx + 110, cy + 75], outline="#2563EB", width=2)
+    draw.text((cx + 115, cy - 75), "500m", fill="#1D4ED8", font=get_font(font_bold_path, 12, True))
+    draw.text((cx + 225, cy - 150), "1km 반경", fill="#1E40AF", font=get_font(font_bold_path, 12, True))
 
     # 3. Neighbor pins
-    font_badge = get_font(font_bold_path, 12, True)
-    font_pin_name = get_font(font_bold_path, 13, True)
-
-    angles = [-140, -40, 45, 130, 200]
-    radii = [150, 170, 130, 160, 180]
-
     for idx, item in enumerate(neighbors[:5]):
-        ang = math.radians(angles[idx % len(angles)])
-        r = radii[idx % len(radii)]
-        nx = int(cx + r * math.cos(ang))
-        ny = int(cy + (r * 0.7) * math.sin(ang))
-
-        # Pin circle
+        n_store = item[0] if isinstance(item, tuple) else item
+        n_lat = n_store.get("lat")
+        n_lng = n_store.get("lng")
+        
+        if n_lat and n_lng:
+            nx_tile, ny_tile = deg2num(n_lat, n_lng, zoom)
+            nx = int((nx_tile - min_tx) * tile_size) - crop_x1
+            ny = int((ny_tile - min_ty) * tile_size) - crop_y1
+        else:
+            ang = math.radians(-140 + idx * 70)
+            nx = int(cx + 160 * math.cos(ang))
+            ny = int(cy + 110 * math.sin(ang))
+            
+        nx = max(35, min(width - 35, nx))
+        ny = max(35, min(height - 35, ny))
+        
+        # Pin
         draw.ellipse([nx - 14, ny - 14, nx + 14, ny + 14], fill="#1E3A8A", outline="#FFFFFF", width=2)
         draw.text((nx, ny), str(idx + 1), fill="#FFFFFF", font=font_badge, anchor="mm")
-
-        # Pin label
-        n_title = (item[0].get("name") if isinstance(item, tuple) else item.get("name", "")) or f"이웃가게 {idx+1}"
-        if len(n_title) > 10:
-            n_title = n_title[:9] + ".."
-        draw.text((nx, ny + 20), n_title, fill="#1E293B", font=font_pin_name, anchor="mm")
+        
+        # Name Pill
+        name = n_store.get("name", f"이웃 {idx+1}")
+        if len(name) > 10:
+            name = name[:9] + ".."
+        pill_w = len(name) * 13 + 16
+        draw.rounded_rectangle([nx - pill_w//2, ny + 16, nx + pill_w//2, ny + 38], radius=6, fill=(255, 255, 255, 240), outline="#94A3B8", width=1)
+        draw.text((nx, ny + 27), name, fill="#0F172A", font=font_label, anchor="mm")
 
     # 4. Center Target Pin
-    draw.ellipse([cx - 30, cy - 30, cx + 30, cy + 30], fill=(239, 68, 68, 60))
-    draw.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], fill="#EF4444", outline="#FFFFFF", width=3)
-    draw.text((cx, cy), "★", fill="#FFFFFF", font=get_font(font_bold_path, 16, True), anchor="mm")
+    draw.ellipse([cx - 30, cy - 30, cx + 30, cy + 30], fill=(239, 68, 68, 70))
+    draw.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], fill="#DC2626", outline="#FFFFFF", width=3)
+    draw.text((cx, cy), "★", fill="#FFFFFF", font=get_font(font_bold_path, 15, True), anchor="mm")
 
     # Center Store Title Pill
     title = store.get("name") or "본 매장"
@@ -236,11 +281,11 @@ def create_stylized_pillow_map(store, neighbors, width=880, height=550):
     px1 = cx - pill_w // 2
     py1 = cy - 65
     draw.rounded_rectangle([px1, py1, px1 + pill_w, py1 + pill_h], radius=10, fill="#1E3A8A", outline="#FFFFFF", width=2)
-    draw.text((cx, py1 + pill_h // 2), f"📍 {title}", fill="#FFFFFF", font=get_font(font_bold_path, 15, True), anchor="mm")
+    draw.text((cx, py1 + pill_h // 2), title, fill="#FFFFFF", font=get_font(font_bold_path, 15, True), anchor="mm")
 
     # Bottom notice bar
-    draw.rounded_rectangle([20, height - 42, width - 20, height - 12], radius=8, fill=(255, 255, 255, 235), outline="#CBD5E1", width=1)
-    draw.text((width // 2, height - 27), "📱 상생지도 모바일 앱 & QR 스캔 시 주변 모든 혜택 매장이 실시간 연동됩니다.", fill="#475569", font=get_font(font_bold_path, 13, True), anchor="mm")
+    draw.rounded_rectangle([20, height - 38, width - 20, height - 10], radius=8, fill=(255, 255, 255, 240), outline="#CBD5E1", width=1)
+    draw.text((width // 2, height - 24), "상생지도 모바일 앱 & QR 스캔 시 주변 모든 혜택 매장이 실시간 연동됩니다.", fill="#334155", font=get_font(font_bold_path, 12, True), anchor="mm")
 
     return img
 
