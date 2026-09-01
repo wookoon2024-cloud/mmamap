@@ -1634,12 +1634,34 @@ async function bootstrap() {
     detailPanelEl.style.transform = "translate(-50%, -100%)";
   };
 
+  let pendingDetailPoint = null;
+
   const openDetailAfterMapMove = (point, latLng) => {
+    pendingDetailPoint = point;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
-    openDetailInfo(point, selectedDetailAnchor);
+    hideDetailPanelOnly();
+
+    let opened = false;
+    const triggerOpen = () => {
+      if (opened) return;
+      opened = true;
+      if (pendingDetailPoint && selectedFacilityId === getFacilityKey(pendingDetailPoint)) {
+        openDetailInfo(pendingDetailPoint, selectedDetailAnchor);
+        pendingDetailPoint = null;
+      }
+    };
+
+    naver.maps.Event.once(map, "idle", () => {
+      setTimeout(triggerOpen, 60);
+    });
+
     if (map.panTo) {
       map.panTo(latLng);
+    } else {
+      map.setCenter(latLng);
     }
+
+    setTimeout(triggerOpen, 350);
   };
 
   let currentPrintPoint = null;
