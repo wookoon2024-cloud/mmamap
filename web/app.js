@@ -2489,12 +2489,36 @@ async function bootstrap() {
       c.total += 1;
     }
 
-    const nextClusterMarkerMap = new Map();
+    const PROVINCE_REPRESENTATIVE_CENTERS = {
+      "서울": { lat: 37.5665, lng: 126.9780 },
+      "인천": { lat: 37.4563, lng: 126.6000 },
+      "경기": { lat: 37.2800, lng: 127.2200 },
+      "강원": { lat: 37.8228, lng: 128.2000 },
+      "충북": { lat: 36.6357, lng: 127.7000 },
+      "충남": { lat: 36.5184, lng: 126.8000 },
+      "대전": { lat: 36.3504, lng: 127.3845 },
+      "세종": { lat: 36.5500, lng: 127.2500 },
+      "전북": { lat: 35.7175, lng: 127.1530 },
+      "전남": { lat: 34.8100, lng: 126.8500 },
+      "광주": { lat: 35.1595, lng: 126.8526 },
+      "경북": { lat: 36.4500, lng: 128.6500 },
+      "대구": { lat: 35.8714, lng: 128.6014 },
+      "경남": { lat: 35.2383, lng: 128.4500 },
+      "부산": { lat: 35.1796, lng: 129.0756 },
+      "울산": { lat: 35.5384, lng: 129.3114 },
+      "제주": { lat: 33.3800, lng: 126.5312 },
+    };
 
     clusterMap.forEach((c, groupName) => {
-      const avgLat = c.lats.reduce((a, b) => a + b, 0) / c.lats.length;
-      const avgLng = c.lngs.reduce((a, b) => a + b, 0) / c.lngs.length;
-      const pos = new naver.maps.LatLng(avgLat, avgLng);
+      let centerLat, centerLng;
+      if (isProvinceLevel && PROVINCE_REPRESENTATIVE_CENTERS[groupName]) {
+        centerLat = PROVINCE_REPRESENTATIVE_CENTERS[groupName].lat;
+        centerLng = PROVINCE_REPRESENTATIVE_CENTERS[groupName].lng;
+      } else {
+        centerLat = c.lats.reduce((a, b) => a + b, 0) / c.lats.length;
+        centerLng = c.lngs.reduce((a, b) => a + b, 0) / c.lngs.length;
+      }
+      const pos = new naver.maps.LatLng(centerLat, centerLng);
       const key = `cluster_${isProvinceLevel ? 'prov' : 'city'}_${groupName}_${c.total}`;
 
       if (activeClusterMarkerMap.has(key)) {
