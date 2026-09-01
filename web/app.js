@@ -199,6 +199,19 @@ function inferRegionFromAddress(address, lat, lng) {
   return "";
 }
 
+function extractDistrictName(address, region) {
+  const addr = String(address || "").trim();
+  const m = addr.match(/([가-힣]+(?:특별시|광역시|특별자치시|도|특별자치도))\s*([가-힣]+[시군구])/);
+  if (m) {
+    let prov = m[1].replace(/특별시|광역시|특별자치시|특별자치도/g, "").replace(/도$/g, "");
+    let dist = m[2];
+    return `${prov} ${dist}`;
+  }
+  const m2 = addr.match(/([가-힣]+[시군구])/);
+  if (m2) return m2[1];
+  return region || "기타";
+}
+
 function normalizeRegion(rawRegion, address, lat, lng) {
   const region = String(rawRegion || "").trim();
   if (region) return region;
@@ -578,6 +591,7 @@ async function bootstrap() {
 
   let renderedMarkers = [];
   let activeMarkerMap = new Map();
+  let activeClusterMarkerMap = new Map();
   let initialBoundsListener = null;
   let renderTimer = null;
   let selectedCategory = "";
@@ -2365,8 +2379,122 @@ async function bootstrap() {
     }
   };
 
+  const renderDistrictClusters = (bounds) => {
+    const currentZoom = map.getZoom();
+    const isProvinceLevel = currentZoom <= 8;
+    const clusterMap = new Map();
+
+    for (const p of points) {
+      if (selectedCategory && toCategoryLabel(p.category || "") !== selectedCategory) continue;
+      if (selectedAudience) {
+        const aud = Array.isArray(p.audiences) ? p.audiences : [];
+        if (!aud.includes(selectedAudience)) continue;
+      }
+      if (!pointMatchRegion(p, selectedRegion)) continue;
+
+      const pos = new naver.maps.LatLng(p.lat, p.lng);
+      if (bounds && typeof bounds.hasLatLng === "function" && !bounds.hasLatLng(pos)) continue;
+
+      let groupName = "";
+      if (isProvinceLevel) {
+        groupName = p.region || inferRegionFromAddress(p.address, p.lat, p.lng) || "기타";
+      } else {
+        groupName = extractDistrictName(p.address, p.region);
+      }
+
+      if (!clusterMap.has(groupName)) {
+        clusterMap.set(groupName, {
+          name: groupName,
+          lats: [],
+          lngs: [],
+          naraCount: 0,
+          mmgCount: 0,
+          total: 0,
+        });
+      }
+      const c = clusterMap.get(groupName);
+      c.lats.push(p.lat);
+      c.lngs.push(p.lng);
+      if (p.sourceType === "nara_sarang_store") {
+        c.naraCount += 1;
+      } else {
+        c.mmgCount += 1;
+      }
+      c.total += 1;
+    }
+
+    const nextClusterMarkerMap = new Map();
+
+    clusterMap.forEach((c, groupName) => {
+      const avgLat = c.lats.reduce((a, b) => a + b, 0) / c.lats.length;
+      const avgLng = c.lngs.reduce((a, b) => a + b, 0) / c.lngs.length;
+      const pos = new naver.maps.LatLng(avgLat, avgLng);
+      const key = `cluster_${groupName}_${c.total}`;
+
+      if (activeClusterMarkerMap.has(key)) {
+        nextClusterMarkerMap.set(key, activeClusterMarkerMap.get(key));
+      } else {
+        const marker = new naver.maps.Marker({
+          position: pos,
+          map,
+          icon: {
+            content: `
+              <div class="districtClusterBadge">
+                <div class="districtClusterHead">
+                  <span class="districtClusterName">${escapeHtml(c.name)}</span>
+                  <span class="districtClusterTotal">${c.total}개소</span>
+                </div>
+                <div class="districtClusterBody">
+                  <span class="clusterTag nara">🎖️ 나라사랑 <b>${c.naraCount}</b></span>
+                  <span class="clusterTag mmg">🏛️ 명문가 <b>${c.mmgCount}</b></span>
+                </div>
+              </div>
+            `,
+            anchor: new naver.maps.Point(60, 24),
+          },
+          zIndex: 500,
+        });
+
+        naver.maps.Event.addListener(marker, "click", () => {
+          map.setCenter(pos);
+          const nextZoom = isProvinceLevel ? 11 : 13;
+          map.setZoom(nextZoom, true);
+          updateZoomLabel();
+        });
+
+        nextClusterMarkerMap.set(key, marker);
+      }
+    });
+
+    activeClusterMarkerMap.forEach((marker, key) => {
+      if (!nextClusterMarkerMap.has(key)) {
+        marker.setMap(null);
+      }
+    });
+    activeClusterMarkerMap = nextClusterMarkerMap;
+
+    // Clear individual store markers in cluster view
+    activeMarkerMap.forEach((marker) => marker.setMap(null));
+    activeMarkerMap.clear();
+    renderedMarkers = [];
+  };
+
   const renderVisibleMarkers = () => {
     const bounds = map.getBounds();
+    const currentZoom = map.getZoom();
+
+    // In zoom level <= 11 (Overview & District view), show district aggregation clusters
+    if (currentZoom <= 11) {
+      renderDistrictClusters(bounds);
+      return;
+    }
+
+    // In zoom level >= 12, clear district clusters and render individual markers
+    if (activeClusterMarkerMap.size > 0) {
+      activeClusterMarkerMap.forEach((marker) => marker.setMap(null));
+      activeClusterMarkerMap.clear();
+    }
+
     const visible = [];
     const selectedBeforeRender = selectedFacilityId;
     const MAX_MARKERS = 700;
@@ -2745,7 +2873,11 @@ async function bootstrap() {
   // Sidebar real-time search box handler
   const performKeywordSearch = (query) => {
     if (!query) return;
-    const lowerQuery = query.toLowerCase();
+    const lowerQuery = query.toLowerCase().trim();
+
+    // Reset region filter so nationwide / cross-district search works seamlessly
+    selectedRegion = "";
+    if (regionSelectEl) regionSelectEl.value = "";
 
     // 1. Exact Store Title Match ONLY (100% 일치할 때만 단일 상점 포커스)
     const exactTitleMatch = points.find((p) => (p.title || "").toLowerCase() === lowerQuery);
@@ -2757,42 +2889,38 @@ async function bootstrap() {
       }
     }
 
-    // 2. Region / Address Match (지역명/주소 검색 시 해당 지역 전체 지도 이동)
-    const addrMatches = points.filter((p) => 
-      (p.address || "").toLowerCase().includes(lowerQuery) || 
-      (p.region || "").toLowerCase().includes(lowerQuery)
-    );
+    // 2. Station name normalization (e.g. "강남역" -> "강남", "종각역" -> "종각")
+    const cleanQuery = lowerQuery.replace(/역$/, "").trim();
 
-    if (addrMatches.length > 0) {
-      if (selectedFacilityId) hideDetailPanelOnly();
-      const avgLat = addrMatches.reduce((sum, p) => sum + p.lat, 0) / addrMatches.length;
-      const avgLng = addrMatches.reduce((sum, p) => sum + p.lng, 0) / addrMatches.length;
-      map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
-      map.setZoom(14, false);
-      updateZoomLabel();
-      renderVisibleMarkers();
-      setTimeout(() => renderVisibleMarkers(), 120);
-      return;
-    }
+    // 3. Search Address, Title, Category, Region, Subtitle, Benefit
+    const matches = points.filter((p) => {
+      const title = (p.title || "").toLowerCase();
+      const addr = (p.address || "").toLowerCase();
+      const region = (p.region || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      const sub = (p.subtitle || "").toLowerCase();
+      const benefit = (p.benefit || "").toLowerCase();
 
-    // 3. Partial Store Title / Category / Benefit Match
-    const partialMatches = points.filter((p) => 
-      (p.title || "").toLowerCase().includes(lowerQuery) ||
-      (p.category || "").toLowerCase().includes(lowerQuery) ||
-      (p.subtitle || "").toLowerCase().includes(lowerQuery) ||
-      (p.benefit || "").toLowerCase().includes(lowerQuery)
-    );
+      return (
+        title.includes(lowerQuery) || (cleanQuery && title.includes(cleanQuery)) ||
+        addr.includes(lowerQuery) || (cleanQuery && addr.includes(cleanQuery)) ||
+        region.includes(lowerQuery) || (cleanQuery && region.includes(cleanQuery)) ||
+        cat.includes(lowerQuery) ||
+        sub.includes(lowerQuery) ||
+        benefit.includes(lowerQuery)
+      );
+    });
 
-    if (partialMatches.length === 1) {
-      const key = getFacilityKey(partialMatches[0]);
+    if (matches.length === 1) {
+      const key = getFacilityKey(matches[0]);
       if (key) {
         focusFacility(key);
         return;
       }
-    } else if (partialMatches.length > 1) {
+    } else if (matches.length > 1) {
       if (selectedFacilityId) hideDetailPanelOnly();
-      const avgLat = partialMatches.reduce((sum, p) => sum + p.lat, 0) / partialMatches.length;
-      const avgLng = partialMatches.reduce((sum, p) => sum + p.lng, 0) / partialMatches.length;
+      const avgLat = matches.reduce((sum, p) => sum + p.lat, 0) / matches.length;
+      const avgLng = matches.reduce((sum, p) => sum + p.lng, 0) / matches.length;
       map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
       map.setZoom(14, false);
       updateZoomLabel();
