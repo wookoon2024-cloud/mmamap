@@ -1577,6 +1577,7 @@ async function bootstrap() {
 
     const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
     const endpoint = tplName === "poster" ? "print_poster" : (tplName === "table_stand" ? "print_stand" : "print_hanger");
+    const facilityId = point.facilityId || point.id || "";
     const sheetDims = {
       poster: { width: "424px", height: "600px", aspect: "1000 / 1414" },
       table_stand: { width: "380px", height: "546px", aspect: "800 / 1150" },
