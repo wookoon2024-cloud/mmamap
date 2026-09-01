@@ -1482,6 +1482,8 @@ async function bootstrap() {
     const targetId = getFacilityKey(point);
     moveMarkerToLowerArea(latLng, () => {
       isMarkerRepositioning = false;
+      renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 120);
       if (selectedFacilityId !== targetId) return;
       if (!ENABLE_DETAIL_PANEL) return;
       openDetailInfo(point, selectedDetailAnchor, selectedDetailScreenPoint);
@@ -1989,11 +1991,15 @@ async function bootstrap() {
     if (regionSelectEl) regionSelectEl.value = "";
     renderRankPanel();
 
+    const targetZoom = Math.max(map.getZoom(), 16);
+    if (map.getZoom() !== targetZoom) {
+      map.setZoom(targetZoom, false);
+      updateZoomLabel();
+    }
+
     const pos = new naver.maps.LatLng(target.lat, target.lng);
     openDetailAfterMapMove(target, pos);
-    map.setZoom(Math.max(map.getZoom(), 16), true);
-    updateZoomLabel();
-    scheduleRender();
+    renderVisibleMarkers();
   };
   window.focusFacility = focusFacility;
 
@@ -2763,9 +2769,10 @@ async function bootstrap() {
       const avgLat = addrMatches.reduce((sum, p) => sum + p.lat, 0) / addrMatches.length;
       const avgLng = addrMatches.reduce((sum, p) => sum + p.lng, 0) / addrMatches.length;
       map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
-      map.setZoom(14, true);
+      map.setZoom(14, false);
       updateZoomLabel();
-      scheduleRender();
+      renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 120);
       return;
     }
 
@@ -2788,9 +2795,10 @@ async function bootstrap() {
       const avgLat = partialMatches.reduce((sum, p) => sum + p.lat, 0) / partialMatches.length;
       const avgLng = partialMatches.reduce((sum, p) => sum + p.lng, 0) / partialMatches.length;
       map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
-      map.setZoom(14, true);
+      map.setZoom(14, false);
       updateZoomLabel();
-      scheduleRender();
+      renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 120);
       return;
     }
 
@@ -2802,9 +2810,10 @@ async function bootstrap() {
           const address = response.v2.addresses[0];
           const pos = new naver.maps.LatLng(address.y, address.x);
           map.setCenter(pos);
-          map.setZoom(14, true);
+          map.setZoom(14, false);
           updateZoomLabel();
-          scheduleRender();
+          renderVisibleMarkers();
+          setTimeout(() => renderVisibleMarkers(), 120);
         }
       });
     }
