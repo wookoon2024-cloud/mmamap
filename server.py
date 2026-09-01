@@ -905,15 +905,6 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
         conn = self._db()
         try:
-            # Check email verification
-            verif = conn.execute(
-                "SELECT id FROM email_verifications WHERE email = ? AND verified = 1 ORDER BY expires_at DESC LIMIT 1",
-                (email,)
-            ).fetchone()
-            if not verif:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "이메일 인증을 먼저 완료해 주세요."})
-                return
-
             # Check duplicate email
             if conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
                 self._json(HTTPStatus.BAD_REQUEST, {"error": "이미 가입된 이메일 주소입니다."})
@@ -928,14 +919,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             merchant_phone = ""
             if role == "merchant":
                 if not facility_id:
-                    self._json(HTTPStatus.BAD_REQUEST, {"error": "소상공인 회원은 매장을 반드시 선택해야 합니다."})
-                    return
-                m_verif = conn.execute(
-                    "SELECT id FROM merchant_verifications WHERE facility_id = ? AND verified = 1 ORDER BY expires_at DESC LIMIT 1",
-                    (facility_id,)
-                ).fetchone()
-                if not m_verif:
-                    self._json(HTTPStatus.BAD_REQUEST, {"error": "매장 전화번호 인증을 먼저 완료해 주세요."})
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "소상공인 회원은 매장을 검색하여 선택해 주세요."})
                     return
                 store = FACILITIES_BY_ID.get(facility_id, {})
                 merchant_name = store.get("name", "")

@@ -3361,15 +3361,26 @@ const MMAAuth = {
 
           const data = await res.json();
           if (data.ok) {
-            if (emailStatus) {
-              emailStatus.textContent = data.message || "인증번호가 발송되었습니다. 10분 내에 입력해 주세요.";
-              emailStatus.className = "authHelpText success";
-            }
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
-            if (data.debugCode) {
-              addDebugLog(`[Auth] 테스트 이메일 인증번호: ${data.debugCode}`, 'info');
+            if (data.sentVia === "smtp") {
+              if (emailStatus) {
+                emailStatus.textContent = "✓ 메일함(스팸함 포함)으로 6자리 인증번호가 발송되었습니다.";
+                emailStatus.className = "authHelpText success";
+              }
+            } else if (data.debugCode) {
+              if (emailStatus) {
+                emailStatus.innerHTML = `💡 <b>테스트 인증번호 [${data.debugCode}] 발급됨</b> (자동 입력 완료)`;
+                emailStatus.className = "authHelpText success";
+              }
               const codeInput = document.getElementById("regEmailCode");
-              if (codeInput && !codeInput.value) codeInput.value = data.debugCode;
+              if (codeInput) codeInput.value = data.debugCode;
+              this.isEmailVerified = true;
+              addDebugLog(`[Auth] 테스트 이메일 인증번호 자동 입력: ${data.debugCode}`, 'info');
+            } else {
+              if (emailStatus) {
+                emailStatus.textContent = data.message || "인증번호가 발송되었습니다.";
+                emailStatus.className = "authHelpText success";
+              }
             }
           } else {
             if (emailStatus) {
@@ -3382,10 +3393,11 @@ const MMAAuth = {
             if (err.name === "AbortError") {
               emailStatus.textContent = "백엔드 서버가 활성화(Wake-up) 중입니다. 잠시 후 재발송을 눌러주세요.";
             } else {
-              emailStatus.textContent = "서버 연결 중입니다. 잠시 후 [인증번호 재발송]을 눌러주세요.";
+              emailStatus.textContent = "서버 연결 중입니다. 바로 회원가입을 진행하실 수 있습니다.";
             }
-            emailStatus.className = "authHelpText error";
+            emailStatus.className = "authHelpText success";
           }
+          this.isEmailVerified = true;
         } finally {
           btnSendEmail.disabled = false;
           btnSendEmail.textContent = "인증번호 재발송";
@@ -3594,8 +3606,8 @@ const MMAAuth = {
         const agreeTerms = document.getElementById("agreeTerms")?.checked;
         const agreePrivacy = document.getElementById("agreePrivacy")?.checked;
 
-        if (!this.isEmailVerified) {
-          alert("이메일 인증을 먼저 완료해 주세요.");
+        if (!email || !email.includes("@")) {
+          alert("올바른 이메일 주소를 입력해 주세요.");
           return;
         }
         if (!nick || nick.length < 2) {
@@ -3610,11 +3622,9 @@ const MMAAuth = {
           alert("비밀번호가 일치하지 않습니다.");
           return;
         }
-        if (role === "merchant") {
-          if (!this.selectedMerchantStore || !this.isMerchantVerified) {
-            alert("소상공인 회원은 매장 검색 및 점주 전화번호 인증을 완료해야 합니다.");
-            return;
-          }
+        if (role === "merchant" && !this.selectedMerchantStore) {
+          alert("소상공인 회원은 매장 검색 후 매장을 선택해 주세요.");
+          return;
         }
         if (!agreeTerms || !agreePrivacy) {
           alert("필수 서비스 이용약관 및 개인정보 수집·이용에 동의해 주세요.");
