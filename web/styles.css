@@ -5031,16 +5031,18 @@ button:active {
 .brandLogo {
   top: 8px !important;
   left: 12px !important;
-  height: 36px !important;
+  height: 40px !important;
   display: flex !important;
   align-items: center !important;
   margin: 0 !important;
 }
 
 .brandLogo img {
-  height: 32px !important;
+  height: 38px !important;
   margin: 0 !important;
   width: auto !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
 }
 
 /* Tighter row gap for categories/audience lists */
