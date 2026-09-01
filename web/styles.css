@@ -2538,13 +2538,24 @@ button:active {
   background: #ffffff;
 }
 
+@keyframes profileDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* ============================================================
    USER PROFILE DROPDOWN POPOVER MENU
 ============================================================ */
 .userProfileDropdown {
   position: absolute;
   right: 0;
-  top: 44px;
+  top: 42px;
   width: 280px;
   border-radius: 16px;
   background: #ffffff;
@@ -2553,7 +2564,8 @@ button:active {
   font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
   z-index: 1200;
   overflow: hidden;
-  animation: hubModalCenterFadeIn 0.15s ease-out;
+  transform-origin: top right;
+  animation: profileDropdownFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .userProfileDropdown.hidden {
@@ -2752,7 +2764,7 @@ button:active {
 .favoritesPanel {
   position: absolute;
   right: 0;
-  top: 44px;
+  top: 42px;
   width: 320px;
   max-height: 420px;
   overflow: auto;
@@ -2761,6 +2773,8 @@ button:active {
   background: #fff;
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   z-index: 1200;
+  transform-origin: top right;
+  animation: profileDropdownFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .favoritesPanel.hidden {
