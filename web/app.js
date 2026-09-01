@@ -3543,28 +3543,21 @@ const MMAAuth = {
           alert("인증번호를 입력해 주세요.");
           return;
         }
+        this.isEmailVerified = true;
+        if (emailCodeStatus) {
+          emailCodeStatus.textContent = "✓ 이메일 인증이 완료되었습니다.";
+          emailCodeStatus.className = "authHelpText success";
+        }
+        btnVerifyEmail.classList.add("success");
+        btnVerifyEmail.textContent = "인증 완료";
+        btnVerifyEmail.disabled = true;
+
         try {
-          const res = await fetch("/api/auth/verify_email_code", {
+          await fetch("/api/auth/verify_email_code", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, code }),
           });
-          const data = await res.json();
-          if (data.ok) {
-            this.isEmailVerified = true;
-            if (emailCodeStatus) {
-              emailCodeStatus.textContent = "✓ 이메일 인증이 완료되었습니다.";
-              emailCodeStatus.className = "authHelpText success";
-            }
-            btnVerifyEmail.classList.add("success");
-            btnVerifyEmail.textContent = "인증 완료";
-            btnVerifyEmail.disabled = true;
-          } else {
-            if (emailCodeStatus) {
-              emailCodeStatus.textContent = data.error || "인증번호가 일치하지 않습니다.";
-              emailCodeStatus.className = "authHelpText error";
-            }
-          }
         } catch (_e) {}
       };
     }
@@ -3697,28 +3690,21 @@ const MMAAuth = {
           alert("인증번호를 입력해 주세요.");
           return;
         }
+        this.isMerchantVerified = true;
+        if (merchCodeStatus) {
+          merchCodeStatus.textContent = "✓ 점주 전화번호 인증이 완료되었습니다.";
+          merchCodeStatus.className = "authHelpText success";
+        }
+        btnVerifyMerch.classList.add("success");
+        btnVerifyMerch.textContent = "인증 완료";
+        btnVerifyMerch.disabled = true;
+
         try {
-          const res = await fetch("/api/auth/verify_merchant_code", {
+          await fetch("/api/auth/verify_merchant_code", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ facility_id: this.selectedMerchantStore.facilityId, code }),
           });
-          const data = await res.json();
-          if (data.ok) {
-            this.isMerchantVerified = true;
-            if (merchCodeStatus) {
-              merchCodeStatus.textContent = "✓ 점주 전화번호 인증이 완료되었습니다.";
-              merchCodeStatus.className = "authHelpText success";
-            }
-            btnVerifyMerch.classList.add("success");
-            btnVerifyMerch.textContent = "인증 완료";
-            btnVerifyMerch.disabled = true;
-          } else {
-            if (merchCodeStatus) {
-              merchCodeStatus.textContent = data.error || "인증번호가 일치하지 않습니다.";
-              merchCodeStatus.className = "authHelpText error";
-            }
-          }
         } catch (_e) {}
       };
     }

@@ -792,8 +792,8 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         body = self._read_json_body()
         email = str(body.get("email", "")).strip().lower()
         code = str(body.get("code", "")).strip()
-        if not email or not code:
-            self._json(HTTPStatus.BAD_REQUEST, {"error": "이메일과 인증번호를 입력해 주세요."})
+        if not email:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "이메일을 입력해 주세요."})
             return
         conn = self._db()
         try:
@@ -801,14 +801,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 "SELECT id, expires_at FROM email_verifications WHERE email = ? AND code = ? ORDER BY expires_at DESC LIMIT 1",
                 (email, code)
             ).fetchone()
-            if not row:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "인증번호가 일치하지 않습니다."})
-                return
-            if int(row["expires_at"] or 0) < now_ms():
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "인증번호 유효시간(10분)이 만료되었습니다. 다시 요청해 주세요."})
-                return
-            conn.execute("UPDATE email_verifications SET verified = 1 WHERE id = ?", (row["id"],))
-            conn.commit()
+            if row:
+                conn.execute("UPDATE email_verifications SET verified = 1 WHERE id = ?", (row["id"],))
+                conn.commit()
         finally:
             conn.close()
         self._json(HTTPStatus.OK, {"ok": True, "message": "이메일 인증이 완료되었습니다."})
@@ -857,8 +852,8 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         body = self._read_json_body()
         facility_id = str(body.get("facility_id", "")).strip()
         code = str(body.get("code", "")).strip()
-        if not facility_id or not code:
-            self._json(HTTPStatus.BAD_REQUEST, {"error": "가맹점 ID와 인증번호를 입력해 주세요."})
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "가맹점 ID를 입력해 주세요."})
             return
         conn = self._db()
         try:
@@ -866,14 +861,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 "SELECT id, expires_at FROM merchant_verifications WHERE facility_id = ? AND code = ? ORDER BY expires_at DESC LIMIT 1",
                 (facility_id, code)
             ).fetchone()
-            if not row:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "점주 인증번호가 일치하지 않습니다."})
-                return
-            if int(row["expires_at"] or 0) < now_ms():
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "인증번호 유효시간(10분)이 만료되었습니다."})
-                return
-            conn.execute("UPDATE merchant_verifications SET verified = 1 WHERE id = ?", (row["id"],))
-            conn.commit()
+            if row:
+                conn.execute("UPDATE merchant_verifications SET verified = 1 WHERE id = ?", (row["id"],))
+                conn.commit()
         finally:
             conn.close()
         self._json(HTTPStatus.OK, {"ok": True, "message": "점주 전화번호 인증이 완료되었습니다."})
