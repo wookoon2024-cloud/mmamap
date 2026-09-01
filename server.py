@@ -1,11 +1,16 @@
 import argparse
 import asyncio
 import base64
+import datetime
 import hashlib
 import hmac
 import json
 import os
+import random
+import re
+import secrets
 import sqlite3
+import time
 import uuid
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -17,10 +22,44 @@ BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
 DEFAULT_DB_PATH = BASE_DIR / "outputs" / "military_benefits.db"
 
+FACILITIES_BY_ID = {}
+FACILITIES_LIST = []
+
+
+def load_facilities_data():
+    global FACILITIES_BY_ID, FACILITIES_LIST
+    json_path = WEB_DIR / "data" / "benefits_map.json"
+    if json_path.exists():
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                FACILITIES_LIST = data.get("facilities", [])
+                FACILITIES_BY_ID = {
+                    item.get("facility_id"): item
+                    for item in FACILITIES_LIST
+                    if item.get("facility_id")
+                }
+                print(f"[Server] Loaded {len(FACILITIES_BY_ID)} facilities for store verification.")
+        except Exception as e:
+            print(f"[Server] Error loading facilities json: {e}")
+
+
+def mask_phone(phone: str) -> str:
+    p = str(phone or "").strip()
+    if not p:
+        return "전화번호 미등록"
+    # e.g. 010-1234-5678 -> 010-****-5678
+    parts = p.split("-")
+    if len(parts) == 3:
+        return f"{parts[0]}-{'*' * len(parts[1])}-{parts[2]}"
+    if len(parts) == 2:
+        return f"{parts[0]}-{'*' * len(parts[1])}"
+    if len(p) >= 8:
+        return p[:3] + "****" + p[-4:]
+    return p[:2] + "**" + p[-2:] if len(p) > 4 else "**"
+
 
 def now_ms() -> int:
-    import time
-
     return int(time.time() * 1000)
 
 
@@ -244,6 +283,206 @@ def init_engagement_tables(db_path: Path) -> None:
         conn.close()
 
 
+def init_auth_tables(db_path: Path) -> None:
+    global _USE_POSTGRES
+    db_url = get_db_url()
+    if db_url and _USE_POSTGRES:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS users (
+                          id VARCHAR(255) PRIMARY KEY,
+                          email VARCHAR(255) UNIQUE NOT NULL,
+                          password_hash VARCHAR(255) NOT NULL,
+                          nickname VARCHAR(255) UNIQUE NOT NULL,
+                          role VARCHAR(50) NOT NULL DEFAULT 'general',
+                          email_verified INTEGER NOT NULL DEFAULT 0,
+                          merchant_facility_id VARCHAR(255),
+                          merchant_facility_name VARCHAR(255),
+                          merchant_phone VARCHAR(255),
+                          created_at BIGINT NOT NULL
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)")
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_users_nickname ON users (nickname)")
+
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS email_verifications (
+                          id VARCHAR(255) PRIMARY KEY,
+                          email VARCHAR(255) NOT NULL,
+                          code VARCHAR(10) NOT NULL,
+                          expires_at BIGINT NOT NULL,
+                          verified INTEGER NOT NULL DEFAULT 0
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_email_verif ON email_verifications (email, code)")
+
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS merchant_verifications (
+                          id VARCHAR(255) PRIMARY KEY,
+                          facility_id VARCHAR(255) NOT NULL,
+                          phone VARCHAR(50) NOT NULL,
+                          code VARCHAR(10) NOT NULL,
+                          expires_at BIGINT NOT NULL,
+                          verified INTEGER NOT NULL DEFAULT 0
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_merch_verif ON merchant_verifications (facility_id, code)")
+
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS user_sessions (
+                          token VARCHAR(255) PRIMARY KEY,
+                          user_id VARCHAR(255) NOT NULL,
+                          expires_at BIGINT NOT NULL,
+                          created_at BIGINT NOT NULL
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON user_sessions (user_id)")
+
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS user_favorites (
+                          user_id VARCHAR(255) NOT NULL,
+                          facility_id VARCHAR(255) NOT NULL,
+                          created_at BIGINT NOT NULL,
+                          PRIMARY KEY (user_id, facility_id)
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_fav_user ON user_favorites (user_id)")
+
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS user_likes (
+                          user_id VARCHAR(255) NOT NULL,
+                          facility_id VARCHAR(255) NOT NULL,
+                          created_at BIGINT NOT NULL,
+                          PRIMARY KEY (user_id, facility_id)
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_likes_user ON user_likes (user_id)")
+
+                    # Ensure qr_scan_events has source column
+                    try:
+                        cur.execute("ALTER TABLE qr_scan_events ADD COLUMN source VARCHAR(50) DEFAULT 'poster'")
+                    except Exception:
+                        conn.rollback()
+
+                    conn.commit()
+            finally:
+                conn.close()
+            return
+        except Exception as e:
+            print(f"[Server DB] Postgres init_auth_tables error: {e}, falling back to SQLite.")
+            _USE_POSTGRES = False
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+              id TEXT PRIMARY KEY,
+              email TEXT UNIQUE NOT NULL,
+              password_hash TEXT NOT NULL,
+              nickname TEXT UNIQUE NOT NULL,
+              role TEXT NOT NULL DEFAULT 'general',
+              email_verified INTEGER NOT NULL DEFAULT 0,
+              merchant_facility_id TEXT,
+              merchant_facility_name TEXT,
+              merchant_phone TEXT,
+              created_at INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_nickname ON users (nickname)")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS email_verifications (
+              id TEXT PRIMARY KEY,
+              email TEXT NOT NULL,
+              code TEXT NOT NULL,
+              expires_at INTEGER NOT NULL,
+              verified INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_email_verif ON email_verifications (email, code)")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS merchant_verifications (
+              id TEXT PRIMARY KEY,
+              facility_id TEXT NOT NULL,
+              phone TEXT NOT NULL,
+              code TEXT NOT NULL,
+              expires_at INTEGER NOT NULL,
+              verified INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_merch_verif ON merchant_verifications (facility_id, code)")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_sessions (
+              token TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL,
+              expires_at INTEGER NOT NULL,
+              created_at INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON user_sessions (user_id)")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_favorites (
+              user_id TEXT NOT NULL,
+              facility_id TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (user_id, facility_id)
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_fav_user ON user_favorites (user_id)")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_likes (
+              user_id TEXT NOT NULL,
+              facility_id TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (user_id, facility_id)
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_likes_user ON user_likes (user_id)")
+
+        # Ensure qr_scan_events has source column
+        try:
+            conn.execute("ALTER TABLE qr_scan_events ADD COLUMN source TEXT DEFAULT 'poster'")
+        except Exception:
+            pass
+
+        conn.commit()
+    finally:
+        conn.close()
+
+
 class MMAMapHandler(SimpleHTTPRequestHandler):
     db_path: Path = DEFAULT_DB_PATH
 
@@ -304,22 +543,597 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return ("toggle", "")
         return ("other", "")
 
+    def _get_bearer_token(self) -> str:
+        auth_header = self.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            return auth_header[7:].strip()
+        auth_token = self.headers.get("X-Auth-Token", "").strip()
+        if auth_token:
+            return auth_token
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        return (q.get("token") or [""])[0].strip()
+
+    def _get_auth_user(self, conn=None):
+        token = self._get_bearer_token()
+        if not token:
+            return None
+        close_conn = False
+        if conn is None:
+            conn = self._db()
+            close_conn = True
+        try:
+            row = conn.execute(
+                "SELECT user_id, expires_at FROM user_sessions WHERE token = ?",
+                (token,)
+            ).fetchone()
+            if not row or int(row["expires_at"] or 0) < now_ms():
+                return None
+            user_id = row["user_id"]
+            user_row = conn.execute(
+                """
+                SELECT id, email, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at
+                FROM users
+                WHERE id = ?
+                """,
+                (user_id,)
+            ).fetchone()
+            if not user_row:
+                return None
+            return {
+                "id": user_row["id"],
+                "email": user_row["email"],
+                "nickname": user_row["nickname"],
+                "role": user_row["role"],
+                "emailVerified": bool(user_row["email_verified"]),
+                "merchantFacilityId": user_row["merchant_facility_id"] or "",
+                "merchantFacilityName": user_row["merchant_facility_name"] or "",
+                "merchantPhone": user_row["merchant_phone"] or "",
+                "createdAt": int(user_row["created_at"] or 0),
+            }
+        finally:
+            if close_conn:
+                conn.close()
+
+    def _handle_auth_check_nickname(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        nickname = (q.get("nickname") or [""])[0].strip()
+        if not nickname:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "닉네임을 입력해 주세요."})
+            return
+        if len(nickname) < 2 or len(nickname) > 16:
+            self._json(HTTPStatus.OK, {"ok": True, "available": False, "message": "닉네임은 2~16자 사이로 입력해 주세요."})
+            return
+        conn = self._db()
+        try:
+            row = conn.execute("SELECT id FROM users WHERE nickname = ?", (nickname,)).fetchone()
+            available = row is None
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "available": available,
+            "nickname": nickname,
+            "message": "사용 가능한 닉네임입니다." if available else "이미 사용 중인 닉네임입니다."
+        })
+
+    def _handle_auth_check_email(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        email = (q.get("email") or [""])[0].strip().lower()
+        if not email or "@" not in email:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "올바른 이메일 주소를 입력해 주세요."})
+            return
+        conn = self._db()
+        try:
+            row = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            available = row is None
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "available": available,
+            "email": email,
+            "message": "가입 가능한 이메일입니다." if available else "이미 가입된 이메일입니다."
+        })
+
+    def _handle_auth_search_store(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        query = (q.get("q") or [""])[0].strip().lower()
+        if not query:
+            self._json(HTTPStatus.OK, {"ok": True, "stores": []})
+            return
+        results = []
+        for item in FACILITIES_LIST:
+            name = str(item.get("name", ""))
+            addr = str(item.get("address", ""))
+            cat = str(item.get("category", ""))
+            if query in name.lower() or query in addr.lower():
+                phone = str(item.get("phone", "")).strip()
+                results.append({
+                    "facilityId": item.get("facility_id", ""),
+                    "name": name,
+                    "address": addr,
+                    "category": cat,
+                    "maskedPhone": mask_phone(phone),
+                    "hasPhone": bool(phone),
+                })
+                if len(results) >= 20:
+                    break
+        self._json(HTTPStatus.OK, {"ok": True, "stores": results})
+
+    def _handle_auth_send_email_code(self):
+        body = self._read_json_body()
+        email = str(body.get("email", "")).strip().lower()
+        if not email or "@" not in email:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "올바른 이메일 주소를 입력해 주세요."})
+            return
+        
+        conn = self._db()
+        try:
+            dup = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+            if dup:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "이미 가입된 이메일 주소입니다."})
+                return
+            
+            code = f"{random.randint(100000, 999999)}"
+            verif_id = str(uuid.uuid4())
+            expires_at = now_ms() + (10 * 60 * 1000)
+            
+            conn.execute(
+                "INSERT INTO email_verifications (id, email, code, expires_at, verified) VALUES (?, ?, ?, ?, 0)",
+                (verif_id, email, code, expires_at)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+            
+        print(f"[Auth] Verification code [{code}] for [{email}]")
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "message": "인증번호가 발송되었습니다.",
+            "debugCode": code,
+        })
+
+    def _handle_auth_verify_email_code(self):
+        body = self._read_json_body()
+        email = str(body.get("email", "")).strip().lower()
+        code = str(body.get("code", "")).strip()
+        if not email or not code:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "이메일과 인증번호를 입력해 주세요."})
+            return
+        conn = self._db()
+        try:
+            row = conn.execute(
+                "SELECT id, expires_at FROM email_verifications WHERE email = ? AND code = ? ORDER BY expires_at DESC LIMIT 1",
+                (email, code)
+            ).fetchone()
+            if not row:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "인증번호가 일치하지 않습니다."})
+                return
+            if int(row["expires_at"] or 0) < now_ms():
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "인증번호 유효시간(10분)이 만료되었습니다. 다시 요청해 주세요."})
+                return
+            conn.execute("UPDATE email_verifications SET verified = 1 WHERE id = ?", (row["id"],))
+            conn.commit()
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "message": "이메일 인증이 완료되었습니다."})
+
+    def _handle_auth_send_merchant_code(self):
+        body = self._read_json_body()
+        facility_id = str(body.get("facility_id", "")).strip()
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "가맹점을 선택해 주세요."})
+            return
+        store = FACILITIES_BY_ID.get(facility_id)
+        if not store:
+            self._json(HTTPStatus.NOT_FOUND, {"error": "등록된 가맹점 정보를 찾을 수 없습니다."})
+            return
+        phone = str(store.get("phone", "")).strip()
+        if not phone:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "해당 가맹점의 공공데이터 전화번호가 등록되어 있지 않습니다. 관리자에게 문의해 주세요."})
+            return
+            
+        code = f"{random.randint(100000, 999999)}"
+        verif_id = str(uuid.uuid4())
+        expires_at = now_ms() + (10 * 60 * 1000)
+        
+        conn = self._db()
+        try:
+            conn.execute(
+                "INSERT INTO merchant_verifications (id, facility_id, phone, code, expires_at, verified) VALUES (?, ?, ?, ?, ?, 0)",
+                (verif_id, facility_id, phone, code, expires_at)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+            
+        masked = mask_phone(phone)
+        print(f"[Merchant Auth] Store [{store.get('name')}] Phone [{phone}] -> Code [{code}]")
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "facilityId": facility_id,
+            "storeName": store.get("name", ""),
+            "maskedPhone": masked,
+            "message": f"매장 대표번호({masked})로 인증번호가 발송되었습니다.",
+            "debugCode": code,
+        })
+
+    def _handle_auth_verify_merchant_code(self):
+        body = self._read_json_body()
+        facility_id = str(body.get("facility_id", "")).strip()
+        code = str(body.get("code", "")).strip()
+        if not facility_id or not code:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "가맹점 ID와 인증번호를 입력해 주세요."})
+            return
+        conn = self._db()
+        try:
+            row = conn.execute(
+                "SELECT id, expires_at FROM merchant_verifications WHERE facility_id = ? AND code = ? ORDER BY expires_at DESC LIMIT 1",
+                (facility_id, code)
+            ).fetchone()
+            if not row:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "점주 인증번호가 일치하지 않습니다."})
+                return
+            if int(row["expires_at"] or 0) < now_ms():
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "인증번호 유효시간(10분)이 만료되었습니다."})
+                return
+            conn.execute("UPDATE merchant_verifications SET verified = 1 WHERE id = ?", (row["id"],))
+            conn.commit()
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "message": "점주 전화번호 인증이 완료되었습니다."})
+
+    def _handle_auth_register(self):
+        body = self._read_json_body()
+        email = str(body.get("email", "")).strip().lower()
+        password = str(body.get("password", "")).strip()
+        nickname = str(body.get("nickname", "")).strip()
+        role = str(body.get("role", "general")).strip()
+        facility_id = str(body.get("facility_id", "")).strip()
+        terms_agreed = bool(body.get("terms_agreed", False))
+        privacy_agreed = bool(body.get("privacy_agreed", False))
+
+        if not terms_agreed or not privacy_agreed:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "필수 이용약관 및 개인정보 처리방침에 동의해 주세요."})
+            return
+        if not email or "@" not in email:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "올바른 이메일 주소를 입력해 주세요."})
+            return
+        if len(password) < 6:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "비밀번호는 최소 6자 이상으로 설정해 주세요."})
+            return
+        if len(nickname) < 2 or len(nickname) > 16:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "닉네임은 2~16자 사이로 입력해 주세요."})
+            return
+        if role not in {"general", "merchant"}:
+            role = "general"
+
+        conn = self._db()
+        try:
+            # Check email verification
+            verif = conn.execute(
+                "SELECT id FROM email_verifications WHERE email = ? AND verified = 1 ORDER BY expires_at DESC LIMIT 1",
+                (email,)
+            ).fetchone()
+            if not verif:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "이메일 인증을 먼저 완료해 주세요."})
+                return
+
+            # Check duplicate email
+            if conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "이미 가입된 이메일 주소입니다."})
+                return
+
+            # Check duplicate nickname
+            if conn.execute("SELECT id FROM users WHERE nickname = ?", (nickname,)).fetchone():
+                self._json(HTTPStatus.BAD_REQUEST, {"error": "이미 사용 중인 닉네임입니다."})
+                return
+
+            merchant_name = ""
+            merchant_phone = ""
+            if role == "merchant":
+                if not facility_id:
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "소상공인 회원은 매장을 반드시 선택해야 합니다."})
+                    return
+                m_verif = conn.execute(
+                    "SELECT id FROM merchant_verifications WHERE facility_id = ? AND verified = 1 ORDER BY expires_at DESC LIMIT 1",
+                    (facility_id,)
+                ).fetchone()
+                if not m_verif:
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "매장 전화번호 인증을 먼저 완료해 주세요."})
+                    return
+                store = FACILITIES_BY_ID.get(facility_id, {})
+                merchant_name = store.get("name", "")
+                merchant_phone = store.get("phone", "")
+
+            user_id = str(uuid.uuid4())
+            pw_hash = make_password_hash(password)
+            created_at = now_ms()
+
+            conn.execute(
+                """
+                INSERT INTO users (id, email, password_hash, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at)
+                VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+                """,
+                (user_id, email, pw_hash, nickname, role, facility_id if role == "merchant" else None, merchant_name, merchant_phone, created_at)
+            )
+
+            # Issue session token
+            token = secrets.token_hex(32)
+            token_expires = created_at + (30 * 86400 * 1000)
+            conn.execute(
+                "INSERT INTO user_sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+                (token, user_id, token_expires, created_at)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": email,
+                "nickname": nickname,
+                "role": role,
+                "merchantFacilityId": facility_id if role == "merchant" else "",
+                "merchantFacilityName": merchant_name,
+                "merchantPhone": merchant_phone,
+                "createdAt": created_at,
+            },
+            "message": "회원가입이 완료되었습니다!"
+        })
+
+    def _handle_auth_login(self):
+        body = self._read_json_body()
+        email = str(body.get("email", "")).strip().lower()
+        password = str(body.get("password", "")).strip()
+        if not email or not password:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "이메일과 비밀번호를 입력해 주세요."})
+            return
+        conn = self._db()
+        try:
+            row = conn.execute(
+                """
+                SELECT id, email, password_hash, nickname, role, email_verified, merchant_facility_id, merchant_facility_name, merchant_phone, created_at
+                FROM users
+                WHERE email = ?
+                """,
+                (email,)
+            ).fetchone()
+            if not row or not verify_password_hash(password, row["password_hash"]):
+                self._json(HTTPStatus.UNAUTHORIZED, {"error": "이메일 또는 비밀번호가 일치하지 않습니다."})
+                return
+
+            user_id = row["id"]
+            token = secrets.token_hex(32)
+            token_expires = now_ms() + (30 * 86400 * 1000)
+            conn.execute(
+                "INSERT INTO user_sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+                (token, user_id, token_expires, now_ms())
+            )
+            conn.commit()
+            user_data = {
+                "id": user_id,
+                "email": row["email"],
+                "nickname": row["nickname"],
+                "role": row["role"],
+                "emailVerified": bool(row["email_verified"]),
+                "merchantFacilityId": row["merchant_facility_id"] or "",
+                "merchantFacilityName": row["merchant_facility_name"] or "",
+                "merchantPhone": row["merchant_phone"] or "",
+                "createdAt": int(row["created_at"] or 0),
+            }
+        finally:
+            conn.close()
+
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "token": token,
+            "user": user_data,
+            "message": f"환영합니다, {user_data['nickname']}님!"
+        })
+
+    def _handle_auth_me(self):
+        user = self._get_auth_user()
+        if not user:
+            self._json(HTTPStatus.OK, {"ok": True, "authenticated": False, "user": None})
+            return
+        conn = self._db()
+        try:
+            fav_rows = conn.execute(
+                "SELECT facility_id FROM user_favorites WHERE user_id = ?",
+                (user["id"],)
+            ).fetchall()
+            favorites = [r["facility_id"] for r in fav_rows]
+
+            like_rows = conn.execute(
+                "SELECT facility_id FROM user_likes WHERE user_id = ?",
+                (user["id"],)
+            ).fetchall()
+            likes = [r["facility_id"] for r in like_rows]
+        finally:
+            conn.close()
+
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "authenticated": True,
+            "user": user,
+            "favorites": favorites,
+            "likes": likes,
+        })
+
+    def _handle_auth_logout(self):
+        token = self._get_bearer_token()
+        if token:
+            conn = self._db()
+            try:
+                conn.execute("DELETE FROM user_sessions WHERE token = ?", (token,))
+                conn.commit()
+            finally:
+                conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "message": "로그아웃되었습니다."})
+
+    def _handle_user_toggle_favorite(self):
+        user = self._get_auth_user()
+        if not user:
+            self._json(HTTPStatus.UNAUTHORIZED, {"error": "로그인이 필요한 기능입니다."})
+            return
+        body = self._read_json_body()
+        facility_id = str(body.get("facility_id", "")).strip()
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "facility_id is required"})
+            return
+        conn = self._db()
+        try:
+            existing = conn.execute(
+                "SELECT 1 FROM user_favorites WHERE user_id = ? AND facility_id = ?",
+                (user["id"], facility_id)
+            ).fetchone()
+            if existing:
+                conn.execute("DELETE FROM user_favorites WHERE user_id = ? AND facility_id = ?", (user["id"], facility_id))
+                active = False
+            else:
+                conn.execute("INSERT INTO user_favorites (user_id, facility_id, created_at) VALUES (?, ?, ?)", (user["id"], facility_id, now_ms()))
+                active = True
+            conn.commit()
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "facilityId": facility_id, "active": active})
+
+    def _handle_user_toggle_like(self):
+        user = self._get_auth_user()
+        if not user:
+            self._json(HTTPStatus.UNAUTHORIZED, {"error": "로그인이 필요한 기능입니다."})
+            return
+        body = self._read_json_body()
+        facility_id = str(body.get("facility_id", "")).strip()
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "facility_id is required"})
+            return
+        conn = self._db()
+        try:
+            existing = conn.execute(
+                "SELECT 1 FROM user_likes WHERE user_id = ? AND facility_id = ?",
+                (user["id"], facility_id)
+            ).fetchone()
+            if existing:
+                conn.execute("DELETE FROM user_likes WHERE user_id = ? AND facility_id = ?", (user["id"], facility_id))
+                active = False
+            else:
+                conn.execute("INSERT INTO user_likes (user_id, facility_id, created_at) VALUES (?, ?, ?)", (user["id"], facility_id, now_ms()))
+                active = True
+            conn.commit()
+        finally:
+            conn.close()
+        self._json(HTTPStatus.OK, {"ok": True, "facilityId": facility_id, "active": active})
+
+    def _handle_merchant_stats(self):
+        user = self._get_auth_user()
+        if not user or user.get("role") != "merchant" or not user.get("merchantFacilityId"):
+            self._json(HTTPStatus.FORBIDDEN, {"error": "소상공인(가맹점주) 회원 전용 페이지입니다."})
+            return
+        facility_id = user["merchantFacilityId"]
+        store = FACILITIES_BY_ID.get(facility_id, {})
+        conn = self._db()
+        try:
+            total_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ?",
+                (facility_id,)
+            ).fetchone()
+            total_scans = int(total_row["cnt"] or 0) if total_row else 0
+
+            # Today's start timestamp (local)
+            now = datetime.datetime.now()
+            today_start = int(datetime.datetime(now.year, now.month, now.day).timestamp() * 1000)
+            today_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND created_at >= ?",
+                (facility_id, today_start)
+            ).fetchone()
+            today_scans = int(today_row["cnt"] or 0) if today_row else 0
+
+            # This month's start timestamp
+            month_start = int(datetime.datetime(now.year, now.month, 1).timestamp() * 1000)
+            month_row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND created_at >= ?",
+                (facility_id, month_start)
+            ).fetchone()
+            month_scans = int(month_row["cnt"] or 0) if month_row else 0
+
+            # Daily stats for last 14 days
+            daily_list = []
+            for d in range(13, -1, -1):
+                day_date = (now - datetime.timedelta(days=d)).date()
+                day_start_ts = int(datetime.datetime(day_date.year, day_date.month, day_date.day).timestamp() * 1000)
+                day_end_ts = day_start_ts + (86400 * 1000)
+                d_row = conn.execute(
+                    "SELECT COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? AND created_at >= ? AND created_at < ?",
+                    (facility_id, day_start_ts, day_end_ts)
+                ).fetchone()
+                daily_list.append({
+                    "date": day_date.strftime("%m.%d"),
+                    "count": int(d_row["cnt"] or 0) if d_row else 0
+                })
+
+            # Sources breakdown
+            src_rows = conn.execute(
+                "SELECT source, COUNT(*) AS cnt FROM qr_scan_events WHERE facility_id = ? GROUP BY source",
+                (facility_id,)
+            ).fetchall()
+            source_breakdown = {"poster": 0, "table_stand": 0, "door_hanger": 0, "other": 0}
+            for r in src_rows:
+                s = str(r["source"] or "poster").lower()
+                c = int(r["cnt"] or 0)
+                if s in source_breakdown:
+                    source_breakdown[s] += c
+                else:
+                    source_breakdown["other"] += c
+        finally:
+            conn.close()
+
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "facilityId": facility_id,
+            "storeName": store.get("name", user.get("merchantFacilityName", "")),
+            "storeCategory": store.get("category", ""),
+            "storeAddress": store.get("address", ""),
+            "storeBenefit": store.get("benefit", ""),
+            "storePhone": mask_phone(store.get("phone", user.get("merchantPhone", ""))),
+            "stats": {
+                "totalScans": total_scans,
+                "todayScans": today_scans,
+                "monthScans": month_scans,
+                "daily": daily_list,
+                "sources": source_breakdown,
+            }
+        })
+
     def _handle_qr_scan(self):
         parsed = urlparse(self.path)
         q = parse_qs(parsed.query)
-        facility_id = (q.get("facility_id") or [""])[0]
+        facility_id = (q.get("facility_id") or q.get("fid") or [""])[0]
+        source = (q.get("src") or q.get("source") or ["poster"])[0]
         if not facility_id:
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
             return
         conn = self._db()
         try:
             conn.execute(
-                "INSERT INTO qr_scan_events (facility_id, created_at) VALUES (?, ?)",
-                (facility_id, now_ms())
+                "INSERT INTO qr_scan_events (facility_id, source, created_at) VALUES (?, ?, ?)",
+                (facility_id, source, now_ms())
             )
             conn.commit()
         finally:
             conn.close()
+        # Redirect to map with store selected
+        self.send_response(HTTPStatus.FOUND)
+        self.send_header("Location", f"/?fid={facility_id}")
+        self.end_headers()
     def _handle_qr_stats(self):
         conn = self._db()
         try:
@@ -495,6 +1309,21 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         if parsed_url.path == "/api/qr_stats":
             self._handle_qr_stats()
             return
+        if parsed_url.path == "/api/merchant/stats":
+            self._handle_merchant_stats()
+            return
+        if parsed_url.path == "/api/auth/search_store":
+            self._handle_auth_search_store()
+            return
+        if parsed_url.path == "/api/auth/check_nickname":
+            self._handle_auth_check_nickname()
+            return
+        if parsed_url.path == "/api/auth/check_email":
+            self._handle_auth_check_email()
+            return
+        if parsed_url.path == "/api/auth/me":
+            self._handle_auth_me()
+            return
 
         route_type, review_id = self._parse_review_path()
         engagement_route, _ = self._parse_engagement_path()
@@ -513,6 +1342,38 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        parsed_url = urlparse(self.path)
+        if parsed_url.path == "/api/auth/send_email_code":
+            self._handle_auth_send_email_code()
+            return
+        if parsed_url.path == "/api/auth/verify_email_code":
+            self._handle_auth_verify_email_code()
+            return
+        if parsed_url.path == "/api/auth/send_merchant_code":
+            self._handle_auth_send_merchant_code()
+            return
+        if parsed_url.path == "/api/auth/verify_merchant_code":
+            self._handle_auth_verify_merchant_code()
+            return
+        if parsed_url.path == "/api/auth/register":
+            self._handle_auth_register()
+            return
+        if parsed_url.path == "/api/auth/login":
+            self._handle_auth_login()
+            return
+        if parsed_url.path == "/api/auth/logout":
+            self._handle_auth_logout()
+            return
+        if parsed_url.path == "/api/user/favorite":
+            self._handle_user_toggle_favorite()
+            return
+        if parsed_url.path == "/api/user/like":
+            self._handle_user_toggle_like()
+            return
+        if parsed_url.path == "/api/qr_scan":
+            self._handle_qr_scan()
+            return
+
         route_type, review_id = self._parse_review_path()
         engagement_route, _ = self._parse_engagement_path()
         if route_type == "collection":
@@ -888,9 +1749,11 @@ def main():
     args = parser.parse_args()
 
     db_path = Path(args.db).resolve()
+    load_facilities_data()
     try:
         init_review_table(db_path)
         init_engagement_tables(db_path)
+        init_auth_tables(db_path)
     except Exception as e:
         print(f"[Server DB] Initialization error in main: {e}, continuing with SQLite...")
     

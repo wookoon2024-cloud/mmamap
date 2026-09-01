@@ -415,6 +415,886 @@ button:active {
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
 }
 
+/* ============================================================
+   TOP AUTH CONTROL & USER BAR
+============================================================ */
+.authNavWrap {
+  position: fixed;
+  top: 8px;
+  right: 18px;
+  z-index: 1090;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+}
+
+.authNavBtn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transition: all 0.15s ease;
+}
+
+.authNavBtn:hover {
+  background: #ffffff;
+  border-color: #2563eb;
+  color: #2563eb;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+  transform: translateY(-1px);
+}
+
+.authNavBtn.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.authNavBtn.primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.authNavBtn.merchantBtn {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #16a34a;
+}
+
+.authNavBtn.merchantBtn:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #15803d;
+}
+
+.authUserBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================
+   AUTH MODAL (LOGIN / REGISTER)
+============================================================ */
+.authBackdrop,
+.merchantStatsBackdrop,
+.policyBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+}
+
+.authBackdrop.hidden,
+.merchantStatsBackdrop.hidden,
+.policyBackdrop.hidden {
+  display: none;
+}
+
+.authModal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10050;
+  width: min(480px, calc(100vw - 28px));
+  max-height: min(90vh, 840px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  animation: hubModalCenterFadeIn 0.18s ease-out;
+}
+
+.authModal.hidden {
+  display: none;
+}
+
+.authModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.authTabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.authTab {
+  border: 0;
+  background: transparent;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.authTab.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.authCloseBtn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.authCloseBtn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.authModalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 24px;
+}
+
+.authModalBody.hidden {
+  display: none;
+}
+
+.authWelcome h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.authWelcome p {
+  margin: 6px 0 16px;
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.authInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.authInputGroup.hidden {
+  display: none;
+}
+
+.authInputGroup label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.authInputGroup input {
+  height: 42px;
+  padding: 0 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.authInputGroup input:focus {
+  border-color: #2563eb;
+}
+
+.authInputWithBtn {
+  display: flex;
+  gap: 8px;
+}
+
+.authInputWithBtn input {
+  flex: 1;
+}
+
+.authSubBtn {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.authSubBtn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.authSubBtn.full {
+  width: 100%;
+}
+
+.authSubBtn.success {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+.authHelpText {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.authHelpText.success {
+  color: #16a34a;
+}
+
+.authHelpText.error {
+  color: #dc2626;
+}
+
+.authSubmitBtn {
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 6px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transition: all 0.15s ease;
+}
+
+.authSubmitBtn:hover {
+  background: #1d4ed8;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.authErrorMsg {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.authErrorMsg.hidden {
+  display: none;
+}
+
+.authSwitchWrap {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.authLinkBtn {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Role Selector in Register */
+.authRoleSelectWrap {
+  margin-bottom: 16px;
+}
+
+.authRoleLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.authRoleOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.authRoleOption input {
+  display: none;
+}
+
+.authRoleBox {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #f8fafc;
+}
+
+.authRoleBox .roleIcon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.authRoleBox strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.authRoleBox small {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.authRoleOption input:checked + .authRoleBox {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.15);
+}
+
+.authRoleOption input:checked + .authRoleBox strong {
+  color: #2563eb;
+}
+
+/* Merchant Verification Section */
+.merchantVerifySection {
+  border: 1.5px solid #dcfce7;
+  background: #f9fdfa;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.merchantVerifySection.hidden {
+  display: none;
+}
+
+.merchantVerifyHead h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #166534;
+}
+
+.merchantVerifyHead p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #15803d;
+}
+
+.storeSearchResults {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  margin-top: 4px;
+}
+
+.storeSearchResults.hidden {
+  display: none;
+}
+
+.storeSearchItem {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.storeSearchItem:last-child {
+  border-bottom: 0;
+}
+
+.storeSearchItem:hover {
+  background: #f0fdf4;
+}
+
+.storeSearchItem strong {
+  font-size: 13.5px;
+  color: #0f172a;
+  display: block;
+}
+
+.storeSearchItem span {
+  font-size: 11.5px;
+  color: #64748b;
+  display: block;
+  margin-top: 2px;
+}
+
+.selectedStoreCard {
+  border: 1px solid #86efac;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.selectedStoreCard.hidden {
+  display: none;
+}
+
+.selectedStoreInfo strong {
+  font-size: 15px;
+  color: #0f172a;
+  display: block;
+  margin-top: 4px;
+}
+
+.selectedStoreAddr {
+  font-size: 12px;
+  color: #64748b;
+  display: block;
+  margin-top: 2px;
+}
+
+.selectedStorePhone {
+  font-size: 12.5px;
+  color: #166534;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.selectedStoreBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 4px;
+}
+
+/* Legal Agreements */
+.authAgreementsWrap {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.authAgreeCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.authAgreeCheck input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+}
+
+.authAgreeSubList {
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.authAgreeSubList a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* ============================================================
+   MERCHANT STATS MODAL
+============================================================ */
+.merchantStatsModal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10050;
+  width: min(780px, calc(100vw - 28px));
+  max-height: min(90vh, 850px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  animation: hubModalCenterFadeIn 0.18s ease-out;
+}
+
+.merchantStatsModal.hidden {
+  display: none;
+}
+
+.merchantStatsHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 26px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.merchantBadgeRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.merchantStoreTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.merchantStoreAddress {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.merchantStatsBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.statsKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .statsKpiGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpiCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpiCard.highlight {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.kpiLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.kpiCard.highlight .kpiLabel {
+  color: #2563eb;
+}
+
+.kpiValue {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.kpiCard.highlight .kpiValue {
+  color: #1d4ed8;
+}
+
+.kpiValue small {
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 4px;
+  color: #64748b;
+}
+
+.statsCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: #ffffff;
+}
+
+.statsCardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.statsCardHead h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.statsCardSub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dailyChartContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 140px;
+  padding-top: 18px;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.chartBarCol {
+  flex: 1;
+  min-width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.chartBarValue {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.chartBarFill {
+  width: 100%;
+  max-width: 22px;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.chartBarLabel {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.statsTwoColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 650px) {
+  .statsTwoColGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sourceBreakdownList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sourceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.sourceItem strong {
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.sourceItem span {
+  font-size: 14px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.actionCard {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.actionCard h4 {
+  color: #166534;
+}
+
+.actionCard p {
+  margin: 0;
+  font-size: 13px;
+  color: #15803d;
+  line-height: 1.5;
+}
+
+.merchantPrintActionBtn {
+  border: 0;
+  border-radius: 12px;
+  background: #16a34a;
+  color: #ffffff;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.25);
+  transition: all 0.15s ease;
+  margin-top: 10px;
+}
+
+.merchantPrintActionBtn:hover {
+  background: #15803d;
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35);
+}
+
+/* ============================================================
+   POLICY / TERMS MODAL
+============================================================ */
+.policyModal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10060;
+  width: min(600px, calc(100vw - 28px));
+  max-height: min(80vh, 650px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  animation: hubModalCenterFadeIn 0.18s ease-out;
+}
+
+.policyModal.hidden {
+  display: none;
+}
+
+.policyModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.policyModalHead h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.policyModalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #334155;
+}
+
+.policyModalBody h4 {
+  margin: 16px 0 6px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.policyModalBody p,
+.policyModalBody ul {
+  margin: 0 0 10px;
+}
+
+.policyModalBody ul {
+  padding-left: 18px;
+}
+
 .hubPanelClose {
   width: 32px;
   height: 32px;

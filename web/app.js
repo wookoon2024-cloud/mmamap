@@ -1180,7 +1180,7 @@ async function bootstrap() {
               </div>
               <p>등록 시 입력한 비밀번호는 수정/삭제할 때 필요합니다.</p>
               <div class="reviewForm">
-                <input id="reviewAuthorInput" class="reviewInput" type="text" maxlength="20" placeholder="닉네임 (선택)" value="${escapeHtml(target?.author || "")}" />
+                <input id="reviewAuthorInput" class="reviewInput" type="text" maxlength="20" placeholder="닉네임 (선택)" value="${escapeHtml(target?.author || (window.MMAAuth?.user?.nickname || ""))}" />
                 <textarea id="reviewContentInput" class="reviewTextarea" maxlength="500" placeholder="후기나 의견을 입력해 주세요.">${escapeHtml(target?.content || "")}</textarea>
                 <input id="reviewPasswordInput" class="reviewInput" type="password" maxlength="20" placeholder="${isEdit ? "새 비밀번호 입력 시 변경(선택)" : "비밀번호 (필수)"}" />
                 ${isEdit ? "" : `
@@ -2764,6 +2764,26 @@ async function bootstrap() {
 
   renderVisibleMarkers();
 
+  // Initialize Auth & Member System
+  try {
+    await MMAAuth.init();
+  } catch (authErr) {
+    console.error("Auth init error:", authErr);
+  }
+
+  // Handle URL QR Scan Entry (?fid=...&src=...)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetFid = urlParams.get("fid") || urlParams.get("facility_id");
+    const scanSrc = urlParams.get("src") || urlParams.get("source") || "poster";
+    if (targetFid) {
+      fetch(`/api/qr_scan?facility_id=${encodeURIComponent(targetFid)}&src=${encodeURIComponent(scanSrc)}`).catch(() => {});
+      setTimeout(() => {
+        focusFacility(targetFid);
+      }, 600);
+    }
+  } catch (_e) {}
+
   // Background Render Server Wake-up Ping
   try {
     fetch("https://mmamap-backend.onrender.com/api/health", { mode: "no-cors" }).then(() => {
@@ -2771,6 +2791,744 @@ async function bootstrap() {
     }).catch(() => {});
   } catch (_e) {}
 }
+
+// ============================================================
+// AUTHENTICATION & MERCHANT VERIFICATION & STATS MODULE
+// ============================================================
+const LS_AUTH_TOKEN_KEY = "mmamap_auth_token_v1";
+
+const MMAAuth = {
+  token: localStorage.getItem(LS_AUTH_TOKEN_KEY) || "",
+  user: null,
+  favorites: new Set(),
+  likes: new Set(),
+  selectedMerchantStore: null,
+  isEmailVerified: false,
+  isMerchantVerified: false,
+  isNicknameChecked: false,
+
+  async init() {
+    this.bindEvents();
+    if (this.token) {
+      await this.fetchMe();
+    } else {
+      this.renderNav();
+    }
+  },
+
+  async fetchMe() {
+    if (!this.token) {
+      this.renderNav();
+      return;
+    }
+    try {
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      const data = await res.json();
+      if (data.ok && data.authenticated && data.user) {
+        this.user = data.user;
+        this.favorites = new Set(data.favorites || []);
+        this.likes = new Set(data.likes || []);
+        addDebugLog(`[Auth] 로그인 세션 활성화: ${this.user.nickname} (${this.user.role === 'merchant' ? '가맹점주' : '일반'})`, 'success');
+      } else {
+        this.token = "";
+        this.user = null;
+        localStorage.removeItem(LS_AUTH_TOKEN_KEY);
+      }
+    } catch (_err) {}
+    this.renderNav();
+  },
+
+  renderNav() {
+    const wrap = document.getElementById("authNavWrap");
+    if (!wrap) return;
+
+    if (!this.user) {
+      wrap.innerHTML = `
+        <button type="button" class="authNavBtn primary" onclick="window.MMAAuth.openAuthModal('login')">
+          <span>🔑</span> 로그인 / 회원가입
+        </button>
+      `;
+      return;
+    }
+
+    const isMerchant = this.user.role === "merchant";
+    const roleIcon = isMerchant ? "🏪" : "🪖";
+    const roleTitle = isMerchant ? "점주" : "회원";
+
+    wrap.innerHTML = `
+      <div class="authUserBadge">
+        <span>${roleIcon}</span>
+        <strong>${this.escapeHtml(this.user.nickname)}</strong>
+        <small style="color:#64748b;">${roleTitle}</small>
+      </div>
+      ${
+        isMerchant && this.user.merchantFacilityId
+          ? `<button type="button" class="authNavBtn merchantBtn" onclick="window.MMAAuth.openMerchantStatsModal()">
+               <span>📊</span> 우리 매장 통계
+             </button>`
+          : ""
+      }
+      <button type="button" class="authNavBtn" onclick="window.MMAAuth.logout()">
+        로그아웃
+      </button>
+    `;
+  },
+
+  escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  },
+
+  openAuthModal(tab = "login") {
+    const backdrop = document.getElementById("authBackdrop");
+    const modal = document.getElementById("authModal");
+    if (!backdrop || !modal) return;
+    backdrop.classList.remove("hidden");
+    modal.classList.remove("hidden");
+    this.switchAuthTab(tab);
+  },
+
+  closeAuthModal() {
+    const backdrop = document.getElementById("authBackdrop");
+    const modal = document.getElementById("authModal");
+    if (backdrop) backdrop.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  },
+
+  switchAuthTab(tab) {
+    const tabLogin = document.getElementById("authTabLogin");
+    const tabReg = document.getElementById("authTabRegister");
+    const viewLogin = document.getElementById("authLoginView");
+    const viewReg = document.getElementById("authRegisterView");
+    if (!tabLogin || !tabReg) return;
+
+    if (tab === "login") {
+      tabLogin.classList.add("active");
+      tabReg.classList.remove("active");
+      viewLogin.classList.remove("hidden");
+      viewReg.classList.add("hidden");
+    } else {
+      tabReg.classList.add("active");
+      tabLogin.classList.remove("active");
+      viewReg.classList.remove("hidden");
+      viewLogin.classList.add("hidden");
+    }
+  },
+
+  async login(email, password) {
+    const errEl = document.getElementById("loginErrorMsg");
+    if (errEl) errEl.classList.add("hidden");
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        if (errEl) {
+          errEl.textContent = data.error || "로그인에 실패했습니다.";
+          errEl.classList.remove("hidden");
+        }
+        return false;
+      }
+
+      this.token = data.token;
+      this.user = data.user;
+      localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+      this.closeAuthModal();
+      this.renderNav();
+      addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
+      alert(`반갑습니다, ${this.user.nickname}님!`);
+      return true;
+    } catch (err) {
+      if (errEl) {
+        errEl.textContent = "서버 통신 중 오류가 발생했습니다.";
+        errEl.classList.remove("hidden");
+      }
+      return false;
+    }
+  },
+
+  async logout() {
+    if (!confirm("로그아웃 하시겠습니까?")) return;
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+    } catch (_e) {}
+    this.token = "";
+    this.user = null;
+    this.favorites.clear();
+    this.likes.clear();
+    localStorage.removeItem(LS_AUTH_TOKEN_KEY);
+    this.renderNav();
+    addDebugLog("[Auth] 로그아웃 완료", "info");
+  },
+
+  async openMerchantStatsModal() {
+    if (!this.user || this.user.role !== "merchant") return;
+    const backdrop = document.getElementById("merchantStatsBackdrop");
+    const modal = document.getElementById("merchantStatsModal");
+    if (!backdrop || !modal) return;
+
+    backdrop.classList.remove("hidden");
+    modal.classList.remove("hidden");
+
+    try {
+      const res = await fetch("/api/merchant/stats", {
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      const data = await res.json();
+      if (data.ok) {
+        this.renderMerchantStats(data);
+      }
+    } catch (err) {
+      addDebugLog(`[Stats Error] ${err.message}`, 'error');
+    }
+  },
+
+  closeMerchantStatsModal() {
+    const backdrop = document.getElementById("merchantStatsBackdrop");
+    const modal = document.getElementById("merchantStatsModal");
+    if (backdrop) backdrop.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  },
+
+  renderMerchantStats(data) {
+    const storeTitle = document.getElementById("merchantStoreTitle");
+    const storeCat = document.getElementById("merchantStoreCategory");
+    const storeAddr = document.getElementById("merchantStoreAddress");
+    const totalEl = document.getElementById("kpiTotalScans");
+    const todayEl = document.getElementById("kpiTodayScans");
+    const monthEl = document.getElementById("kpiMonthScans");
+    const chartContainer = document.getElementById("dailyChartContainer");
+    const sourceList = document.getElementById("sourceBreakdownList");
+    const printBtn = document.getElementById("btnMerchantPrintAction");
+
+    if (storeTitle) storeTitle.textContent = data.storeName || this.user.merchantFacilityName;
+    if (storeCat) storeCat.textContent = data.storeCategory || "가맹점";
+    if (storeAddr) storeAddr.textContent = data.storeAddress || "대한민국";
+    if (totalEl) totalEl.innerHTML = `${data.stats.totalScans}<small>회</small>`;
+    if (todayEl) todayEl.innerHTML = `${data.stats.todayScans}<small>회</small>`;
+    if (monthEl) monthEl.innerHTML = `${data.stats.monthScans}<small>회</small>`;
+
+    if (printBtn) {
+      printBtn.onclick = () => {
+        this.closeMerchantStatsModal();
+        if (typeof openPrintModal === "function") {
+          openPrintModal(data.facilityId);
+        }
+      };
+    }
+
+    // Render Daily Chart
+    if (chartContainer && data.stats.daily) {
+      const maxCount = Math.max(...data.stats.daily.map((d) => d.count), 5);
+      chartContainer.innerHTML = data.stats.daily
+        .map((d) => {
+          const heightPercent = Math.max(8, Math.round((d.count / maxCount) * 100));
+          return `
+            <div class="chartBarCol">
+              <span class="chartBarValue">${d.count > 0 ? d.count : ''}</span>
+              <div class="chartBarFill" style="height: ${heightPercent}%;"></div>
+              <span class="chartBarLabel">${d.date}</span>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // Render Source Breakdown
+    if (sourceList && data.stats.sources) {
+      const src = data.stats.sources;
+      sourceList.innerHTML = `
+        <div class="sourceItem">
+          <strong>🖼️ A4 상생 포스터</strong>
+          <span>${src.poster || 0}회</span>
+        </div>
+        <div class="sourceItem">
+          <strong>📐 미니 테이블 스탠드</strong>
+          <span>${src.table_stand || 0}회</span>
+        </div>
+        <div class="sourceItem">
+          <strong>🚪 도어행거 (문고리형)</strong>
+          <span>${src.door_hanger || 0}회</span>
+        </div>
+      `;
+    }
+  },
+
+  showPolicyModal(type = "terms") {
+    const backdrop = document.getElementById("policyBackdrop");
+    const modal = document.getElementById("policyModal");
+    const title = document.getElementById("policyModalTitle");
+    const body = document.getElementById("policyModalBody");
+    if (!backdrop || !modal || !body) return;
+
+    if (type === "terms") {
+      if (title) title.textContent = "군필지도 서비스 이용약관";
+      body.innerHTML = `
+        <h4>제1조 (목적)</h4>
+        <p>본 약관은 군필지도(이하 "서비스")가 제공하는 청년 장병 및 병역명문가 상생 혜택 정보와 소상공인 가맹점 지원 서비스의 이용 조건 및 절차를 규정함을 목적으로 합니다.</p>
+        <h4>제2조 (회원의 구분 및 권리)</h4>
+        <ul>
+          <li><b>일반회원</b>: 병역이행자, 군 장병, 병역명문가 및 일반 이용자로 혜택 가게 탐색, 즐겨찾기, 후기 작성을 이용할 수 있습니다.</li>
+          <li><b>소상공인 회원</b>: 병무청 나라사랑가게 등 상생 가맹점주로 공공데이터 전화번호 인증을 거쳐 매장 QR 통계 및 맞춤 팜플렛/홍보물 인쇄 서비스를 이용할 수 있습니다.</li>
+        </ul>
+        <h4>제3조 (서비스의 제공 및 변경)</h4>
+        <p>서비스는 연중무휴 1일 24시간 제공을 원칙으로 하며, 시스템 점검이나 데이터 업데이트 시 사전 공지 후 일시 중단될 수 있습니다.</p>
+      `;
+    } else {
+      if (title) title.textContent = "개인정보 수집 및 이용 동의";
+      body.innerHTML = `
+        <h4>1. 수집하는 개인정보 항목</h4>
+        <ul>
+          <li><b>필수항목</b>: 이메일 주소(아이디), 암호화된 비밀번호, 활동 닉네임</li>
+          <li><b>소상공인 회원 추가 항목</b>: 매장 식별자(Facility ID), 매장 대표 전화번호</li>
+          <li><b>서비스 이용 과정에서 생성되는 정보</b>: QR 접속 일시, 접속 기기 종류, 즐겨찾기 목록</li>
+        </ul>
+        <h4>2. 개인정보의 수집 및 이용 목적</h4>
+        <p>회원 식별, 부정 이용 방지, 가맹점주 매장 소유권 검증, 매장별 QR 방문 통계 제공 및 고객 문의 응대.</p>
+        <h4>3. 개인정보의 보유 및 이용 기간</h4>
+        <p>회원 탈퇴 시까지 보유하며, 탈퇴 시 관련 법령에 따라 보존해야 하는 경우를 제외하고 즉시 파기합니다.</p>
+        <h4>4. 비밀번호의 암호화 저장</h4>
+        <p>사용자의 비밀번호는 단방향 해시 알고리즘(scrypt/argon2 salt)으로 안전하게 암호화되어 저장되며 운영자도 이를 열람할 수 없습니다.</p>
+      `;
+    }
+
+    backdrop.classList.remove("hidden");
+    modal.classList.remove("hidden");
+  },
+
+  closePolicyModal() {
+    const backdrop = document.getElementById("policyBackdrop");
+    const modal = document.getElementById("policyModal");
+    if (backdrop) backdrop.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  },
+
+  bindEvents() {
+    // Top Close buttons
+    const authClose = document.getElementById("authCloseBtn");
+    const authBackdrop = document.getElementById("authBackdrop");
+    if (authClose) authClose.onclick = () => this.closeAuthModal();
+    if (authBackdrop) authBackdrop.onclick = () => this.closeAuthModal();
+
+    const statsClose = document.getElementById("merchantStatsCloseBtn");
+    const statsBackdrop = document.getElementById("merchantStatsBackdrop");
+    if (statsClose) statsClose.onclick = () => this.closeMerchantStatsModal();
+    if (statsBackdrop) statsBackdrop.onclick = () => this.closeMerchantStatsModal();
+
+    const policyClose = document.getElementById("policyCloseBtn");
+    const policyBackdrop = document.getElementById("policyBackdrop");
+    if (policyClose) policyClose.onclick = () => this.closePolicyModal();
+    if (policyBackdrop) policyBackdrop.onclick = () => this.closePolicyModal();
+
+    // Tab Switches
+    const tabLogin = document.getElementById("authTabLogin");
+    const tabReg = document.getElementById("authTabRegister");
+    const btnSwitchReg = document.getElementById("btnSwitchToRegister");
+    const btnSwitchLogin = document.getElementById("btnSwitchToLogin");
+
+    if (tabLogin) tabLogin.onclick = () => this.switchAuthTab("login");
+    if (tabReg) tabReg.onclick = () => this.switchAuthTab("register");
+    if (btnSwitchReg) btnSwitchReg.onclick = () => this.switchAuthTab("register");
+    if (btnSwitchLogin) btnSwitchLogin.onclick = () => this.switchAuthTab("login");
+
+    // Login Action
+    const loginSubmit = document.getElementById("loginSubmitBtn");
+    if (loginSubmit) {
+      loginSubmit.onclick = () => {
+        const email = (document.getElementById("loginEmail")?.value || "").trim();
+        const pw = (document.getElementById("loginPassword")?.value || "").trim();
+        if (!email || !pw) {
+          alert("이메일과 비밀번호를 입력해 주세요.");
+          return;
+        }
+        this.login(email, pw);
+      };
+    }
+
+    // Role Radio Switch
+    const roleRadios = document.querySelectorAll("input[name='regRole']");
+    const merchantSection = document.getElementById("merchantVerifySection");
+    roleRadios.forEach((r) => {
+      r.addEventListener("change", (e) => {
+        if (e.target.value === "merchant") {
+          if (merchantSection) merchantSection.classList.remove("hidden");
+        } else {
+          if (merchantSection) merchantSection.classList.add("hidden");
+        }
+      });
+    });
+
+    // Agreement All Check
+    const agreeAll = document.getElementById("agreeAll");
+    const agreeTerms = document.getElementById("agreeTerms");
+    const agreePrivacy = document.getElementById("agreePrivacy");
+    if (agreeAll) {
+      agreeAll.addEventListener("change", (e) => {
+        if (agreeTerms) agreeTerms.checked = e.target.checked;
+        if (agreePrivacy) agreePrivacy.checked = e.target.checked;
+      });
+    }
+
+    // Send Email Code
+    const btnSendEmail = document.getElementById("btnSendEmailCode");
+    const emailStatus = document.getElementById("regEmailStatus");
+    const emailCodeWrap = document.getElementById("regEmailCodeWrap");
+    if (btnSendEmail) {
+      btnSendEmail.onclick = async () => {
+        const email = (document.getElementById("regEmail")?.value || "").trim();
+        if (!email || !email.includes("@")) {
+          if (emailStatus) {
+            emailStatus.textContent = "올바른 이메일 주소를 입력해 주세요.";
+            emailStatus.className = "authHelpText error";
+          }
+          return;
+        }
+        btnSendEmail.disabled = true;
+        btnSendEmail.textContent = "발송 중...";
+        try {
+          const res = await fetch("/api/auth/send_email_code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            if (emailStatus) {
+              emailStatus.textContent = "인증번호가 발송되었습니다. 10분 내에 입력해 주세요.";
+              emailStatus.className = "authHelpText success";
+            }
+            if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
+            if (data.debugCode) {
+              addDebugLog(`[Auth] 테스트 이메일 인증번호: ${data.debugCode}`, 'info');
+              const codeInput = document.getElementById("regEmailCode");
+              if (codeInput && !codeInput.value) codeInput.value = data.debugCode;
+            }
+          } else {
+            if (emailStatus) {
+              emailStatus.textContent = data.error || "발송 실패";
+              emailStatus.className = "authHelpText error";
+            }
+          }
+        } catch (_e) {
+          if (emailStatus) {
+            emailStatus.textContent = "통신 오류가 발생했습니다.";
+            emailStatus.className = "authHelpText error";
+          }
+        } finally {
+          btnSendEmail.disabled = false;
+          btnSendEmail.textContent = "인증번호 재발송";
+        }
+      };
+    }
+
+    // Verify Email Code
+    const btnVerifyEmail = document.getElementById("btnVerifyEmailCode");
+    const emailCodeStatus = document.getElementById("regEmailCodeStatus");
+    if (btnVerifyEmail) {
+      btnVerifyEmail.onclick = async () => {
+        const email = (document.getElementById("regEmail")?.value || "").trim();
+        const code = (document.getElementById("regEmailCode")?.value || "").trim();
+        if (!code) {
+          alert("인증번호를 입력해 주세요.");
+          return;
+        }
+        try {
+          const res = await fetch("/api/auth/verify_email_code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, code }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            this.isEmailVerified = true;
+            if (emailCodeStatus) {
+              emailCodeStatus.textContent = "✓ 이메일 인증이 완료되었습니다.";
+              emailCodeStatus.className = "authHelpText success";
+            }
+            btnVerifyEmail.classList.add("success");
+            btnVerifyEmail.textContent = "인증 완료";
+            btnVerifyEmail.disabled = true;
+          } else {
+            if (emailCodeStatus) {
+              emailCodeStatus.textContent = data.error || "인증번호가 일치하지 않습니다.";
+              emailCodeStatus.className = "authHelpText error";
+            }
+          }
+        } catch (_e) {}
+      };
+    }
+
+    // Nickname Check
+    const btnCheckNick = document.getElementById("btnCheckNickname");
+    const nickStatus = document.getElementById("regNicknameStatus");
+    if (btnCheckNick) {
+      btnCheckNick.onclick = async () => {
+        const nick = (document.getElementById("regNickname")?.value || "").trim();
+        if (!nick || nick.length < 2) {
+          if (nickStatus) {
+            nickStatus.textContent = "닉네임은 2자 이상 입력해 주세요.";
+            nickStatus.className = "authHelpText error";
+          }
+          return;
+        }
+        try {
+          const res = await fetch(`/api/auth/check_nickname?nickname=${encodeURIComponent(nick)}`);
+          const data = await res.json();
+          if (data.ok && data.available) {
+            this.isNicknameChecked = true;
+            if (nickStatus) {
+              nickStatus.textContent = "✓ 사용 가능한 닉네임입니다.";
+              nickStatus.className = "authHelpText success";
+            }
+          } else {
+            this.isNicknameChecked = false;
+            if (nickStatus) {
+              nickStatus.textContent = data.message || "이미 사용 중인 닉네임입니다.";
+              nickStatus.className = "authHelpText error";
+            }
+          }
+        } catch (_e) {}
+      };
+    }
+
+    // Store Search
+    const btnSearchStore = document.getElementById("btnSearchStore");
+    const storeSearchInput = document.getElementById("merchantStoreSearch");
+    const storeResults = document.getElementById("storeSearchResults");
+
+    const doStoreSearch = async () => {
+      const q = (storeSearchInput?.value || "").trim();
+      if (!q) return;
+      try {
+        const res = await fetch(`/api/auth/search_store?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (data.ok && storeResults) {
+          if (!data.stores || data.stores.length === 0) {
+            storeResults.innerHTML = `<div class="storeSearchItem"><span>검색 결과가 없습니다.</span></div>`;
+            storeResults.classList.remove("hidden");
+            return;
+          }
+          storeResults.innerHTML = data.stores
+            .map(
+              (s) => `
+              <div class="storeSearchItem" onclick='window.MMAAuth.selectStore(${JSON.stringify(s)})'>
+                <strong>${this.escapeHtml(s.name)}</strong>
+                <span>${this.escapeHtml(s.category)} · ${this.escapeHtml(s.address)}</span>
+              </div>
+            `
+            )
+            .join("");
+          storeResults.classList.remove("hidden");
+        }
+      } catch (_e) {}
+    };
+
+    if (btnSearchStore) btnSearchStore.onclick = doStoreSearch;
+    if (storeSearchInput) {
+      storeSearchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doStoreSearch();
+      });
+    }
+
+    // Send Merchant Phone Code
+    const btnSendMerchCode = document.getElementById("btnSendMerchantCode");
+    const merchCodeWrap = document.getElementById("merchantCodeInputWrap");
+    const merchCodeStatus = document.getElementById("merchantCodeStatus");
+    if (btnSendMerchCode) {
+      btnSendMerchCode.onclick = async () => {
+        if (!this.selectedMerchantStore) {
+          alert("매장을 먼저 선택해 주세요.");
+          return;
+        }
+        btnSendMerchCode.disabled = true;
+        btnSendMerchCode.textContent = "ARS/SMS 인증번호 요청 중...";
+        try {
+          const res = await fetch("/api/auth/send_merchant_code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ facility_id: this.selectedMerchantStore.facilityId }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            if (merchCodeWrap) merchCodeWrap.classList.remove("hidden");
+            if (merchCodeStatus) {
+              merchCodeStatus.textContent = data.message || "매장 대표번호로 인증번호가 발송되었습니다.";
+              merchCodeStatus.className = "authHelpText success";
+            }
+            if (data.debugCode) {
+              addDebugLog(`[Auth] 테스트 점주 인증번호: ${data.debugCode}`, 'info');
+              const input = document.getElementById("merchantCodeInput");
+              if (input && !input.value) input.value = data.debugCode;
+            }
+          } else {
+            alert(data.error || "점주 인증 요청 실패");
+          }
+        } catch (_e) {
+        } finally {
+          btnSendMerchCode.disabled = false;
+          btnSendMerchCode.textContent = "매장 전화로 인증번호 재요청";
+        }
+      };
+    }
+
+    // Verify Merchant Phone Code
+    const btnVerifyMerch = document.getElementById("btnVerifyMerchantCode");
+    if (btnVerifyMerch) {
+      btnVerifyMerch.onclick = async () => {
+        if (!this.selectedMerchantStore) return;
+        const code = (document.getElementById("merchantCodeInput")?.value || "").trim();
+        if (!code) {
+          alert("인증번호를 입력해 주세요.");
+          return;
+        }
+        try {
+          const res = await fetch("/api/auth/verify_merchant_code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ facility_id: this.selectedMerchantStore.facilityId, code }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            this.isMerchantVerified = true;
+            if (merchCodeStatus) {
+              merchCodeStatus.textContent = "✓ 점주 전화번호 인증이 완료되었습니다.";
+              merchCodeStatus.className = "authHelpText success";
+            }
+            btnVerifyMerch.classList.add("success");
+            btnVerifyMerch.textContent = "인증 완료";
+            btnVerifyMerch.disabled = true;
+          } else {
+            if (merchCodeStatus) {
+              merchCodeStatus.textContent = data.error || "인증번호가 일치하지 않습니다.";
+              merchCodeStatus.className = "authHelpText error";
+            }
+          }
+        } catch (_e) {}
+      };
+    }
+
+    // Register Submit
+    const btnRegister = document.getElementById("registerSubmitBtn");
+    const regError = document.getElementById("registerErrorMsg");
+    if (btnRegister) {
+      btnRegister.onclick = async () => {
+        if (regError) regError.classList.add("hidden");
+
+        const email = (document.getElementById("regEmail")?.value || "").trim();
+        const nick = (document.getElementById("regNickname")?.value || "").trim();
+        const pw = (document.getElementById("regPassword")?.value || "").trim();
+        const pwConfirm = (document.getElementById("regPasswordConfirm")?.value || "").trim();
+        const role = (document.querySelector("input[name='regRole']:checked")?.value || "general").trim();
+        const agreeTerms = document.getElementById("agreeTerms")?.checked;
+        const agreePrivacy = document.getElementById("agreePrivacy")?.checked;
+
+        if (!this.isEmailVerified) {
+          alert("이메일 인증을 먼저 완료해 주세요.");
+          return;
+        }
+        if (!nick || nick.length < 2) {
+          alert("활동 닉네임을 2자 이상 입력해 주세요.");
+          return;
+        }
+        if (pw.length < 6) {
+          alert("비밀번호는 6자 이상이어야 합니다.");
+          return;
+        }
+        if (pw !== pwConfirm) {
+          alert("비밀번호가 일치하지 않습니다.");
+          return;
+        }
+        if (role === "merchant") {
+          if (!this.selectedMerchantStore || !this.isMerchantVerified) {
+            alert("소상공인 회원은 매장 검색 및 점주 전화번호 인증을 완료해야 합니다.");
+            return;
+          }
+        }
+        if (!agreeTerms || !agreePrivacy) {
+          alert("필수 서비스 이용약관 및 개인정보 수집·이용에 동의해 주세요.");
+          return;
+        }
+
+        btnRegister.disabled = true;
+        btnRegister.textContent = "가입 처리 중...";
+
+        try {
+          const res = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              password: pw,
+              nickname: nick,
+              role,
+              facility_id: role === "merchant" && this.selectedMerchantStore ? this.selectedMerchantStore.facilityId : "",
+              terms_agreed: true,
+              privacy_agreed: true,
+            }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            this.token = data.token;
+            this.user = data.user;
+            localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+            this.closeAuthModal();
+            this.renderNav();
+            addDebugLog(`[Auth] 회원가입 완료: ${this.user.nickname} (${role})`, 'success');
+            alert(`축하합니다! 회원가입이 완료되었습니다.\n환영합니다, ${this.user.nickname}님!`);
+          } else {
+            if (regError) {
+              regError.textContent = data.error || "가입 처리에 실패했습니다.";
+              regError.classList.remove("hidden");
+            }
+          }
+        } catch (_err) {
+          if (regError) {
+            regError.textContent = "서버 통신 중 오류가 발생했습니다.";
+            regError.classList.remove("hidden");
+          }
+        } finally {
+          btnRegister.disabled = false;
+          btnRegister.textContent = "회원가입 완료";
+        }
+      };
+    }
+  },
+
+  selectStore(store) {
+    this.selectedMerchantStore = store;
+    this.isMerchantVerified = false;
+    const results = document.getElementById("storeSearchResults");
+    if (results) results.classList.add("hidden");
+
+    const card = document.getElementById("selectedStoreCard");
+    const cat = document.getElementById("selectedStoreCat");
+    const name = document.getElementById("selectedStoreName");
+    const addr = document.getElementById("selectedStoreAddr");
+    const phone = document.getElementById("selectedStorePhone");
+    const merchCodeWrap = document.getElementById("merchantCodeInputWrap");
+    const merchCodeStatus = document.getElementById("merchantCodeStatus");
+
+    if (cat) cat.textContent = store.category || "상점";
+    if (name) name.textContent = store.name;
+    if (addr) addr.textContent = store.address;
+    if (phone) phone.textContent = store.maskedPhone || "전화번호 미등록";
+    if (merchCodeWrap) merchCodeWrap.classList.add("hidden");
+    if (merchCodeStatus) merchCodeStatus.textContent = "";
+
+    if (card) card.classList.remove("hidden");
+  },
+};
+
+window.MMAAuth = MMAAuth;
 
 bootstrap().catch((e) => {
   // eslint-disable-next-line no-console

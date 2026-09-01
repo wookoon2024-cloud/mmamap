@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=19.0" />
+    <link rel="stylesheet" href="./styles.css?v=20.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -20,6 +20,9 @@
 
     <nav id="hubNav" class="hubNav" aria-label="서비스 메뉴"></nav>
     <div id="hubMega" class="hubMega hidden" aria-label="서비스 상세 메뉴"></div>
+
+    <!-- Top Auth Control -->
+    <div id="authNavWrap" class="authNavWrap"></div>
 
     <div id="hubModalBackdrop" class="hubModalBackdrop hidden" aria-hidden="true"></div>
     <aside id="hubPanel" class="hubPanel hidden" aria-live="polite"></aside>
@@ -57,6 +60,247 @@
         </label>
         <button id="introConfirmBtn" class="introConfirmBtn" type="button">지도 시작하기</button>
       </div>
+    </section>
+
+    <!-- Auth Modal (Login / Register) -->
+    <div id="authBackdrop" class="authBackdrop hidden" aria-hidden="true"></div>
+    <section id="authModal" class="authModal hidden" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+      <div class="authModalHead">
+        <div class="authTabs">
+          <button id="authTabLogin" class="authTab active" type="button">로그인</button>
+          <button id="authTabRegister" class="authTab" type="button">회원가입</button>
+        </div>
+        <button id="authCloseBtn" class="authCloseBtn" type="button" aria-label="닫기">×</button>
+      </div>
+      
+      <!-- Login View -->
+      <div id="authLoginView" class="authModalBody">
+        <div class="authWelcome">
+          <h3>군필지도에 오신 것을 환영합니다!</h3>
+          <p>로그인 후 혜택 가게 즐겨찾기 및 점주 전용 QR 통계를 이용해 보세요.</p>
+        </div>
+        <form id="loginForm" class="authForm" onsubmit="return false;">
+          <div class="authInputGroup">
+            <label for="loginEmail">이메일 (아이디)</label>
+            <input type="email" id="loginEmail" placeholder="example@email.com" required autocomplete="username" />
+          </div>
+          <div class="authInputGroup">
+            <label for="loginPassword">비밀번호</label>
+            <input type="password" id="loginPassword" placeholder="비밀번호를 입력하세요" required autocomplete="current-password" />
+          </div>
+          <div id="loginErrorMsg" class="authErrorMsg hidden"></div>
+          <button id="loginSubmitBtn" class="authSubmitBtn" type="button">로그인</button>
+          <div class="authSwitchWrap">
+            아직 계정이 없으신가요? <button type="button" id="btnSwitchToRegister" class="authLinkBtn">회원가입 하기</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Register View -->
+      <div id="authRegisterView" class="authModalBody hidden">
+        <div class="authRoleSelectWrap">
+          <label class="authRoleLabel">회원 유형을 선택해 주세요</label>
+          <div class="authRoleOptions">
+            <label class="authRoleOption active">
+              <input type="radio" name="regRole" value="general" checked />
+              <div class="authRoleBox">
+                <span class="roleIcon">🪖</span>
+                <div class="roleText">
+                  <strong>일반회원</strong>
+                  <small>병역이행자, 군장병, 명문가, 일반</small>
+                </div>
+              </div>
+            </label>
+            <label class="authRoleOption">
+              <input type="radio" name="regRole" value="merchant" />
+              <div class="authRoleBox">
+                <span class="roleIcon">🏪</span>
+                <div class="roleText">
+                  <strong>소상공인 회원</strong>
+                  <small>가맹점주 (QR 통계/홍보물 지원)</small>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <form id="registerForm" class="authForm" onsubmit="return false;">
+          <!-- Email + Verify Step -->
+          <div class="authInputGroup">
+            <label for="regEmail">이메일 (아이디)</label>
+            <div class="authInputWithBtn">
+              <input type="email" id="regEmail" placeholder="example@email.com" required />
+              <button type="button" id="btnSendEmailCode" class="authSubBtn">인증번호 발송</button>
+            </div>
+            <div id="regEmailStatus" class="authHelpText"></div>
+          </div>
+
+          <div id="regEmailCodeWrap" class="authInputGroup hidden">
+            <label for="regEmailCode">이메일 인증번호 (6자리)</label>
+            <div class="authInputWithBtn">
+              <input type="text" id="regEmailCode" placeholder="인증번호 6자리 입력" maxlength="6" />
+              <button type="button" id="btnVerifyEmailCode" class="authSubBtn">인증 확인</button>
+            </div>
+            <div id="regEmailCodeStatus" class="authHelpText"></div>
+          </div>
+
+          <!-- Nickname -->
+          <div class="authInputGroup">
+            <label for="regNickname">활동 닉네임</label>
+            <div class="authInputWithBtn">
+              <input type="text" id="regNickname" placeholder="2~16자 닉네임" maxlength="16" required />
+              <button type="button" id="btnCheckNickname" class="authSubBtn">중복 확인</button>
+            </div>
+            <div id="regNicknameStatus" class="authHelpText"></div>
+          </div>
+
+          <!-- Password -->
+          <div class="authInputGroup">
+            <label for="regPassword">비밀번호</label>
+            <input type="password" id="regPassword" placeholder="6자 이상 입력" minlength="6" required autocomplete="new-password" />
+          </div>
+          <div class="authInputGroup">
+            <label for="regPasswordConfirm">비밀번호 확인</label>
+            <input type="password" id="regPasswordConfirm" placeholder="비밀번호 재입력" minlength="6" required autocomplete="new-password" />
+            <div id="regPwStatus" class="authHelpText"></div>
+          </div>
+
+          <!-- Merchant Store Verification Section (visible if merchant role is chosen) -->
+          <div id="merchantVerifySection" class="merchantVerifySection hidden">
+            <div class="merchantVerifyHead">
+              <h4>🏪 가맹점주 매장 인증</h4>
+              <p>공공데이터에 등록된 매장 대표번호로 실시간 점주 인증을 진행합니다.</p>
+            </div>
+            
+            <div class="authInputGroup">
+              <label for="merchantStoreSearch">우리 매장 검색</label>
+              <div class="authInputWithBtn">
+                <input type="text" id="merchantStoreSearch" placeholder="가게명 또는 주소 검색 (예: 롯데시네마)" />
+                <button type="button" id="btnSearchStore" class="authSubBtn">검색</button>
+              </div>
+              <div id="storeSearchResults" class="storeSearchResults hidden"></div>
+            </div>
+
+            <!-- Selected Store Preview & Phone Verification -->
+            <div id="selectedStoreCard" class="selectedStoreCard hidden">
+              <div class="selectedStoreInfo">
+                <span class="selectedStoreBadge" id="selectedStoreCat">문화</span>
+                <strong id="selectedStoreName">롯데시네마 수락산점</strong>
+                <span class="selectedStoreAddr" id="selectedStoreAddr">서울특별시 노원구 동일로 1660</span>
+                <div class="selectedStorePhone">매장 대표번호: <b id="selectedStorePhone">02-***-8855</b></div>
+              </div>
+              <div class="merchantCodeAction">
+                <button type="button" id="btnSendMerchantCode" class="authSubBtn full">매장 전화로 인증번호 요청</button>
+              </div>
+              <div id="merchantCodeInputWrap" class="merchantCodeInputWrap hidden">
+                <div class="authInputWithBtn">
+                  <input type="text" id="merchantCodeInput" placeholder="점주 인증번호 6자리" maxlength="6" />
+                  <button type="button" id="btnVerifyMerchantCode" class="authSubBtn">인증 확인</button>
+                </div>
+                <div id="merchantCodeStatus" class="authHelpText"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Legal & Privacy Agreements -->
+          <div class="authAgreementsWrap">
+            <label class="authAgreeCheck">
+              <input type="checkbox" id="agreeAll" />
+              <strong>전체 약관에 동의합니다</strong>
+            </label>
+            <div class="authAgreeSubList">
+              <label class="authAgreeCheck">
+                <input type="checkbox" id="agreeTerms" required />
+                <span>[필수] <a href="javascript:void(0)" onclick="window.MMAAuth.showPolicyModal('terms')">서비스 이용약관</a> 동의</span>
+              </label>
+              <label class="authAgreeCheck">
+                <input type="checkbox" id="agreePrivacy" required />
+                <span>[필수] <a href="javascript:void(0)" onclick="window.MMAAuth.showPolicyModal('privacy')">개인정보 수집 및 이용</a> 동의</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="registerErrorMsg" class="authErrorMsg hidden"></div>
+          <button id="registerSubmitBtn" class="authSubmitBtn" type="button">회원가입 완료</button>
+          
+          <div class="authSwitchWrap">
+            이미 계정이 있으신가요? <button type="button" id="btnSwitchToLogin" class="authLinkBtn">로그인 하기</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Merchant Stats & My Page Modal -->
+    <div id="merchantStatsBackdrop" class="merchantStatsBackdrop hidden" aria-hidden="true"></div>
+    <section id="merchantStatsModal" class="merchantStatsModal hidden" role="dialog" aria-modal="true" aria-labelledby="merchantStatsTitle">
+      <div class="merchantStatsHead">
+        <div>
+          <div class="merchantBadgeRow">
+            <span class="hubBadge" style="background:#eff6ff; color:#2563eb; border-color:#bfdbfe;">인증된 가맹점주</span>
+            <span id="merchantStoreCategory" class="hubBadge" style="background:#f1f5f9; color:#475569;">음식점</span>
+          </div>
+          <h2 id="merchantStoreTitle" class="merchantStoreTitle">매장명</h2>
+          <p id="merchantStoreAddress" class="merchantStoreAddress">매장 주소</p>
+        </div>
+        <button id="merchantStatsCloseBtn" class="introCloseBtn" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <div class="merchantStatsBody">
+        <!-- Quick KPI Cards -->
+        <div class="statsKpiGrid">
+          <div class="kpiCard">
+            <span class="kpiLabel">📌 총 누적 QR 스캔</span>
+            <strong id="kpiTotalScans" class="kpiValue">0<small>회</small></strong>
+          </div>
+          <div class="kpiCard highlight">
+            <span class="kpiLabel">📅 오늘 스캔</span>
+            <strong id="kpiTodayScans" class="kpiValue">0<small>회</small></strong>
+          </div>
+          <div class="kpiCard">
+            <span class="kpiLabel">🗓️ 이번 달 스캔</span>
+            <strong id="kpiMonthScans" class="kpiValue">0<small>회</small></strong>
+          </div>
+        </div>
+
+        <!-- 14-day Daily Chart -->
+        <div class="statsCard">
+          <div class="statsCardHead">
+            <h4>📊 최근 14일 일별 QR 스캔 추이</h4>
+            <span class="statsCardSub">청년 장병 방문 통계</span>
+          </div>
+          <div id="dailyChartContainer" class="dailyChartContainer"></div>
+        </div>
+
+        <!-- Source Distribution & Quick Actions -->
+        <div class="statsTwoColGrid">
+          <div class="statsCard">
+            <div class="statsCardHead">
+              <h4>🎯 홍보물 규격별 스캔 분포</h4>
+            </div>
+            <div id="sourceBreakdownList" class="sourceBreakdownList"></div>
+          </div>
+          
+          <div class="statsCard actionCard">
+            <div class="statsCardHead">
+              <h4>🖨️ 매장 맞춤 홍보물 인쇄</h4>
+            </div>
+            <p>언제든지 최신 지도와 QR코드가 포함된 고화질 홍보물을 즉시 출력할 수 있습니다.</p>
+            <button id="btnMerchantPrintAction" class="merchantPrintActionBtn" type="button">
+              ✨ 맞춤 홍보물(포스터/스탠드) 바로 인쇄하기
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Policy / Terms Modal -->
+    <div id="policyBackdrop" class="policyBackdrop hidden" aria-hidden="true"></div>
+    <section id="policyModal" class="policyModal hidden" role="dialog" aria-modal="true" aria-labelledby="policyModalTitle">
+      <div class="policyModalHead">
+        <h3 id="policyModalTitle">서비스 이용약관</h3>
+        <button id="policyCloseBtn" class="introCloseBtn" type="button" aria-label="닫기">×</button>
+      </div>
+      <div id="policyModalBody" class="policyModalBody"></div>
     </section>
 
     <div class="legendBar">
@@ -171,13 +415,13 @@
         </div>
       </div>
       <div id="liveDebugLogList" style="padding: 8px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; max-height: 220px; word-break: break-all;">
-        <div style="color: #4ade80;">[System] 실시간 디버그 모니터링 활성화됨 (v9.6)</div>
+        <div style="color: #4ade80;">[System] 실시간 디버그 모니터링 활성화됨 (v10.0)</div>
       </div>
     </div>
 
-    <div class="versionBadge">v9.6</div>
+    <div class="versionBadge">v10.0</div>
 
-    <script src="./config.js?v=3.6"></script>
-    <script src="./app.js?v=52.0"></script>
+    <script src="./config.js?v=4.0"></script>
+    <script src="./app.js?v=53.0"></script>
   </body>
 </html>
