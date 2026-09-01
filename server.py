@@ -1044,6 +1044,44 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 conn.close()
         self._json(HTTPStatus.OK, {"ok": True, "message": "로그아웃되었습니다."})
 
+    def _handle_auth_update_profile(self):
+        user = self._get_auth_user()
+        if not user:
+            self._json(HTTPStatus.UNAUTHORIZED, {"error": "로그인이 필요한 기능입니다."})
+            return
+        body = self._read_json_body()
+        new_nickname = str(body.get("nickname", "")).strip()
+        new_password = str(body.get("new_password", "")).strip()
+        
+        conn = self._db()
+        try:
+            if new_nickname and new_nickname != user["nickname"]:
+                if len(new_nickname) < 2 or len(new_nickname) > 16:
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "닉네임은 2~16자리로 입력해 주세요."})
+                    return
+                dup = conn.execute("SELECT id FROM users WHERE nickname = ? AND id != ?", (new_nickname, user["id"])).fetchone()
+                if dup:
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "이미 사용 중인 닉네임입니다."})
+                    return
+                conn.execute("UPDATE users SET nickname = ?, updated_at = ? WHERE id = ?", (new_nickname, now_ms(), user["id"]))
+                user["nickname"] = new_nickname
+
+            if new_password:
+                if len(new_password) < 6:
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "비밀번호는 최소 6자 이상이어야 합니다."})
+                    return
+                conn.execute("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", (hash_password(new_password), now_ms(), user["id"]))
+            
+            conn.commit()
+        finally:
+            conn.close()
+
+        self._json(HTTPStatus.OK, {
+            "ok": True,
+            "message": "회원 정보가 성공적으로 수정되었습니다.",
+            "user": user
+        })
+
     def _handle_user_toggle_favorite(self):
         user = self._get_auth_user()
         if not user:
@@ -1595,6 +1633,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return
         if parsed_url.path == "/api/auth/logout":
             self._handle_auth_logout()
+            return
+        if parsed_url.path == "/api/auth/profile":
+            self._handle_auth_update_profile()
             return
         if parsed_url.path == "/api/user/favorite":
             self._handle_user_toggle_favorite()

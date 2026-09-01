@@ -2538,6 +2538,217 @@ button:active {
   background: #ffffff;
 }
 
+/* ============================================================
+   USER PROFILE DROPDOWN POPOVER MENU
+============================================================ */
+.userProfileDropdown {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  width: 280px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  font-family: "NanumSquare", "Nanum Gothic", "Noto Sans KR", sans-serif;
+  z-index: 1200;
+  overflow: hidden;
+  animation: hubModalCenterFadeIn 0.15s ease-out;
+}
+
+.userProfileDropdown.hidden {
+  display: none;
+}
+
+.profileDropdownHeader {
+  padding: 14px 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.profileUserAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.profileUserAvatar.admin {
+  background: #fdf4ff;
+  border-color: #f0abfc;
+}
+
+.profileUserAvatar.merchant {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.profileUserInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.profileUserNick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.profileRoleBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.profileRoleBadge.admin {
+  background: #fdf4ff;
+  color: #c026d3;
+  border-color: #f0abfc;
+}
+
+.profileRoleBadge.merchant {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.profileUserEmail {
+  font-size: 11.5px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.profileDropdownDivider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0;
+}
+
+.profileDropdownSection {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profileDropdownItem {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.profileDropdownItem:hover {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+
+.profileDropdownItem .pItemIcon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.profileDropdownItem .pItemText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.profileDropdownItem .pItemText strong {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.profileDropdownItem .pItemText small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.profileDropdownItem .pItemArrow {
+  font-size: 16px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.profileDropdownFooter {
+  padding: 6px;
+  background: #fafafa;
+}
+
+.profileLogoutBtn {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.profileLogoutBtn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Favorites Sub-panel Back & Close Buttons */
+.favBackBtn,
+.favCloseBtn {
+  border: 0;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  transition: all 0.12s ease;
+}
+
+.favBackBtn:hover,
+.favCloseBtn:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
 .favoritesPanel {
   position: absolute;
   right: 0;
@@ -2546,9 +2757,10 @@ button:active {
   max-height: 420px;
   overflow: auto;
   border: 1px solid #d7deed;
-  border-radius: 10px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  z-index: 1200;
 }
 
 .favoritesPanel.hidden {
@@ -2560,11 +2772,14 @@ button:active {
   top: 0;
   z-index: 1;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
   color: #1f2d45;
   border-bottom: 1px solid #e5ebf6;
-  background: #f7f9fe;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .favoritesList {

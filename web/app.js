@@ -2432,8 +2432,27 @@ async function bootstrap() {
 
   const brandLogoEl = document.getElementById("brandLogo");
   if (brandLogoEl) brandLogoEl.addEventListener("click", () => { window.location.reload(); });
-  if (profileBtn) profileBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleFavoritesPanel(); });
+  
+  const userProfileDropdownEl = document.getElementById("userProfileDropdown");
+  const btnBackToProfileMenuEl = document.getElementById("btnBackToProfileMenu");
+  const btnCloseFavoritesEl = document.getElementById("btnCloseFavorites");
+
+  if (profileBtn) profileBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    window.MMAAuth.toggleProfileMenu();
+  });
+  if (userProfileDropdownEl) userProfileDropdownEl.addEventListener("click", (e) => e.stopPropagation());
   if (favoritesPanel) favoritesPanel.addEventListener("click", (e) => e.stopPropagation());
+  if (btnBackToProfileMenuEl) btnBackToProfileMenuEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeFavoritesPanel();
+    window.MMAAuth.toggleProfileMenu();
+  });
+  if (btnCloseFavoritesEl) btnCloseFavoritesEl.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeFavoritesPanel();
+  });
+
   if (hubMegaEl) {
     hubMegaEl.addEventListener("click", (e) => e.stopPropagation());
     hubMegaEl.addEventListener("mouseleave", () => {
@@ -2455,6 +2474,7 @@ async function bootstrap() {
     });
   }
   document.addEventListener("click", (e) => {
+    window.MMAAuth.closeProfileMenu();
     closeFavoritesPanel();
     closeHubMega();
     activeHubPrimaryKey = "";
@@ -2889,26 +2909,234 @@ const MMAAuth = {
     const roleTitle = isAdmin ? "관리자" : isMerchant ? "점주" : "회원";
 
     wrap.innerHTML = `
-      <div class="authUserBadge">
+      <div class="authUserBadge" onclick="window.MMAAuth.toggleProfileMenu()" title="내 메뉴 열기" style="cursor:pointer;">
         <span>${roleIcon}</span>
         <strong>${this.escapeHtml(this.user.nickname)}</strong>
         <small style="color:${isAdmin ? '#a21caf' : '#64748b'};">${roleTitle}</small>
       </div>
-      ${
-        isAdmin
-          ? `<button type="button" class="authNavBtn adminBtn" onclick="window.MMAAuth.openAdminDashboardModal()">
-               <span>👑</span> 운영 통계
-             </button>`
-          : isMerchant && this.user.merchantFacilityId
-          ? `<button type="button" class="authNavBtn merchantBtn" onclick="window.MMAAuth.openMerchantStatsModal()">
-               <span>📊</span> 우리 매장 통계
-             </button>`
-          : ""
-      }
-      <button type="button" class="authNavBtn" onclick="window.MMAAuth.logout()">
-        로그아웃
-      </button>
     `;
+  },
+
+  renderProfileDropdown() {
+    const el = document.getElementById("userProfileDropdown");
+    if (!el) return;
+    const favCount = (this.user ? (this.favorites ? this.favorites.size : 0) : favorites.size) || 0;
+
+    if (!this.user) {
+      el.innerHTML = `
+        <div class="profileDropdownHeader guest">
+          <div class="profileUserAvatar">👤</div>
+          <div class="profileUserInfo">
+            <div class="profileUserNick">게스트 사용자</div>
+            <div class="profileUserEmail">로그인 후 맞춤 혜택을 이용하세요</div>
+          </div>
+        </div>
+        <div class="profileDropdownDivider"></div>
+        <div class="profileDropdownSection">
+          <button type="button" class="profileDropdownItem primary" onclick="window.MMAAuth.openAuthModal('login'); window.MMAAuth.closeProfileMenu();">
+            <span class="pItemIcon">🔑</span>
+            <div class="pItemText">
+              <strong>로그인 / 회원가입</strong>
+              <small>모든 혜택 및 서비스 이용</small>
+            </div>
+            <span class="pItemArrow">›</span>
+          </button>
+          <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openFavoritesFromMenu()">
+            <span class="pItemIcon">⭐</span>
+            <div class="pItemText">
+              <strong>찜한 내역 / 즐겨찾기</strong>
+              <small>${favCount}개 매장 저장됨</small>
+            </div>
+            <span class="pItemArrow">›</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    const isAdmin = this.user.role === "admin";
+    const isMerchant = this.user.role === "merchant";
+    const roleIcon = isAdmin ? "👑" : isMerchant ? "🏪" : "🪖";
+    const roleBadgeClass = isAdmin ? "admin" : isMerchant ? "merchant" : "user";
+    const roleTitle = isAdmin ? "운영 관리자" : isMerchant ? "소상공인 점주" : "병역이행자·일반회원";
+
+    el.innerHTML = `
+      <div class="profileDropdownHeader">
+        <div class="profileUserAvatar ${roleBadgeClass}">${roleIcon}</div>
+        <div class="profileUserInfo">
+          <div class="profileUserNick">
+            <strong>${this.escapeHtml(this.user.nickname)}</strong>
+            <span class="profileRoleBadge ${roleBadgeClass}">${roleTitle}</span>
+          </div>
+          <div class="profileUserEmail">${this.escapeHtml(this.user.email)}</div>
+        </div>
+      </div>
+      
+      <div class="profileDropdownDivider"></div>
+
+      <div class="profileDropdownSection">
+        <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openFavoritesFromMenu()">
+          <span class="pItemIcon">⭐</span>
+          <div class="pItemText">
+            <strong>찜한 내역 / 즐겨찾기</strong>
+            <small>${favCount}개 매장 저장됨</small>
+          </div>
+          <span class="pItemArrow">›</span>
+        </button>
+
+        ${
+          isAdmin
+            ? `<button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openAdminDashboardModal(); window.MMAAuth.closeProfileMenu();">
+                 <span class="pItemIcon">👑</span>
+                 <div class="pItemText">
+                   <strong>관리자 운영 대시보드</strong>
+                   <small>실시간 접속 로그 및 분석</small>
+                 </div>
+                 <span class="pItemArrow">›</span>
+               </button>`
+            : isMerchant && this.user.merchantFacilityId
+            ? `<button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openMerchantStatsModal(); window.MMAAuth.closeProfileMenu();">
+                 <span class="pItemIcon">🏪</span>
+                 <div class="pItemText">
+                   <strong>우리 매장 QR 통계</strong>
+                   <small>방문자 스캔 유입 현황</small>
+                 </div>
+                 <span class="pItemArrow">›</span>
+               </button>`
+            : ""
+        }
+
+        <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openEditProfileModal(); window.MMAAuth.closeProfileMenu();">
+          <span class="pItemIcon">⚙️</span>
+          <div class="pItemText">
+            <strong>회원정보 수정</strong>
+            <small>닉네임 / 비밀번호 변경</small>
+          </div>
+          <span class="pItemArrow">›</span>
+        </button>
+      </div>
+
+      <div class="profileDropdownDivider"></div>
+
+      <div class="profileDropdownFooter">
+        <button type="button" class="profileLogoutBtn" onclick="window.MMAAuth.logout(); window.MMAAuth.closeProfileMenu();">
+          <span class="logoutIcon">🚪</span>
+          <span>로그아웃</span>
+        </button>
+      </div>
+    `;
+  },
+
+  toggleProfileMenu() {
+    const el = document.getElementById("userProfileDropdown");
+    const favEl = document.getElementById("favoritesPanel");
+    if (favEl) favEl.classList.add("hidden");
+    if (!el) return;
+    const isHidden = el.classList.contains("hidden");
+    if (isHidden) {
+      this.renderProfileDropdown();
+      el.classList.remove("hidden");
+    } else {
+      el.classList.add("hidden");
+    }
+  },
+
+  closeProfileMenu() {
+    const el = document.getElementById("userProfileDropdown");
+    if (el) el.classList.add("hidden");
+    const favEl = document.getElementById("favoritesPanel");
+    if (favEl) favEl.classList.add("hidden");
+  },
+
+  openFavoritesFromMenu() {
+    const el = document.getElementById("userProfileDropdown");
+    if (el) el.classList.add("hidden");
+    const favEl = document.getElementById("favoritesPanel");
+    if (favEl) {
+      favEl.classList.remove("hidden");
+      renderFavoritesPanel();
+    }
+  },
+
+  openEditProfileModal() {
+    if (!this.user) return;
+    const modal = document.getElementById("editProfileModal");
+    const backdrop = document.getElementById("editProfileBackdrop");
+    const emailInp = document.getElementById("editProfileEmail");
+    const roleInp = document.getElementById("editProfileRole");
+    const nickInp = document.getElementById("editProfileNickname");
+    const pwInp = document.getElementById("editProfileNewPassword");
+    const pwConfInp = document.getElementById("editProfileNewPasswordConfirm");
+    const msg = document.getElementById("editProfileMsg");
+
+    if (emailInp) emailInp.value = this.user.email || "";
+    if (roleInp) roleInp.value = this.user.role === "admin" ? "운영 관리자" : this.user.role === "merchant" ? "소상공인 점주" : "일반 회원 (병역이행자)";
+    if (nickInp) nickInp.value = this.user.nickname || "";
+    if (pwInp) pwInp.value = "";
+    if (pwConfInp) pwConfInp.value = "";
+    if (msg) { msg.textContent = ""; msg.className = "authHelpText"; }
+
+    if (backdrop) backdrop.classList.remove("hidden");
+    if (modal) modal.classList.remove("hidden");
+  },
+
+  closeEditProfileModal() {
+    const modal = document.getElementById("editProfileModal");
+    const backdrop = document.getElementById("editProfileBackdrop");
+    if (modal) modal.classList.add("hidden");
+    if (backdrop) backdrop.classList.add("hidden");
+  },
+
+  async submitEditProfile() {
+    const nickInp = document.getElementById("editProfileNickname");
+    const pwInp = document.getElementById("editProfileNewPassword");
+    const pwConfInp = document.getElementById("editProfileNewPasswordConfirm");
+    const msg = document.getElementById("editProfileMsg");
+    const btn = document.getElementById("btnSubmitEditProfile");
+
+    const nickname = nickInp ? nickInp.value.trim() : "";
+    const new_password = pwInp ? pwInp.value.trim() : "";
+    const new_password_confirm = pwConfInp ? pwConfInp.value.trim() : "";
+
+    if (!nickname || nickname.length < 2) {
+      if (msg) { msg.textContent = "닉네임은 2글자 이상 입력해 주세요."; msg.className = "authHelpText error"; }
+      return;
+    }
+    if (new_password) {
+      if (new_password.length < 6) {
+        if (msg) { msg.textContent = "비밀번호는 최소 6자 이상이어야 합니다."; msg.className = "authHelpText error"; }
+        return;
+      }
+      if (new_password !== new_password_confirm) {
+        if (msg) { msg.textContent = "새 비밀번호가 일치하지 않습니다."; msg.className = "authHelpText error"; }
+        return;
+      }
+    }
+
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+        },
+        body: JSON.stringify({ nickname, new_password }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.user) this.user = data.user;
+        this.renderNav();
+        alert("회원 정보가 성공적으로 수정되었습니다.");
+        this.closeEditProfileModal();
+      } else {
+        if (msg) { msg.textContent = data.error || "수정에 실패했습니다."; msg.className = "authHelpText error"; }
+      }
+    } catch (err) {
+      if (msg) { msg.textContent = "서버 통신 오류가 발생했습니다."; msg.className = "authHelpText error"; }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   },
 
   escapeHtml(str) {
