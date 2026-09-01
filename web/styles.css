@@ -5317,7 +5317,17 @@ button:active {
     padding: 12px 14px !important;
   }
 
-  /* 6. Map Tools Position */
+  /* 6. Hide Promotional Print Features on Mobile */
+  .detailPrintBtn,
+  #detailPrintBtn,
+  .hubSecondaryBtn[data-key="store_poster_guide"],
+  .merchantPrintAction,
+  #printTemplateModal,
+  .printModalContainer {
+    display: none !important;
+  }
+
+  /* 7. Map Tools Position */
   .mapTools {
     right: 8px !important;
     bottom: 58px !important;
