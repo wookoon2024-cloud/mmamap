@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=38.0" />
+    <link rel="stylesheet" href="./styles.css?v=39.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -319,79 +319,163 @@
       <div class="adminDashboardHead">
         <div>
           <span class="adminBadge">👑 관리자 모드</span>
-          <h3 id="adminDashboardTitle" class="adminDashboardTitle">군필지도 전체 접속 및 운영 통계</h3>
+          <h3 id="adminDashboardTitle" class="adminDashboardTitle">군필지도 관리자 운영 센터</h3>
         </div>
         <button id="adminDashboardCloseBtn" class="introCloseBtn" type="button" aria-label="닫기">×</button>
       </div>
+
+      <!-- Admin Tab Bar -->
+      <div class="adminTabBar">
+        <button type="button" id="adminTabBtnAnalytics" class="adminTabBtn active" onclick="window.MMAAuth.switchAdminTab('analytics')">
+          <span>📊 접속 & 통계 분석</span>
+        </button>
+        <button type="button" id="adminTabBtnMembers" class="adminTabBtn" onclick="window.MMAAuth.switchAdminTab('members')">
+          <span>👥 회원 관리</span>
+          <span id="adminMemberBadgeCount" class="adminTabBadge">0명</span>
+        </button>
+      </div>
+
       <div class="adminDashboardBody">
-        <!-- KPI Row -->
-        <div class="adminKpiGrid">
-          <div class="adminKpiCard highlight">
-            <span class="adminKpiLabel">📈 총 누적 페이지뷰</span>
-            <strong id="adminTotalPv" class="adminKpiValue">0<small>PV</small></strong>
-            <span id="adminTotalUv" class="adminKpiSub">순 방문자 0 UV</span>
+        <!-- TAB 1: Analytics & Traffic -->
+        <div id="adminTabAnalytics" class="adminTabContent">
+          <!-- KPI Row -->
+          <div class="adminKpiGrid">
+            <div class="adminKpiCard highlight">
+              <span class="adminKpiLabel">📈 총 누적 페이지뷰</span>
+              <strong id="adminTotalPv" class="adminKpiValue">0<small>PV</small></strong>
+              <span id="adminTotalUv" class="adminKpiSub">순 방문자 0 UV</span>
+            </div>
+            <div class="adminKpiCard">
+              <span class="adminKpiLabel">☀️ 오늘 방문자 (PV / UV)</span>
+              <strong id="adminTodayPv" class="adminKpiValue">0<small>PV</small></strong>
+              <span id="adminTodayUv" class="adminKpiSub">순 방문자 0 UV</span>
+            </div>
+            <div class="adminKpiCard">
+              <span class="adminKpiLabel">🗓️ 이번 달 방문자</span>
+              <strong id="adminMonthPv" class="adminKpiValue">0<small>PV</small></strong>
+              <span id="adminMonthUv" class="adminKpiSub">순 방문자 0 UV</span>
+            </div>
+            <div class="adminKpiCard userCard">
+              <span class="adminKpiLabel">👥 가입 회원 현황</span>
+              <strong id="adminTotalUsers" class="adminKpiValue">0<small>명</small></strong>
+              <span id="adminUserDetail" class="adminKpiSub">일반 0 · 소상공인 0</span>
+            </div>
           </div>
-          <div class="adminKpiCard">
-            <span class="adminKpiLabel">☀️ 오늘 방문자 (PV / UV)</span>
-            <strong id="adminTodayPv" class="adminKpiValue">0<small>PV</small></strong>
-            <span id="adminTodayUv" class="adminKpiSub">순 방문자 0 UV</span>
-          </div>
-          <div class="adminKpiCard">
-            <span class="adminKpiLabel">🗓️ 이번 달 방문자</span>
-            <strong id="adminMonthPv" class="adminKpiValue">0<small>PV</small></strong>
-            <span id="adminMonthUv" class="adminKpiSub">순 방문자 0 UV</span>
-          </div>
-          <div class="adminKpiCard userCard">
-            <span class="adminKpiLabel">👥 가입 회원 현황</span>
-            <strong id="adminTotalUsers" class="adminKpiValue">0<small>명</small></strong>
-            <span id="adminUserDetail" class="adminKpiSub">일반 0 · 소상공인 0</span>
-          </div>
-        </div>
 
-        <!-- 30-day Chart -->
-        <div class="adminStatsCard">
-          <div class="adminStatsCardHead">
-            <h4>📊 최근 30일 접속 추이 (페이지뷰 & 순 방문자)</h4>
-            <span class="adminStatsCardSub">실시간 집계 데이터</span>
-          </div>
-          <div id="adminDailyChartContainer" class="adminDailyChartContainer"></div>
-        </div>
-
-        <!-- 2-col Grid: Devices & Top Paths -->
-        <div class="adminTwoColGrid">
+          <!-- 30-day Chart -->
           <div class="adminStatsCard">
             <div class="adminStatsCardHead">
-              <h4>📱 접속 기기 점유율</h4>
+              <h4>📊 최근 30일 접속 추이 (페이지뷰 & 순 방문자)</h4>
+              <span class="adminStatsCardSub">실시간 집계 데이터</span>
             </div>
-            <div id="adminDeviceBreakdown" class="adminDeviceBreakdown"></div>
+            <div id="adminDailyChartContainer" class="adminDailyChartContainer"></div>
           </div>
 
+          <!-- 2-col Grid: Devices & Top Paths -->
+          <div class="adminTwoColGrid">
+            <div class="adminStatsCard">
+              <div class="adminStatsCardHead">
+                <h4>📱 접속 기기 점유율</h4>
+              </div>
+              <div id="adminDeviceBreakdown" class="adminDeviceBreakdown"></div>
+            </div>
+
+            <div class="adminStatsCard">
+              <div class="adminStatsCardHead">
+                <h4>🔥 인기 열람 경로 Top 10</h4>
+              </div>
+              <div id="adminTopPathsList" class="adminTopPathsList"></div>
+            </div>
+          </div>
+
+          <!-- Recent Logs Table -->
           <div class="adminStatsCard">
             <div class="adminStatsCardHead">
-              <h4>🔥 인기 열람 경로 Top 10</h4>
+              <h4>🕒 최근 실시간 접속 로그 (최근 10건)</h4>
             </div>
-            <div id="adminTopPathsList" class="adminTopPathsList"></div>
+            <div class="adminRecentTableWrap">
+              <table class="adminRecentTable">
+                <thead>
+                  <tr>
+                    <th>접속 일시</th>
+                    <th>요청 경로</th>
+                    <th>유입 경로 (Referrer)</th>
+                    <th>기기</th>
+                    <th>회원 구분</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRecentVisitsBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- Recent Logs Table -->
-        <div class="adminStatsCard">
-          <div class="adminStatsCardHead">
-            <h4>🕒 최근 실시간 접속 로그 (최근 10건)</h4>
+        <!-- TAB 2: Member Management (회원 관리) -->
+        <div id="adminTabMembers" class="adminTabContent hidden">
+          <!-- Member KPI Summary -->
+          <div class="adminKpiGrid">
+            <div class="adminKpiCard highlight">
+              <span class="adminKpiLabel">👥 총 가입 회원</span>
+              <strong id="adminMemTotalCount" class="adminKpiValue">0<small>명</small></strong>
+              <span class="adminKpiSub">실시간 등록 회원</span>
+            </div>
+            <div class="adminKpiCard">
+              <span class="adminKpiLabel">🪖 일반회원 (병역이행자)</span>
+              <strong id="adminMemGeneralCount" class="adminKpiValue">0<small>명</small></strong>
+              <span class="adminKpiSub">찜/후기/혜택 이용</span>
+            </div>
+            <div class="adminKpiCard">
+              <span class="adminKpiLabel">🏪 소상공인 점주</span>
+              <strong id="adminMemMerchantCount" class="adminKpiValue">0<small>명</small></strong>
+              <span class="adminKpiSub">가맹점 인증 완료</span>
+            </div>
+            <div class="adminKpiCard userCard">
+              <span class="adminKpiLabel">👑 운영 관리자</span>
+              <strong id="adminMemAdminCount" class="adminKpiValue">0<small>명</small></strong>
+              <span class="adminKpiSub">시스템 총괄 권한</span>
+            </div>
           </div>
-          <div class="adminRecentTableWrap">
-            <table class="adminRecentTable">
-              <thead>
-                <tr>
-                  <th>접속 일시</th>
-                  <th>요청 경로</th>
-                  <th>유입 경로 (Referrer)</th>
-                  <th>기기</th>
-                  <th>회원 구분</th>
-                </tr>
-              </thead>
-              <tbody id="adminRecentVisitsBody"></tbody>
-            </table>
+
+          <!-- Search & Filter Controls -->
+          <div class="adminMemberControlBar">
+            <div class="adminRoleFilterBtns">
+              <button type="button" class="adminRoleFilterBtn active" data-role="all" onclick="window.MMAAuth.filterAdminMembers('all')">전체 회원</button>
+              <button type="button" class="adminRoleFilterBtn" data-role="general" onclick="window.MMAAuth.filterAdminMembers('general')">🪖 일반회원</button>
+              <button type="button" class="adminRoleFilterBtn" data-role="merchant" onclick="window.MMAAuth.filterAdminMembers('merchant')">🏪 소상공인 점주</button>
+              <button type="button" class="adminRoleFilterBtn" data-role="admin" onclick="window.MMAAuth.filterAdminMembers('admin')">👑 관리자</button>
+            </div>
+            <div class="adminMemberSearchWrap">
+              <input type="text" id="adminMemberSearchInput" placeholder="닉네임, 이메일, 가맹점명, 연락처 검색..." oninput="window.MMAAuth.searchAdminMembers(this.value)" />
+              <button type="button" class="adminRefreshBtn" onclick="window.MMAAuth.fetchAdminMembers()" title="새로고침">🔄</button>
+            </div>
+          </div>
+
+          <!-- Members Table -->
+          <div class="adminStatsCard">
+            <div class="adminStatsCardHead">
+              <h4>📋 회원 목록 (<span id="adminMemberListCount">0</span>명)</h4>
+              <span class="adminStatsCardSub">가입일시 기준 최신순</span>
+            </div>
+            <div class="adminRecentTableWrap">
+              <table class="adminRecentTable adminMembersTable">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">번호</th>
+                    <th>회원 닉네임 / 이메일</th>
+                    <th style="width: 130px;">회원 구분</th>
+                    <th>인증 가맹점</th>
+                    <th style="width: 120px;">연락처</th>
+                    <th style="width: 130px;">가입 일시</th>
+                    <th style="width: 100px; text-align: center;">가맹점 이동</th>
+                  </tr>
+                </thead>
+                <tbody id="adminMembersTableBody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">회원 데이터를 불러오는 중입니다...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -610,9 +694,9 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v13.0</div>
+    <div class="versionBadge">v13.1</div>
 
-    <script src="./config.js?v=7.0"></script>
-    <script src="./app.js?v=83.0"></script>
+    <script src="./config.js?v=7.1"></script>
+    <script src="./app.js?v=84.0"></script>
   </body>
 </html>

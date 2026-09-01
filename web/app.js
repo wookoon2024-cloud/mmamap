@@ -203,6 +203,50 @@ function normalizeRegion(rawRegion, address, lat, lng) {
   return inferRegionFromAddress(address, lat, lng) || "지역미상";
 }
 
+function formatKoreanAddress(rawAddr) {
+  if (!rawAddr || typeof rawAddr !== "string") return "";
+  let s = rawAddr.trim();
+
+  // 1. Extract and clean parenthesis / detail notes
+  let parenPart = "";
+  const parenMatch = s.match(/\((.*)\)/);
+  if (parenMatch) {
+    let inner = parenMatch[0];
+    let cleaned = inner.replace(/[\(\)]+/g, "").replace(/\s+/g, " ").trim();
+    cleaned = cleaned.replace(/^,\s*/, "").replace(/,\s*$/, "");
+    if (cleaned) parenPart = ` (${cleaned})`;
+    s = s.substring(0, parenMatch.index).trim();
+  }
+  s = s.replace(/[\(\)]+/g, "").trim();
+
+  // 2. Separate known Si/Do
+  const sidoList = [
+    "서울특별시", "부산광역시", "대구광역시", "인천광역시", "광주광역시", "대전광역시", "울산광역시", "세종특별자치시",
+    "경기도", "강원특별자치도", "강원도", "충청북도", "충청남도", "전북특별자치도", "전라북도", "전라남도",
+    "경상북도", "경상남도", "제주특별자치도", "서울시", "부산시", "대구시", "인천시", "광주시", "대전시", "울산시", "세종시"
+  ];
+  for (const sido of sidoList) {
+    if (s.startsWith(sido) && !s.startsWith(sido + " ")) {
+      s = sido + " " + s.slice(sido.length).trim();
+      break;
+    }
+  }
+
+  // 3. Separate Gu / Gun / Si
+  s = s.replace(/([가-힣]{1,5}(?:구|군|시))(?=[가-힣0-9])/g, "$1 ");
+  s = s.replace(/\s시\s민로/g, " 시민로");
+  s = s.replace(/\s구\s산/g, " 구산");
+
+  // 4. Separate Road names
+  s = s.replace(/([가-힣0-9]+(?:로|길|동|읍|면|[0-9]+가))(?=[0-9])/g, "$1 ");
+
+  // 5. Separate building number and floor/unit
+  s = s.replace(/([0-9]+(?:\-[0-9]+)?)([0-9]+층|[0-9]+호|지하[0-9]+층)/g, "$1 $2");
+
+  s = s.replace(/\s+/g, " ").trim();
+  return s + parenPart;
+}
+
 function getFacilityKey(point) {
   return toSafeId(point?.facilityId || `${point?.title || ""}_${point?.address || ""}`);
 }
@@ -284,7 +328,7 @@ async function bootstrap() {
         subtitle: getNormalizedCategory(f.category || "", f.name || ""),
         category: getNormalizedCategory(f.category || "", f.name || ""),
         region: normalizeRegion(f.region || "", f.address || "", f.lat, f.lng),
-        address: f.address || "",
+        address: formatKoreanAddress(f.address || ""),
         phone: f.phone || "",
         benefit: f.benefit || "",
         detailUrl: f.detail_url || "",
@@ -302,7 +346,7 @@ async function bootstrap() {
             subtitle: b.branch_name || "지점",
             category: getNormalizedCategory(f.category || "", f.name || ""),
             region: normalizeRegion(f.region || "", b.address || "", b.lat, b.lng),
-            address: b.address || "",
+            address: formatKoreanAddress(b.address || ""),
             phone: f.phone || "",
             benefit: f.benefit || "",
             detailUrl: f.detail_url || "",
@@ -3463,6 +3507,11 @@ const MMAAuth = {
     addDebugLog("[Auth] 로그아웃 완료", "info");
   },
 
+  currentAdminTab: "analytics",
+  adminMembers: [],
+  adminMemberRoleFilter: "all",
+  adminMemberSearchQuery: "",
+
   async openAdminDashboardModal(adminKey = "") {
     const backdrop = document.getElementById("adminDashboardBackdrop");
     const modal = document.getElementById("adminDashboardModal");
@@ -3470,6 +3519,8 @@ const MMAAuth = {
 
     backdrop.classList.remove("hidden");
     modal.classList.remove("hidden");
+
+    this.switchAdminTab("analytics");
 
     try {
       const url = adminKey ? `/api/admin/stats?admin_key=${encodeURIComponent(adminKey)}` : "/api/admin/stats";
@@ -3484,6 +3535,8 @@ const MMAAuth = {
     } catch (err) {
       addDebugLog(`[Admin Error] ${err.message}`, 'error');
     }
+
+    this.fetchAdminMembers();
   },
 
   closeAdminDashboardModal() {
@@ -3491,6 +3544,160 @@ const MMAAuth = {
     const modal = document.getElementById("adminDashboardModal");
     if (backdrop) backdrop.classList.add("hidden");
     if (modal) modal.classList.add("hidden");
+  },
+
+  switchAdminTab(tab) {
+    this.currentAdminTab = tab;
+    const btnAnalytics = document.getElementById("adminTabBtnAnalytics");
+    const btnMembers = document.getElementById("adminTabBtnMembers");
+    const tabAnalytics = document.getElementById("adminTabAnalytics");
+    const tabMembers = document.getElementById("adminTabMembers");
+
+    if (btnAnalytics) btnAnalytics.classList.toggle("active", tab === "analytics");
+    if (btnMembers) btnMembers.classList.toggle("active", tab === "members");
+    if (tabAnalytics) tabAnalytics.classList.toggle("hidden", tab !== "analytics");
+    if (tabMembers) tabMembers.classList.toggle("hidden", tab !== "members");
+
+    if (tab === "members" && this.adminMembers.length === 0) {
+      this.fetchAdminMembers();
+    }
+  },
+
+  async fetchAdminMembers() {
+    try {
+      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+      const res = await fetch("/api/admin/users", { headers });
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.users)) {
+        this.adminMembers = data.users;
+
+        const total = this.adminMembers.length;
+        const general = this.adminMembers.filter((u) => u.role === "general").length;
+        const merchant = this.adminMembers.filter((u) => u.role === "merchant").length;
+        const admin = this.adminMembers.filter((u) => u.role === "admin").length;
+
+        const elTotal = document.getElementById("adminMemTotalCount");
+        const elGen = document.getElementById("adminMemGeneralCount");
+        const elMer = document.getElementById("adminMemMerchantCount");
+        const elAdm = document.getElementById("adminMemAdminCount");
+        const elBadge = document.getElementById("adminMemberBadgeCount");
+
+        if (elTotal) elTotal.innerHTML = `${total}<small>명</small>`;
+        if (elGen) elGen.innerHTML = `${general}<small>명</small>`;
+        if (elMer) elMer.innerHTML = `${merchant}<small>명</small>`;
+        if (elAdm) elAdm.innerHTML = `${admin}<small>명</small>`;
+        if (elBadge) elBadge.textContent = `${total}명`;
+
+        this.renderAdminMembersTable();
+      }
+    } catch (err) {
+      addDebugLog(`[Admin Members Error] ${err.message}`, 'error');
+    }
+  },
+
+  filterAdminMembers(role) {
+    this.adminMemberRoleFilter = role;
+    document.querySelectorAll(".adminRoleFilterBtn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.role === role);
+    });
+    this.renderAdminMembersTable();
+  },
+
+  searchAdminMembers(query) {
+    this.adminMemberSearchQuery = (query || "").trim().toLowerCase();
+    this.renderAdminMembersTable();
+  },
+
+  renderAdminMembersTable() {
+    const tbody = document.getElementById("adminMembersTableBody");
+    const countEl = document.getElementById("adminMemberListCount");
+    if (!tbody) return;
+
+    let list = this.adminMembers;
+    if (this.adminMemberRoleFilter && this.adminMemberRoleFilter !== "all") {
+      list = list.filter((u) => u.role === this.adminMemberRoleFilter);
+    }
+    if (this.adminMemberSearchQuery) {
+      const q = this.adminMemberSearchQuery;
+      list = list.filter(
+        (u) =>
+          (u.email || "").toLowerCase().includes(q) ||
+          (u.nickname || "").toLowerCase().includes(q) ||
+          (u.merchantFacilityName || "").toLowerCase().includes(q) ||
+          (u.merchantPhone || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (countEl) countEl.textContent = list.length;
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
+            일치하는 회원이 없습니다.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = list
+      .map((u, idx) => {
+        const roleBadge =
+          u.role === "admin"
+            ? `<span class="profileRoleBadge admin">👑 최고 관리자</span>`
+            : u.role === "merchant"
+            ? `<span class="profileRoleBadge merchant">🏪 소상공인 점주</span>`
+            : `<span class="profileRoleBadge user">🪖 일반 (병역의무자)</span>`;
+
+        let formattedDate = "-";
+        if (u.createdAt) {
+          const d = new Date(u.createdAt);
+          if (!isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            const hh = String(d.getHours()).padStart(2, "0");
+            const mm = String(d.getMinutes()).padStart(2, "0");
+            formattedDate = `${y}-${m}-${day} ${hh}:${mm}`;
+          }
+        }
+
+        const storeInfo = u.merchantFacilityName
+          ? `<strong>${this.escapeHtml(u.merchantFacilityName)}</strong>`
+          : `<span style="color: #94a3b8;">-</span>`;
+
+        const phoneInfo = u.merchantPhone
+          ? `<code>${this.escapeHtml(u.merchantPhone)}</code>`
+          : `<span style="color: #94a3b8;">-</span>`;
+
+        const locateBtn = u.merchantFacilityId
+          ? `<button type="button" class="adminLocateStoreBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(u.merchantFacilityId)}')">📍 위치보기</button>`
+          : `<span style="color: #cbd5e1; font-size: 12px;">-</span>`;
+
+        return `
+          <tr>
+            <td style="color: #94a3b8; font-size: 11px;">${idx + 1}</td>
+            <td>
+              <div style="font-weight: 800; color: #0f172a;">${this.escapeHtml(u.nickname || "무명")}</div>
+              <div style="font-size: 11px; color: #64748b;">${this.escapeHtml(u.email)}</div>
+            </td>
+            <td>${roleBadge}</td>
+            <td>${storeInfo}</td>
+            <td>${phoneInfo}</td>
+            <td style="font-size: 11.5px; color: #64748b;">${formattedDate}</td>
+            <td style="text-align: center;">${locateBtn}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  },
+
+  adminLocateFacility(facilityId) {
+    this.closeAdminDashboardModal();
+    if (typeof window.focusFacility === "function") {
+      window.focusFacility(facilityId);
+    }
   },
 
   renderAdminStats(stats) {
