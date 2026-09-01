@@ -3757,9 +3757,12 @@ button:active {
 
 @media (max-width: 768px) {
   .detailPanel {
-    width: calc(100vw - 16px);
-    padding: 13px 13px 11px;
-    border-radius: 14px;
+    width: min(390px, calc(100vw - 20px)) !important;
+    max-height: calc(100vh - 120px) !important;
+    overflow-y: auto !important;
+    padding: 16px 16px 14px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.22) !important;
   }
 
   .detailPanel::before {

@@ -1677,10 +1677,26 @@ async function bootstrap() {
       setTimeout(triggerOpen, 50);
     });
 
+    const isMobile = window.innerWidth <= 768;
+    let targetCenter = latLng;
+
+    if (isMobile) {
+      const projection = map.getProjection?.();
+      if (projection && projection.fromCoordToOffset && projection.fromOffsetToCoord) {
+        const markerOffset = projection.fromCoordToOffset(latLng);
+        // On mobile, the detail popup is ~320px tall and placed above the marker.
+        // If the map centers on the marker, the popup top goes off-screen under .topNav.
+        // By shifting the map center upward by 160px (placing the marker in the lower 35%-40% area of the screen),
+        // the detail popup ends up perfectly centered vertically in the viewport without getting cut off!
+        const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x, markerOffset.y - 160);
+        targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
+      }
+    }
+
     if (map.panTo) {
-      map.panTo(latLng);
+      map.panTo(targetCenter);
     } else {
-      map.setCenter(latLng);
+      map.setCenter(targetCenter);
     }
 
     setTimeout(triggerOpen, 400);
@@ -2155,11 +2171,8 @@ async function bootstrap() {
     updateZoomLabel();
 
     const pos = new naver.maps.LatLng(target.lat, target.lng);
-    map.panTo(pos);
-    setTimeout(() => {
-      openDetailAfterMapMove(target, pos);
-      renderVisibleMarkers();
-    }, 150);
+    openDetailAfterMapMove(target, pos);
+    renderVisibleMarkers();
   };
   window.focusFacility = focusFacility;
 
