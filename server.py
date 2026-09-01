@@ -349,7 +349,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = cache_dir / f"poster_{facility_id}.png"
         
-        if cache_path.exists():
+        if cache_path.exists() and cache_path.stat().st_size > 200000:
             print(f"[Server] Serving cached poster for {facility_id}")
             with open(cache_path, "rb") as f:
                 img_bytes = f.read()
@@ -360,9 +360,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             
             try:
                 img_bytes = generate_poster(facility_id, port=server_port)
-                # Cache it
-                with open(cache_path, "wb") as f:
-                    f.write(img_bytes)
+                if len(img_bytes) > 200000:
+                    with open(cache_path, "wb") as f:
+                        f.write(img_bytes)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
