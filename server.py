@@ -587,14 +587,23 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 _USE_POSTGRES = False
         return SQLiteConnWrapper(self.db_path)
 
+    def _safe_write(self, data: bytes) -> None:
+        try:
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            pass
+
     def _json(self, status: int, payload: dict) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self._safe_write(body)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            pass
 
     def _read_json_body(self) -> dict:
         try:
@@ -1612,7 +1621,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
         self.end_headers()
-        self.wfile.write(img_bytes)
+        self._safe_write(img_bytes)
 
     def _handle_print_stand(self):
         parsed = urlparse(self.path)
@@ -1655,7 +1664,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
         self.end_headers()
-        self.wfile.write(img_bytes)
+        self._safe_write(img_bytes)
 
     def _handle_print_hanger(self):
         parsed = urlparse(self.path)
@@ -1703,7 +1712,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
         self.end_headers()
-        self.wfile.write(img_bytes)
+        self._safe_write(img_bytes)
 
     def do_OPTIONS(self):
         self.send_response(HTTPStatus.OK)
