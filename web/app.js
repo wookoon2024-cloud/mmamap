@@ -3097,15 +3097,23 @@ const MMAAuth = {
     if (!this.user) return;
     const modal = document.getElementById("editProfileModal");
     const backdrop = document.getElementById("editProfileBackdrop");
-    const emailInp = document.getElementById("editProfileEmail");
-    const roleInp = document.getElementById("editProfileRole");
+    const emailText = document.getElementById("editProfileEmailText");
+    const roleBadge = document.getElementById("editProfileRoleBadge");
     const nickInp = document.getElementById("editProfileNickname");
     const pwInp = document.getElementById("editProfileNewPassword");
     const pwConfInp = document.getElementById("editProfileNewPasswordConfirm");
     const msg = document.getElementById("editProfileMsg");
 
-    if (emailInp) emailInp.value = this.user.email || "";
-    if (roleInp) roleInp.value = this.user.role === "admin" ? "운영 관리자" : this.user.role === "merchant" ? "소상공인 점주" : "일반 회원 (병역이행자)";
+    const isAdmin = this.user.role === "admin";
+    const isMerchant = this.user.role === "merchant";
+    const roleTitle = isAdmin ? "👑 운영 관리자" : isMerchant ? "🏪 소상공인 점주" : "🪖 일반 회원 (병역이행자)";
+    const roleBadgeClass = isAdmin ? "admin" : isMerchant ? "merchant" : "user";
+
+    if (emailText) emailText.textContent = this.user.email || "";
+    if (roleBadge) {
+      roleBadge.textContent = roleTitle;
+      roleBadge.className = `profileRoleBadge ${roleBadgeClass}`;
+    }
     if (nickInp) nickInp.value = this.user.nickname || "";
     if (pwInp) pwInp.value = "";
     if (pwConfInp) pwConfInp.value = "";

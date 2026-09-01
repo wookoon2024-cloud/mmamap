@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=31.0" />
+    <link rel="stylesheet" href="./styles.css?v=32.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -403,35 +403,47 @@
       <div class="authModalHead">
         <div class="authModalHeadText">
           <h3 id="editProfileTitle">⚙️ 회원정보 수정</h3>
-          <p>닉네임과 비밀번호를 변경할 수 있습니다.</p>
+          <p>내 계정 정보 및 닉네임, 비밀번호를 관리합니다.</p>
         </div>
-        <button id="btnCloseEditProfile" class="authModalClose" type="button" aria-label="닫기" onclick="window.MMAAuth.closeEditProfileModal()">×</button>
+        <button id="btnCloseEditProfile" class="authCloseBtn" type="button" aria-label="닫기" onclick="window.MMAAuth.closeEditProfileModal()">×</button>
       </div>
       <div class="authModalBody">
-        <form id="editProfileForm" onsubmit="event.preventDefault(); window.MMAAuth.submitEditProfile();">
-          <div class="authFormField">
-            <label class="authFormLabel">이메일 계정</label>
-            <input type="text" id="editProfileEmail" class="authInput" readonly disabled style="background:#f8fafc; color:#64748b;" />
+        <form id="editProfileForm" class="authForm" onsubmit="event.preventDefault(); window.MMAAuth.submitEditProfile();">
+          <!-- User Info Summary Card -->
+          <div class="editProfileSummaryCard">
+            <div class="summaryCardRow">
+              <span class="summaryLabel">이메일 계정</span>
+              <strong id="editProfileEmailText" class="summaryValue">user@example.com</strong>
+            </div>
+            <div class="summaryCardRow">
+              <span class="summaryLabel">회원 자격</span>
+              <span id="editProfileRoleBadge" class="profileRoleBadge user">일반 회원 (병역이행자)</span>
+            </div>
           </div>
-          <div class="authFormField">
-            <label class="authFormLabel">회원 구분</label>
-            <input type="text" id="editProfileRole" class="authInput" readonly disabled style="background:#f8fafc; color:#64748b;" />
+
+          <div class="authInputGroup">
+            <label for="editProfileNickname">활동 닉네임</label>
+            <input type="text" id="editProfileNickname" placeholder="2~16자리 활동 닉네임" required maxlength="16" />
           </div>
-          <div class="authFormField">
-            <label for="editProfileNickname" class="authFormLabel">닉네임</label>
-            <input type="text" id="editProfileNickname" class="authInput" placeholder="2~16자 닉네임" required maxlength="16" />
+
+          <div class="editProfileDivider"></div>
+
+          <div style="font-size:12px; font-weight:700; color:#64748b; margin-bottom:-4px;">비밀번호 변경 (선택사항)</div>
+
+          <div class="authInputGroup">
+            <label for="editProfileNewPassword">새 비밀번호</label>
+            <input type="password" id="editProfileNewPassword" placeholder="변경할 때만 입력 (6자 이상)" autocomplete="new-password" />
           </div>
-          <div class="authFormField">
-            <label for="editProfileNewPassword" class="authFormLabel">새 비밀번호 (변경 시에만 입력)</label>
-            <input type="password" id="editProfileNewPassword" class="authInput" placeholder="변경할 비밀번호 (6자 이상)" autocomplete="new-password" />
+
+          <div class="authInputGroup">
+            <label for="editProfileNewPasswordConfirm">새 비밀번호 확인</label>
+            <input type="password" id="editProfileNewPasswordConfirm" placeholder="새 비밀번호 다시 한 번 입력" autocomplete="new-password" />
           </div>
-          <div class="authFormField">
-            <label for="editProfileNewPasswordConfirm" class="authFormLabel">새 비밀번호 확인</label>
-            <input type="password" id="editProfileNewPasswordConfirm" class="authInput" placeholder="새 비밀번호 다시 입력" autocomplete="new-password" />
-          </div>
-          <div id="editProfileMsg" class="authHelpText" style="margin-top:4px;"></div>
-          <div style="margin-top:14px; display:flex; gap:8px;">
-            <button type="button" class="authSubmitBtn" style="flex:1; background:#f1f5f9; color:#475569;" onclick="window.MMAAuth.closeEditProfileModal()">취소</button>
+
+          <div id="editProfileMsg" class="authHelpText" style="margin-top:2px;"></div>
+
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button type="button" class="authCancelBtn" onclick="window.MMAAuth.closeEditProfileModal()">취소</button>
             <button type="submit" id="btnSubmitEditProfile" class="authSubmitBtn primary" style="flex:2;">저장 완료</button>
           </div>
         </form>
@@ -567,9 +579,9 @@
       <div id="liveDebugLogList"></div>
     </div>
 
-    <div class="versionBadge">v12.1</div>
+    <div class="versionBadge">v12.2</div>
 
-    <script src="./config.js?v=6.1"></script>
-    <script src="./app.js?v=74.0"></script>
+    <script src="./config.js?v=6.2"></script>
+    <script src="./app.js?v=75.0"></script>
   </body>
 </html>
