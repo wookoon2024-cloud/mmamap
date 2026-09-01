@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://mmamap-backend-docker.onrender.com/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://mmamap-backend.onrender.com/api/$1" },
     { "source": "/", "destination": "/web/index.html" },
     { "source": "/(.*)", "destination": "/web/$1" }
   ]

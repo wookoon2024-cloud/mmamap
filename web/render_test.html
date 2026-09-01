@@ -36,7 +36,7 @@
   <div class="container">
     <h1>⚡ Render.com 실서버 직접 통신 진단기</h1>
     <p class="desc">Vercel 프록시를 일절 거치지 않고, 브라우저에서 Render 백엔드로 100% 직접 호출하여 상태와 속도를 실시간 측정합니다.</p>
-    <div class="target-box">🌐 <b>Render 대상 URL:</b> https://mmamap-backend-docker.onrender.com</div>
+    <div class="target-box">🌐 <b>Render 대상 URL:</b> https://mmamap-backend.onrender.com</div>
     <div class="preset-btns">
       <button type="button" class="preset-btn" onclick="setFacility('mmg_1620', '하나로의료재단')">하나로의료재단 (mmg_1620)</button>
       <button type="button" class="preset-btn" onclick="setFacility('mmg_2580', '세종문화회관')">세종문화회관 (mmg_2580)</button>
@@ -67,7 +67,7 @@
     </div>
   </div>
   <script>
-    const RENDER_BASE = 'https://mmamap-backend-docker.onrender.com';
+    const RENDER_BASE = 'https://mmamap-backend.onrender.com';
     let timerId = null;
     function setFacility(id, name) { document.getElementById('facilityInput').value = id; }
     function log(msg) {

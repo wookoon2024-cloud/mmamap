@@ -1626,7 +1626,7 @@ async function bootstrap() {
       const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       const targetUrl = isLocal 
         ? `/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`
-        : `https://mmamap-backend-docker.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
+        : `https://mmamap-backend.onrender.com/api/${endpoint}?facility_id=${encodeURIComponent(facilityId)}&t=${Date.now()}`;
       
       updateLog(`[호출] ${isLocal ? "로컬 서버" : "Render 백엔드 직접 연결"}: ${targetUrl}`, "info");
       
@@ -2795,7 +2795,7 @@ async function bootstrap() {
 
   // Background Render Server Wake-up Ping
   try {
-    fetch("https://mmamap-backend-docker.onrender.com/api/health", { mode: "no-cors" }).then(() => {
+    fetch("https://mmamap-backend.onrender.com/api/health", { mode: "no-cors" }).then(() => {
       addDebugLog("[System] Render 클라우드 백엔드 활성화(Wake-up) 완료", "info");
     }).catch(() => {});
   } catch (_e) {}
