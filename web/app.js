@@ -2468,7 +2468,7 @@ async function bootstrap() {
   if (hubPanelEl) hubPanelEl.addEventListener("click", (e) => e.stopPropagation());
   if (introPopupEl) introPopupEl.addEventListener("click", (e) => e.stopPropagation());
   if (introBackdropEl) introBackdropEl.addEventListener("click", () => closeIntroPopup(false));
-  if (introCloseBtnEl) introCloseBtnEl.addEventListener("click", () => closeIntroPopup(false));
+  if (introCloseBtnEl) introCloseBtnEl.addEventListener("click", () => closeIntroPopup(true));
   if (introConfirmBtnEl) introConfirmBtnEl.addEventListener("click", () => closeIntroPopup(true));
   if (hubNavEl) {
     hubNavEl.addEventListener("click", (e) => e.stopPropagation());
