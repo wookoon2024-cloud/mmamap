@@ -1619,31 +1619,35 @@ async function bootstrap() {
     animateCenterTo(targetCenter, 240, done);
   };
 
-  const placeDetailPanelAboveMarker = (latLng) => {
-    if (!detailPanelEl || !latLng) return;
+  const placeDetailPanelAboveMarker = (latLng, screenPoint = null) => {
+    if (!detailPanelEl) return;
     const projection = map.getProjection?.();
-    const markerPx = projection?.fromCoordToOffset?.(latLng);
+    const markerPx = screenPoint
+      ? new naver.maps.Point(screenPoint.x, screenPoint.y)
+      : projection?.fromCoordToOffset?.(latLng);
     if (!markerPx) return;
-
-    const mapEl = map.getElement?.();
-    const mapRect = mapEl ? mapEl.getBoundingClientRect() : { left: 0, top: 0 };
-
     const markerHalfHeight = 35;
     const markerGap = 10;
-    const screenX = Math.round(mapRect.left + markerPx.x);
-    const screenY = Math.round(mapRect.top + markerPx.y - markerHalfHeight - markerGap);
-
-    detailPanelEl.style.left = `${screenX}px`;
-    detailPanelEl.style.top = `${screenY}px`;
+    const markerTopY = markerPx.y - markerHalfHeight;
+    const desiredLeft = Math.round(markerPx.x);
+    const desiredBottom = Math.round(markerTopY - markerGap);
+    detailPanelEl.style.left = `${desiredLeft}px`;
+    detailPanelEl.style.top = `${desiredBottom}px`;
     detailPanelEl.style.transform = "translate(-50%, -100%)";
   };
 
   const openDetailAfterMapMove = (point, latLng) => {
+    isMarkerRepositioning = true;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
-    openDetailInfo(point, selectedDetailAnchor);
-    if (map.panTo) {
-      map.panTo(latLng);
-    }
+    const targetId = getFacilityKey(point);
+    moveMarkerToLowerArea(latLng, () => {
+      isMarkerRepositioning = false;
+      renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 120);
+      if (selectedFacilityId !== targetId) return;
+      if (!ENABLE_DETAIL_PANEL) return;
+      openDetailInfo(point, selectedDetailAnchor, selectedDetailScreenPoint);
+    });
   };
 
   let currentPrintPoint = null;
@@ -1965,8 +1969,9 @@ async function bootstrap() {
     detailPanelEl.classList.remove("hidden");
     const finalAnchor = anchorLatLng || selectedDetailAnchor || new naver.maps.LatLng(point.lat, point.lng);
     selectedDetailAnchor = finalAnchor;
-    placeDetailPanelAboveMarker(finalAnchor);
-    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor));
+    const finalScreenPoint = screenPoint || selectedDetailScreenPoint || null;
+    placeDetailPanelAboveMarker(finalAnchor, finalScreenPoint);
+    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor, finalScreenPoint));
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
@@ -2959,29 +2964,20 @@ async function bootstrap() {
     });
   });
 
-  naver.maps.Event.addListener(map, "bounds_changed", () => {
-    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
-      placeDetailPanelAboveMarker(selectedDetailAnchor);
-    }
-  });
-
   naver.maps.Event.addListener(map, "zoom_changed", () => {
     updateZoomLabel();
-    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
-      placeDetailPanelAboveMarker(selectedDetailAnchor);
-    }
+    closeDetailPanel();
   });
-  naver.maps.Event.addListener(map, "idle", () => {
-    scheduleRender();
-    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
-      placeDetailPanelAboveMarker(selectedDetailAnchor);
+  naver.maps.Event.addListener(map, "idle", scheduleRender);
+
+  naver.maps.Event.addListener(map, "dragstart", () => {
+    if (!isMarkerRepositioning) {
+      closeDetailPanel();
     }
   });
 
-  naver.maps.Event.addListener(map, "drag", () => {
-    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
-      placeDetailPanelAboveMarker(selectedDetailAnchor);
-    }
+  naver.maps.Event.addListener(map, "zoom_start", () => {
+    closeDetailPanel();
   });
 
   naver.maps.Event.addListener(map, "click", () => {
