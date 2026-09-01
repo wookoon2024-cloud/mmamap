@@ -229,6 +229,31 @@ function extractCityName(address, region) {
   return reg || "기타";
 }
 
+function extractProvinceName(address, region, lat, lng) {
+  const addr = String(address || "").trim();
+  const reg = String(region || "").trim();
+
+  if (addr.includes("서울") || reg.includes("서울")) return "서울";
+  if (addr.includes("경기") || reg.includes("경기") || reg === "경기북부" || reg === "경인") return "경기";
+  if (addr.includes("인천") || reg.includes("인천")) return "인천";
+  if (addr.includes("강원") || reg.includes("강원")) return "강원";
+  if (addr.includes("대전") || reg.includes("대전")) return "대전";
+  if (addr.includes("세종") || reg.includes("세종")) return "세종";
+  if (addr.includes("충남") || addr.includes("충청남") || reg.includes("충남")) return "충남";
+  if (addr.includes("충북") || addr.includes("충청북") || reg.includes("충북")) return "충북";
+  if (addr.includes("광주") && (addr.includes("광역시") || reg.includes("광주")) && !addr.includes("경기")) return "광주";
+  if (addr.includes("전남") || addr.includes("전라남") || reg.includes("전남")) return "전남";
+  if (addr.includes("전북") || addr.includes("전라북") || reg.includes("전북")) return "전북";
+  if (addr.includes("대구") || reg.includes("대구")) return "대구";
+  if (addr.includes("경북") || addr.includes("경상북") || reg.includes("경북")) return "경북";
+  if (addr.includes("부산") || reg.includes("부산")) return "부산";
+  if (addr.includes("울산") || reg.includes("울산")) return "울산";
+  if (addr.includes("경남") || addr.includes("경상남") || reg.includes("경남")) return "경남";
+  if (addr.includes("제주") || reg.includes("제주")) return "제주";
+
+  return inferRegionFromAddress(addr, lat, lng) || reg || "기타";
+}
+
 function normalizeRegion(rawRegion, address, lat, lng) {
   const region = String(rawRegion || "").trim();
   if (region) return region;
@@ -2398,7 +2423,7 @@ async function bootstrap() {
 
   const renderDistrictClusters = (bounds) => {
     const currentZoom = map.getZoom();
-    const isProvinceLevel = currentZoom <= 8;
+    const isProvinceLevel = currentZoom <= 10; // Zoom <= 10: 서울, 경기, 강원 등 광역 시·도 단위
     const clusterMap = new Map();
 
     for (const p of points) {
@@ -2412,7 +2437,9 @@ async function bootstrap() {
       const pos = new naver.maps.LatLng(p.lat, p.lng);
       if (bounds && typeof bounds.hasLatLng === "function" && !bounds.hasLatLng(pos)) continue;
 
-      const groupName = extractCityName(p.address, p.region);
+      const groupName = isProvinceLevel
+        ? extractProvinceName(p.address, p.region, p.lat, p.lng)
+        : extractCityName(p.address, p.region);
 
       if (!clusterMap.has(groupName)) {
         clusterMap.set(groupName, {
@@ -2441,7 +2468,7 @@ async function bootstrap() {
       const avgLat = c.lats.reduce((a, b) => a + b, 0) / c.lats.length;
       const avgLng = c.lngs.reduce((a, b) => a + b, 0) / c.lngs.length;
       const pos = new naver.maps.LatLng(avgLat, avgLng);
-      const key = `cluster_${groupName}_${c.total}`;
+      const key = `cluster_${isProvinceLevel ? 'prov' : 'city'}_${groupName}_${c.total}`;
 
       if (activeClusterMarkerMap.has(key)) {
         nextClusterMarkerMap.set(key, activeClusterMarkerMap.get(key));
@@ -2451,7 +2478,7 @@ async function bootstrap() {
           map,
           icon: {
             content: `
-              <div class="districtClusterBadge">
+              <div class="districtClusterBadge ${isProvinceLevel ? 'provinceLevel' : ''}">
                 <div class="districtClusterHead">
                   <span class="districtClusterName">${escapeHtml(c.name)}</span>
                   <span class="districtClusterTotal">${c.total}개소</span>
@@ -2464,12 +2491,13 @@ async function bootstrap() {
             `,
             anchor: new naver.maps.Point(60, 24),
           },
-          zIndex: 500,
+          zIndex: isProvinceLevel ? 600 : 500,
         });
 
         naver.maps.Event.addListener(marker, "click", () => {
           map.setCenter(pos);
-          map.setZoom(13, true);
+          const nextZoom = isProvinceLevel ? 11 : 13;
+          map.setZoom(nextZoom, true);
           updateZoomLabel();
         });
 
