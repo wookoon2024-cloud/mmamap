@@ -3981,7 +3981,7 @@ const MMAAuth = {
     if (list.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="9" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
+          <td colspan="8" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
             일치하는 가맹점 데이터가 없습니다.
           </td>
         </tr>
@@ -4009,23 +4009,17 @@ const MMAAuth = {
             </td>
             <td>
               <div style="display: flex; align-items: center; gap: 6px;">
-                <strong style="color: #0f172a; font-size: 13px; cursor: pointer;" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도에서 위치 보기">
+                <strong style="color: #0f172a; font-size: 13.5px; cursor: pointer;" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도에서 위치 보기">
                   ${this.escapeHtml(f.name)}
                 </strong>
                 ${sourceBadge}
               </div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(f.benefit || '')}">
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(f.benefit || '')}">
                 ${this.escapeHtml(f.benefit || '혜택 정보 없음')}
               </div>
             </td>
             <td style="text-align: center;">
               <span class="facCategoryBadge">${this.escapeHtml(cat)}</span>
-            </td>
-            <td>
-              <div style="font-size: 11.5px; color: #334155; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(f.address || '')}">
-                ${this.escapeHtml(f.address || '-')}
-              </div>
-              ${f.phone ? `<div style="font-size: 10.5px; color: #64748b;">${this.escapeHtml(f.phone)}</div>` : ''}
             </td>
             <td style="text-align: center;">
               <span class="facStatValue ${f.clicks > 0 ? 'highlight' : ''}">${(f.clicks || 0).toLocaleString()}</span>
