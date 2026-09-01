@@ -165,11 +165,7 @@ function getTheaterMarkerImage(title) {
 }
 
 function getNormalizedCategory(rawCategory, title) {
-  const label = toCategoryLabel(rawCategory || "");
-  if (label && label !== "기타") return label;
-  const t = String(title || "");
-  if (/CGV/i.test(t) || /롯데시네마/.test(t) || /메가박스/.test(t)) return "문화";
-  return label || "기타";
+  return toCategoryLabel(rawCategory, title);
 }
 
 function inferRegionFromAddress(address, lat, lng) {
@@ -343,12 +339,19 @@ function normalizePhone(phone) {
   return String(phone || "").replace(/[^\d+]/g, "");
 }
 
-function toCategoryLabel(category) {
-  const raw = String(category || "").trim();
-  if (!raw) return "기타";
-  if (CATEGORY_LABEL_MAP[raw]) return CATEGORY_LABEL_MAP[raw];
-  if (/^[a-z0-9_]+$/i.test(raw)) return "기타";
-  return raw;
+function toCategoryLabel(category, name = "") {
+  const c = String(category || "").trim();
+  const n = String(name || "").trim();
+  if (c === "안경점" || c.includes("안경") || n.includes("안경") || n.includes("콘택트")) return "안경점";
+  if (c === "병원" || c.includes("병원") || c.includes("의료") || c === "fee_medical" || n.includes("병원") || n.includes("의원") || n.includes("치과") || n.includes("한의원")) return "병원";
+  if (c === "카페" || c.includes("카페") || c.includes("커피") || n.toLowerCase().includes("cafe") || n.includes("커피")) return "카페";
+  if (c === "미용실" || c.includes("미용") || n.includes("헤어") || n.includes("미용")) return "미용실";
+  if (c === "체육" || c.includes("체육") || c.includes("스포츠") || c.includes("레저") || n.includes("헬스") || n.includes("피트니스") || n.includes("볼링") || n.includes("수영")) return "체육";
+  if (c === "주차" || c.includes("주차") || c === "fee_parking" || c === "fee_viewing_parking" || c === "fee_entry_parking") return "주차";
+  if (c === "교육" || c.includes("교육") || c.includes("학원") || c === "fee_education" || c === "scholarship") return "교육";
+  if (c === "음식점" || c.includes("음식") || c.includes("식당") || c.includes("식사") || c === "fee_meal") return "음식점";
+  if (c === "문화" || c.includes("문화") || c.includes("관람") || c.includes("입장") || c.includes("영화") || c.includes("공연") || c.includes("숙박") || c.includes("관광") || c === "fee_viewing" || c === "fee_entry" || c === "fee_lodging" || /CGV|롯데시네마|메가박스|시네마|극장|미술관|박물관|기념관|테마파크/i.test(n)) return "문화";
+  return "기타";
 }
 
 function colorFromText(text) {
@@ -465,21 +468,18 @@ async function bootstrap() {
   if (countNaraDupEl) countNaraDupEl.textContent = String(naraCount);
   if (countMmgEl) countMmgEl.textContent = String(mmgCount);
 
-  const categoryLabels = [...new Set(points.map((p) => toCategoryLabel(p.category)).filter(Boolean))];
-  const categoryImageByLabel = {};
-  let nextImageIndex = 0;
-
-  CATEGORY_FIXED_IMAGE_LABEL_ORDER.forEach((label, fixedIdx) => {
-    if (!categoryLabels.includes(label)) return;
-    categoryImageByLabel[label] = CATEGORY_LEGEND_IMAGE_ORDER[fixedIdx % CATEGORY_LEGEND_IMAGE_ORDER.length];
-    nextImageIndex = Math.max(nextImageIndex, fixedIdx + 1);
-  });
-
-  categoryLabels.forEach((label) => {
-    if (categoryImageByLabel[label]) return;
-    categoryImageByLabel[label] = CATEGORY_LEGEND_IMAGE_ORDER[nextImageIndex % CATEGORY_LEGEND_IMAGE_ORDER.length];
-    nextImageIndex += 1;
-  });
+  const categoryImageByLabel = {
+    "안경점": "1.png",
+    "병원": "2.png",
+    "문화": "3.png",
+    "음식점": "4.png",
+    "교육": "5.png",
+    "기타": "6.png",
+    "체육": "7.png",
+    "미용실": "8.png",
+    "카페": "9.png",
+    "주차": "10.png",
+  };
 
   const audienceSet = new Set(points.flatMap((p) => (Array.isArray(p.audiences) ? p.audiences : [])));
   const audienceFilters = [...audienceSet];
@@ -2442,13 +2442,7 @@ async function bootstrap() {
 
   const buildLegend = () => {
     if (!legendEl) return;
-    const categoryCounts = new Map();
-    for (const p of points) {
-      const key = toCategoryLabel(p.category || "기타");
-      categoryCounts.set(key, (categoryCounts.get(key) || 0) + 1);
-    }
-    const top = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name]) => name);
-    const items = ["전체", ...top];
+    const items = ["전체", ...CATEGORY_FIXED_IMAGE_LABEL_ORDER];
     legendEl.innerHTML = "";
     for (const name of items) {
       const btn = document.createElement("button");
