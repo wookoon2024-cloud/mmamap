@@ -1619,12 +1619,10 @@ async function bootstrap() {
     animateCenterTo(targetCenter, 240, done);
   };
 
-  const placeDetailPanelAboveMarker = (latLng, screenPoint = null) => {
-    if (!detailPanelEl) return;
+  const placeDetailPanelAboveMarker = (latLng) => {
+    if (!detailPanelEl || !latLng) return;
     const projection = map.getProjection?.();
-    const markerPx = screenPoint
-      ? new naver.maps.Point(screenPoint.x, screenPoint.y)
-      : projection?.fromCoordToOffset?.(latLng);
+    const markerPx = projection?.fromCoordToOffset?.(latLng);
     if (!markerPx) return;
     const markerHalfHeight = 35;
     const markerGap = 10;
@@ -1637,17 +1635,11 @@ async function bootstrap() {
   };
 
   const openDetailAfterMapMove = (point, latLng) => {
-    isMarkerRepositioning = true;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
-    const targetId = getFacilityKey(point);
-    moveMarkerToLowerArea(latLng, () => {
-      isMarkerRepositioning = false;
-      renderVisibleMarkers();
-      setTimeout(() => renderVisibleMarkers(), 120);
-      if (selectedFacilityId !== targetId) return;
-      if (!ENABLE_DETAIL_PANEL) return;
-      openDetailInfo(point, selectedDetailAnchor, selectedDetailScreenPoint);
-    });
+    openDetailInfo(point, selectedDetailAnchor);
+    if (map.panTo) {
+      map.panTo(latLng);
+    }
   };
 
   let currentPrintPoint = null;
@@ -1969,9 +1961,8 @@ async function bootstrap() {
     detailPanelEl.classList.remove("hidden");
     const finalAnchor = anchorLatLng || selectedDetailAnchor || new naver.maps.LatLng(point.lat, point.lng);
     selectedDetailAnchor = finalAnchor;
-    const finalScreenPoint = screenPoint || selectedDetailScreenPoint || null;
-    placeDetailPanelAboveMarker(finalAnchor, finalScreenPoint);
-    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor, finalScreenPoint));
+    placeDetailPanelAboveMarker(finalAnchor);
+    requestAnimationFrame(() => placeDetailPanelAboveMarker(finalAnchor));
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
@@ -2968,11 +2959,16 @@ async function bootstrap() {
     updateZoomLabel();
     closeDetailPanel();
   });
-  naver.maps.Event.addListener(map, "idle", scheduleRender);
+  naver.maps.Event.addListener(map, "idle", () => {
+    scheduleRender();
+    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
+    }
+  });
 
-  naver.maps.Event.addListener(map, "dragstart", () => {
-    if (!isMarkerRepositioning) {
-      closeDetailPanel();
+  naver.maps.Event.addListener(map, "drag", () => {
+    if (selectedDetailAnchor && detailPanelEl && !detailPanelEl.classList.contains("hidden")) {
+      placeDetailPanelAboveMarker(selectedDetailAnchor);
     }
   });
 
