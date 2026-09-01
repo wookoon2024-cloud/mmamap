@@ -5725,6 +5725,15 @@ button:active {
   background: #dcfce7;
 }
 
+.simBtn.admin {
+  border-color: #f0abfc;
+  background: #fdf4ff;
+}
+
+.simBtn.admin:hover {
+  background: #fae8ff;
+}
+
 .simIcon {
   font-size: 18px;
   line-height: 1;

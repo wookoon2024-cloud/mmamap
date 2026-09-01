@@ -3780,7 +3780,9 @@ const MMAAuth = {
         this.renderNav();
         this.closeAuthModal();
 
-        if (type === "merchant") {
+        if (type === "admin") {
+          alert(`[👑 운영 관리자 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n권한: 최고 운영 관리자 (Admin)\n\n우측 상단 사람 아이콘을 클릭하여 [👑 관리자 운영 대시보드]를 열어 전체 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
+        } else if (type === "merchant") {
           alert(`[🏪 소상공인 점주 체험]\n\n계정: ${data.user.nickname} (${data.user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 사람 아이콘을 클릭하여 [우리 매장 QR 통계]를 바로 확인해 보세요!`);
           if (typeof window.focusFacility === "function") {
             window.focusFacility("nara_3218");

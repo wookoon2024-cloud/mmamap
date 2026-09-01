@@ -1086,7 +1086,14 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         body = self._read_json_body()
         sim_type = str(body.get("type", "soldier")).strip().lower()
 
-        if sim_type == "merchant":
+        if sim_type == "admin":
+            email = "admin_demo@mmamap.org"
+            nickname = "총괄관리자_마스터"
+            role = "admin"
+            facility_id = ""
+            facility_name = ""
+            phone = ""
+        elif sim_type == "merchant":
             email = "merchant_demo@mmamap.org"
             nickname = "의정부간호학원_원장"
             role = "merchant"
