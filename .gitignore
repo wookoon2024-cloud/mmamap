@@ -15,3 +15,6 @@ outputs/unknown_region_*
 .venv/
 venv/
 env/
+.env
+.env.*
+scripts/build_default_template.py

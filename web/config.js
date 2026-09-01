@@ -5,6 +5,7 @@ window.APP_CONFIG = {
     key: "L2W5tAOBP1AgfQ5QBsoJWd1HhwffyfCS9TKipJg2",
   },
   supabase: {
-    url: "https://dsjtbnelllsawosnavjp.supabase.co",
+    url: "https://mwprznynxyvzxweehynl.supabase.co",
+    anonKey: "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx",
   },
 };

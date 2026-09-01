@@ -20,6 +20,12 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+try:
+    import psycopg2
+    import psycopg2.extras
+except ImportError:
+    psycopg2 = None
+
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
@@ -159,7 +165,7 @@ def verify_password_hash(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(legacy, h)
 
 
-DEFAULT_SUPABASE_DB_URL = "postgresql://postgres:Whdhksgml1!@db.dsjtbnelllsawosnavjp.supabase.co:5432/postgres"
+DEFAULT_SUPABASE_DB_URL = "postgresql://postgres.mwprznynxyvzxweehynl:Whdhksgml1!@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres"
 
 def get_db_url() -> str:
     return os.environ.get("DATABASE_URL") or DEFAULT_SUPABASE_DB_URL
