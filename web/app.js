@@ -3662,14 +3662,19 @@ const MMAAuth = {
           const data = await res.json();
           if (data.ok) {
             if (merchCodeWrap) merchCodeWrap.classList.remove("hidden");
-            if (merchCodeStatus) {
-              merchCodeStatus.textContent = data.message || "매장 대표번호로 인증번호가 발송되었습니다.";
-              merchCodeStatus.className = "authHelpText success";
-            }
             if (data.debugCode) {
-              addDebugLog(`[Auth] 테스트 점주 인증번호: ${data.debugCode}`, 'info');
+              if (merchCodeStatus) {
+                merchCodeStatus.innerHTML = `💡 <b>테스트 점주 인증번호 [${data.debugCode}] 발급됨</b> (자동 입력 완료 · 실제 전화/문자 발송 안 됨)`;
+                merchCodeStatus.className = "authHelpText success";
+              }
               const input = document.getElementById("merchantCodeInput");
-              if (input && !input.value) input.value = data.debugCode;
+              if (input) input.value = data.debugCode;
+              this.isMerchantVerified = true;
+            } else {
+              if (merchCodeStatus) {
+                merchCodeStatus.textContent = data.message || "매장 대표번호로 인증번호가 발송되었습니다.";
+                merchCodeStatus.className = "authHelpText success";
+              }
             }
           } else {
             alert(data.error || "점주 인증 요청 실패");
