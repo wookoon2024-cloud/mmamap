@@ -336,7 +336,7 @@
 
       <div class="storeCustomBody">
         <!-- 1. 사장님 인사말 / 한마디 -->
-        <div class="customSettingGroup">
+        <div class="customSettingGroup disabled">
           <div class="customSettingHeader">
             <div class="customSettingInfo">
               <span class="customSettingIcon">💬</span>
@@ -346,17 +346,17 @@
               </div>
             </div>
             <label class="toggleSwitch">
-              <input type="checkbox" id="toggleGreeting" checked />
+              <input type="checkbox" id="toggleGreeting" />
               <span class="slider"></span>
             </label>
           </div>
-          <div class="customSettingContent" id="greetingInputWrap">
+          <div class="customSettingContent" id="greetingInputWrap" style="display: none;">
             <textarea id="storeGreetingText" class="customTextarea" rows="2" placeholder="예: 대한민국을 수호하는 자랑스러운 청년 장병 여러분을 진심으로 환영합니다! 든든하게 드시고 가세요."></textarea>
           </div>
         </div>
 
         <!-- 2. 가게 대표 사진 / 이미지 등록 -->
-        <div class="customSettingGroup">
+        <div class="customSettingGroup disabled">
           <div class="customSettingHeader">
             <div class="customSettingInfo">
               <span class="customSettingIcon">📸</span>
@@ -366,11 +366,11 @@
               </div>
             </div>
             <label class="toggleSwitch">
-              <input type="checkbox" id="togglePhoto" checked />
+              <input type="checkbox" id="togglePhoto" />
               <span class="slider"></span>
             </label>
           </div>
-          <div class="customSettingContent" id="photoInputWrap">
+          <div class="customSettingContent" id="photoInputWrap" style="display: none;">
             <input type="text" id="storePhotoUrl" class="customInput" placeholder="이미지 URL을 입력하거나 아래 추천 샘플 사진을 선택하세요." />
             <div class="presetPhotoChips">
               <span class="presetChipTitle">추천 샘플:</span>
@@ -384,7 +384,7 @@
         </div>
 
         <!-- 3. 방문 후기 및 응원 댓글 기능 -->
-        <div class="customSettingGroup">
+        <div class="customSettingGroup disabled">
           <div class="customSettingHeader">
             <div class="customSettingInfo">
               <span class="customSettingIcon">📝</span>
@@ -394,14 +394,14 @@
               </div>
             </div>
             <label class="toggleSwitch">
-              <input type="checkbox" id="toggleComments" checked />
+              <input type="checkbox" id="toggleComments" />
               <span class="slider"></span>
             </label>
           </div>
         </div>
 
         <!-- 4. 오늘의 깜짝 혜택 / 실시간 이벤트 알림 -->
-        <div class="customSettingGroup">
+        <div class="customSettingGroup disabled">
           <div class="customSettingHeader">
             <div class="customSettingInfo">
               <span class="customSettingIcon">🎁</span>
@@ -411,17 +411,17 @@
               </div>
             </div>
             <label class="toggleSwitch">
-              <input type="checkbox" id="togglePromo" checked />
+              <input type="checkbox" id="togglePromo" />
               <span class="slider"></span>
             </label>
           </div>
-          <div class="customSettingContent" id="promoInputWrap">
+          <div class="customSettingContent" id="promoInputWrap" style="display: none;">
             <input type="text" id="storePromoText" class="customInput" placeholder="예: [오늘의 혜택] 현역병 동반 식사 시 음료수 1캔 무료 제공!" />
           </div>
         </div>
 
         <!-- 5. 영업시간 및 휴무일 안내 -->
-        <div class="customSettingGroup">
+        <div class="customSettingGroup disabled">
           <div class="customSettingHeader">
             <div class="customSettingInfo">
               <span class="customSettingIcon">⏰</span>
@@ -431,17 +431,17 @@
               </div>
             </div>
             <label class="toggleSwitch">
-              <input type="checkbox" id="toggleHours" checked />
+              <input type="checkbox" id="toggleHours" />
               <span class="slider"></span>
             </label>
           </div>
-          <div class="customSettingContent" id="hoursInputWrap">
+          <div class="customSettingContent" id="hoursInputWrap" style="display: none;">
             <input type="text" id="storeHoursText" class="customInput" placeholder="예: 평일 10:00 ~ 21:00 / 토·일 11:00 ~ 20:00 (매주 월요일 휴무)" />
           </div>
         </div>
 
         <!-- 6. SNS / 공식 링크 -->
-        <div class="customSettingGroup">
+        <div class="customSettingGroup disabled">
           <div class="customSettingHeader">
             <div class="customSettingInfo">
               <span class="customSettingIcon">🔗</span>
@@ -451,11 +451,11 @@
               </div>
             </div>
             <label class="toggleSwitch">
-              <input type="checkbox" id="toggleSns" checked />
+              <input type="checkbox" id="toggleSns" />
               <span class="slider"></span>
             </label>
           </div>
-          <div class="customSettingContent" id="snsInputWrap">
+          <div class="customSettingContent" id="snsInputWrap" style="display: none;">
             <input type="text" id="storeSnsUrl" class="customInput" placeholder="예: https://instagram.com/my_store 또는 카카오채널" />
           </div>
         </div>
@@ -962,10 +962,10 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v18.2</div>
+    <div class="versionBadge">v18.3</div>
 
     <script src="./config.js?v=11.6"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=130.2"></script>
+    <script src="./app.js?v=130.3"></script>
   </body>
 </html>

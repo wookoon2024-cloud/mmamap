@@ -1983,14 +1983,14 @@ async function bootstrap() {
     }
 
     return {
-      greetingEnabled: true,
+      greetingEnabled: false,
       greetingText: "대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 든든하고 편안하게 이용하세요.",
-      photoEnabled: true,
+      photoEnabled: false,
       photoUrl: defaultPhoto,
-      commentsEnabled: true,
-      promoEnabled: true,
+      commentsEnabled: false,
+      promoEnabled: false,
       promoText: "나라사랑 우대 고객 방문 시 추가 서비스 & 맞춤 혜택 제공!",
-      hoursEnabled: true,
+      hoursEnabled: false,
       hoursText: "매일 09:30 ~ 21:30 (연중무휴)",
       snsEnabled: false,
       snsUrl: "",
