@@ -2117,6 +2117,9 @@ async function bootstrap() {
   let currentCustomPoint = null;
   let currentCustomPhotos = [];
   let currentDetailCommentPage = 1;
+  let isCommentsFlyoutOpen = false;
+  let isQaFlyoutOpen = false;
+  let currentDetailFacilityId = null;
 
   const renderCustomPhotoThumbs = () => {
     const grid = document.getElementById("storePhotoThumbGrid");
