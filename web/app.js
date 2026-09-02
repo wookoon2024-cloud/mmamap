@@ -1691,19 +1691,11 @@ async function bootstrap() {
     const projection = map.getProjection?.();
     if (projection && projection.fromCoordToOffset && projection.fromOffsetToCoord) {
       const markerOffset = projection.fromCoordToOffset(latLng);
-      // To place the POPUP BALLOON itself in the exact center of the visible map area:
-      // - Desktop: Left sidebar is 320px wide when expanded. Shift map center by -(320/2) = -160px.
-      // - Detail popup is ~380px tall, anchored at marker bottom. Balloon center is ~195px above marker.
-      // - Top header is 50px high.
-      // - Required offsets from marker to map canvas center:
-      //   shiftX = -160 (desktop expanded sidebar) or 0 (mobile / collapsed sidebar)
-      //   shiftY = -220 (desktop) or -180 (mobile)
-      const sidebarEl = document.querySelector(".legendBar");
-      const isSidebarCollapsed = !sidebarEl || sidebarEl.classList.contains("collapsed");
-      const leftSidebarWidth = isMobile || isSidebarCollapsed ? 0 : 320;
-
-      const shiftX = -Math.round(leftSidebarWidth / 2);
-      const shiftY = isMobile ? -60 : -80;
+      // Place popup balloon in the exact center of the full screen (sidebar collapsed baseline):
+      // - shiftX = 0 (exact horizontal center of the viewport)
+      // - shiftY = -50 (exact vertical center of the viewport)
+      const shiftX = 0;
+      const shiftY = isMobile ? -40 : -50;
       const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x + shiftX, markerOffset.y + shiftY);
       targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
     }
