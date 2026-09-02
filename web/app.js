@@ -1549,6 +1549,9 @@ async function bootstrap() {
     selectedDetailAnchor = null;
     selectedDetailScreenPoint = null;
     isMarkerRepositioning = false;
+    isCommentsFlyoutOpen = false;
+    isQaFlyoutOpen = false;
+    currentDetailFacilityId = null;
     if (detailInfoWindow) {
       detailInfoWindow.close();
     }
@@ -2302,6 +2305,12 @@ async function bootstrap() {
       : "대상 정보 없음";
 
     const facilityId = getFacilityKey(point);
+    if (currentDetailFacilityId !== facilityId) {
+      currentDetailFacilityId = facilityId;
+      isCommentsFlyoutOpen = false;
+      isQaFlyoutOpen = false;
+      currentDetailCommentPage = 1;
+    }
     const isLiked = likes.has(facilityId);
     const isFavorite = favorites.has(facilityId);
     const safePhone = escapeHtml(phone);
@@ -2372,8 +2381,37 @@ async function bootstrap() {
         ? `<div class="storeSnsRow">🔗 <a href="${escapeHtml(custom.snsUrl)}" target="_blank" rel="noopener noreferrer" class="storeSnsLink">공식 채널 / SNS 방문하기</a></div>`
         : "";
 
-    // 2 comments per page pagination
-    let commentsHtml = "";
+    // Community buttons row in main popup
+    let communityBtnRowHtml = "";
+    if (custom.commentsEnabled || custom.qaEnabled) {
+      communityBtnRowHtml = `
+        <div class="detailCommunityBtnRow">
+          ${
+            custom.commentsEnabled
+              ? `
+            <button type="button" class="detailCommunityBtn ${isCommentsFlyoutOpen ? "active" : ""}" id="btnOpenCommentsFlyout">
+              <span>💬 후기 & 댓글 <span class="commentCountChip">${comments.length}</span></span>
+              <span style="font-size: 14px; font-weight: 800;">›</span>
+            </button>
+          `
+              : ""
+          }
+          ${
+            custom.qaEnabled
+              ? `
+            <button type="button" class="detailCommunityBtn ${isQaFlyoutOpen ? "active" : ""}" id="btnOpenQaFlyout">
+              <span>❓ 이용 Q&A <span class="commentCountChip">${qaList.length}</span></span>
+              <span style="font-size: 14px; font-weight: 800;">›</span>
+            </button>
+          `
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    // Side Popup Flyout: 2 comments per page pagination
+    let commentsFlyoutHtml = "";
     if (custom.commentsEnabled) {
       const pageSize = 2;
       const totalPages = Math.ceil(comments.length / pageSize) || 1;
@@ -2408,28 +2446,33 @@ async function bootstrap() {
         `
           : "";
 
-      commentsHtml = `
-        <div class="storeCommentsWrap">
-          <div class="storeCommentsHead">
-            <span class="storeCommentsTitle">💬 방문 후기 & 응원 댓글 (${comments.length}개)</span>
+      commentsFlyoutHtml = `
+        <div class="storeSideFlyout ${isCommentsFlyoutOpen ? "" : "hidden"}" id="storeCommentsFlyout">
+          <div class="storeSideFlyoutHead">
+            <div class="storeSideFlyoutTitle">💬 방문 후기 & 응원 댓글 (${comments.length}개)</div>
+            <button type="button" class="storeSideFlyoutCloseBtn" id="btnCloseCommentsFlyout" title="닫기">×</button>
           </div>
-          <div class="storeCommentList" id="storeCommentList">
-            ${commentItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 6px;">첫 번째 응원 댓글을 남겨보세요!</div>'}
+          <div class="storeSideFlyoutBody">
+            <div class="storeCommentList" id="storeCommentList">
+              ${commentItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 24px 6px;">첫 번째 응원 댓글을 남겨보세요!</div>'}
+            </div>
+            ${paginationHtml}
           </div>
-          ${paginationHtml}
-          <div class="storeCommentForm">
-            <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디를 남겨주세요..." maxlength="100" />
-            <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
+          <div class="storeSideFlyoutFoot">
+            <div class="storeCommentForm">
+              <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디..." maxlength="100" />
+              <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
+            </div>
           </div>
         </div>
       `;
     }
 
-    // Q&A Board
-    let qaHtml = "";
+    // Side Popup Flyout: Q&A Board
+    let qaFlyoutHtml = "";
     if (custom.qaEnabled) {
       const qaItems = qaList
-        .slice(0, 2)
+        .slice(0, 3)
         .map(
           (item) => `
           <div class="storeQaItem">
@@ -2440,17 +2483,22 @@ async function bootstrap() {
         )
         .join("");
 
-      qaHtml = `
-        <div class="storeQaWrap">
-          <div class="storeQaHead">
-            <span class="storeQaTitle">❓ Q&A 혜택 이용 문의 (${qaList.length}건)</span>
+      qaFlyoutHtml = `
+        <div class="storeSideFlyout ${isQaFlyoutOpen ? "" : "hidden"}" id="storeQaFlyout">
+          <div class="storeSideFlyoutHead">
+            <div class="storeSideFlyoutTitle">❓ Q&A 혜택 이용 문의 (${qaList.length}건)</div>
+            <button type="button" class="storeSideFlyoutCloseBtn" id="btnCloseQaFlyout" title="닫기">×</button>
           </div>
-          <div class="storeQaList" id="storeQaList">
-            ${qaItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 6px;">등록된 문의가 없습니다. 궁금한 점을 질문해보세요!</div>'}
+          <div class="storeSideFlyoutBody">
+            <div class="storeQaList" id="storeQaList">
+              ${qaItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 24px 6px;">등록된 문의가 없습니다. 궁금한 점을 질문해보세요!</div>'}
+            </div>
           </div>
-          <div class="storeQaForm">
-            <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요..." maxlength="100" />
-            <button type="button" id="storeQaSubmitBtn" class="storeQaSubmitBtn">문의</button>
+          <div class="storeSideFlyoutFoot">
+            <div class="storeQaForm">
+              <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요..." maxlength="100" />
+              <button type="button" id="storeQaSubmitBtn" class="storeQaSubmitBtn">문의</button>
+            </div>
           </div>
         </div>
       `;
@@ -2492,8 +2540,9 @@ async function bootstrap() {
             </tr>
           </tbody>
         </table>
-        ${commentsHtml}
-        ${qaHtml}
+        ${communityBtnRowHtml}
+        ${commentsFlyoutHtml}
+        ${qaFlyoutHtml}
       </div>
     `;
 
@@ -2508,6 +2557,41 @@ async function bootstrap() {
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
+
+    // Community Side Flyout Buttons
+    const btnOpenComments = document.getElementById("btnOpenCommentsFlyout");
+    if (btnOpenComments) {
+      btnOpenComments.onclick = () => {
+        isCommentsFlyoutOpen = !isCommentsFlyoutOpen;
+        isQaFlyoutOpen = false;
+        openDetailInfo(point, targetAnchor);
+      };
+    }
+
+    const btnCloseComments = document.getElementById("btnCloseCommentsFlyout");
+    if (btnCloseComments) {
+      btnCloseComments.onclick = () => {
+        isCommentsFlyoutOpen = false;
+        openDetailInfo(point, targetAnchor);
+      };
+    }
+
+    const btnOpenQa = document.getElementById("btnOpenQaFlyout");
+    if (btnOpenQa) {
+      btnOpenQa.onclick = () => {
+        isQaFlyoutOpen = !isQaFlyoutOpen;
+        isCommentsFlyoutOpen = false;
+        openDetailInfo(point, targetAnchor);
+      };
+    }
+
+    const btnCloseQa = document.getElementById("btnCloseQaFlyout");
+    if (btnCloseQa) {
+      btnCloseQa.onclick = () => {
+        isQaFlyoutOpen = false;
+        openDetailInfo(point, targetAnchor);
+      };
+    }
 
     // Multi-Photo Carousel Navigation Event Listeners
     const prevBtn = document.getElementById("carouselPrevBtn");
@@ -2540,6 +2624,7 @@ async function bootstrap() {
       btnCommentPrev.onclick = () => {
         if (currentDetailCommentPage > 1) {
           currentDetailCommentPage--;
+          isCommentsFlyoutOpen = true;
           openDetailInfo(point, targetAnchor);
         }
       };
@@ -2548,6 +2633,7 @@ async function bootstrap() {
     if (btnCommentNext) {
       btnCommentNext.onclick = () => {
         currentDetailCommentPage++;
+        isCommentsFlyoutOpen = true;
         openDetailInfo(point, targetAnchor);
       };
     }
@@ -2565,6 +2651,7 @@ async function bootstrap() {
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
         addStoreComment(facilityId, { author, text, date });
         currentDetailCommentPage = 1;
+        isCommentsFlyoutOpen = true;
         openDetailInfo(point, targetAnchor);
       };
     }
@@ -2580,6 +2667,7 @@ async function bootstrap() {
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
         addStoreQa(facilityId, { q: question, author, a: "", date });
         alert("문의 질문이 등록되었습니다! 사장님이 확인 후 답변을 작성합니다.");
+        isQaFlyoutOpen = true;
         openDetailInfo(point, targetAnchor);
       };
     }

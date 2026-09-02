@@ -6940,24 +6940,128 @@ button:active {
   text-decoration: underline;
 }
 
-/* Comments & Reviews Section in Detail Popup */
-.storeCommentsWrap {
+/* Community Buttons Row in Detail Popup */
+.detailCommunityBtnRow {
+  display: flex;
+  gap: 8px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid #e2e8f0;
 }
 
-.storeCommentsHead {
+.detailCommunityBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.detailCommunityBtn:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.detailCommunityBtn.active {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.detailCommunityBtn.active .commentCountChip {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.commentCountChip {
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Side Popup Flyout for Comments & Q/A */
+.storeSideFlyout {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 0;
+  width: 320px;
+  max-height: 100%;
+  min-height: 280px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.storeSideFlyout.hidden {
+  display: none !important;
+}
+
+.storeSideFlyoutHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.storeCommentsTitle {
-  font-size: 12px;
+.storeSideFlyoutTitle {
+  font-size: 12.5px;
   font-weight: 800;
-  color: #1e293b;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.storeSideFlyoutCloseBtn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.storeSideFlyoutCloseBtn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.storeSideFlyoutBody {
+  padding: 12px 14px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.storeSideFlyoutFoot {
+  padding: 10px 14px 12px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
 .storeCommentList {
@@ -6965,13 +7069,14 @@ button:active {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 8px;
+  flex: 1;
 }
 
 .storeCommentItem {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   font-size: 11.5px;
 }
 
@@ -7036,11 +7141,11 @@ button:active {
 .storeCommentForm {
   display: flex;
   gap: 6px;
-  margin-top: 4px;
 }
 
 .storeCommentInput {
   flex: 1;
+  min-width: 0;
   padding: 6px 9px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
@@ -7058,35 +7163,16 @@ button:active {
   color: #ffffff;
   border: none;
   border-radius: 6px;
-  padding: 0 10px;
+  padding: 0 12px;
   font-size: 11.5px;
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .storeCommentSubmitBtn:hover {
   background: #1d4ed8;
-}
-
-/* Q&A Board in Detail Popup */
-.storeQaWrap {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.storeQaHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.storeQaTitle {
-  font-size: 12px;
-  font-weight: 800;
-  color: #1e293b;
 }
 
 .storeQaList {
@@ -7094,13 +7180,14 @@ button:active {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 8px;
+  flex: 1;
 }
 
 .storeQaItem {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 8px 10px;
   font-size: 11.5px;
 }
 
@@ -7143,11 +7230,11 @@ button:active {
 .storeQaForm {
   display: flex;
   gap: 6px;
-  margin-top: 4px;
 }
 
 .storeQaInput {
   flex: 1;
+  min-width: 0;
   padding: 6px 9px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
@@ -7165,15 +7252,32 @@ button:active {
   color: #ffffff;
   border: none;
   border-radius: 6px;
-  padding: 0 10px;
+  padding: 0 12px;
   font-size: 11.5px;
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .storeQaSubmitBtn:hover {
   background: #334155;
+}
+
+/* Mobile responsive for side flyout */
+@media (max-width: 768px) {
+  .storeSideFlyout {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    top: auto !important;
+    width: auto !important;
+    max-height: 65vh !important;
+    border-radius: 18px !important;
+    box-shadow: 0 -10px 36px rgba(15, 23, 42, 0.35) !important;
+    z-index: 10000 !important;
+  }
 }
 
 
