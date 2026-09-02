@@ -6607,16 +6607,6 @@ button:active {
   color: #0f172a;
 }
 
-.storeCustomFooter {
-  padding: 14px 24px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.storeCustomBtn {
 /* Modal Tabs */
 .storeCustomTabs {
   display: flex;
