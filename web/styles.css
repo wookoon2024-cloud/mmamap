@@ -38,6 +38,10 @@ body::before {
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none !important;
+}
+
 button {
   -webkit-tap-highlight-color: transparent;
 }
@@ -6393,6 +6397,10 @@ button:active {
   transition: opacity 0.25s ease;
 }
 
+.storeCustomBackdrop.hidden {
+  display: none !important;
+}
+
 .storeCustomModal {
   position: fixed;
   top: 50%;
@@ -6409,6 +6417,10 @@ button:active {
   flex-direction: column;
   overflow: hidden;
   animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.storeCustomModal.hidden {
+  display: none !important;
 }
 
 .storeCustomHead {
