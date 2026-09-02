@@ -1703,7 +1703,7 @@ async function bootstrap() {
       const leftSidebarWidth = isMobile || isSidebarCollapsed ? 0 : 320;
 
       const shiftX = -Math.round(leftSidebarWidth / 2);
-      const shiftY = isMobile ? -180 : -220;
+      const shiftY = isMobile ? -60 : -80;
       const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x + shiftX, markerOffset.y + shiftY);
       targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
     }
