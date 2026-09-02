@@ -2512,7 +2512,7 @@ async function bootstrap() {
 
   const renderDistrictClusters = (bounds) => {
     const currentZoom = map.getZoom();
-    const isProvinceLevel = currentZoom <= 10; // Zoom <= 10: 서울, 경기, 강원 등 광역 시·도 단위
+    const isProvinceLevel = currentZoom <= 11; // Zoom <= 11: 서울, 경기, 강원 등 광역 시·도 단위
     const clusterMap = new Map();
     const nextClusterMarkerMap = new Map();
 
@@ -2552,23 +2552,23 @@ async function bootstrap() {
     }
 
     const PROVINCE_REPRESENTATIVE_CENTERS = {
-      "서울": { lat: 37.5665, lng: 126.9780 },
-      "인천": { lat: 37.4563, lng: 126.6000 },
-      "경기": { lat: 37.2800, lng: 127.2200 },
-      "강원": { lat: 37.8228, lng: 128.2000 },
-      "충북": { lat: 36.6357, lng: 127.7000 },
-      "충남": { lat: 36.5184, lng: 126.8000 },
-      "대전": { lat: 36.3504, lng: 127.3845 },
-      "세종": { lat: 36.5500, lng: 127.2500 },
-      "전북": { lat: 35.7175, lng: 127.1530 },
-      "전남": { lat: 34.8100, lng: 126.8500 },
-      "광주": { lat: 35.1595, lng: 126.8526 },
-      "경북": { lat: 36.4500, lng: 128.6500 },
-      "대구": { lat: 35.8714, lng: 128.6014 },
-      "경남": { lat: 35.2383, lng: 128.4500 },
-      "부산": { lat: 35.1796, lng: 129.0756 },
-      "울산": { lat: 35.5384, lng: 129.3114 },
-      "제주": { lat: 33.3800, lng: 126.5312 },
+      "서울": { lat: 37.5800, lng: 126.9800 },
+      "인천": { lat: 37.4800, lng: 126.4200 },
+      "경기": { lat: 37.2800, lng: 127.4800 },
+      "강원": { lat: 37.8200, lng: 128.2500 },
+      "충북": { lat: 36.8000, lng: 127.8000 },
+      "충남": { lat: 36.5500, lng: 126.5000 },
+      "대전": { lat: 36.2800, lng: 127.3800 },
+      "세종": { lat: 36.5500, lng: 127.1800 },
+      "전북": { lat: 35.7500, lng: 127.1200 },
+      "전남": { lat: 34.7200, lng: 127.0500 },
+      "광주": { lat: 35.1600, lng: 126.7500 },
+      "경북": { lat: 36.5000, lng: 128.7500 },
+      "대구": { lat: 35.8500, lng: 128.5600 },
+      "경남": { lat: 35.3200, lng: 128.1500 },
+      "부산": { lat: 35.1200, lng: 129.0800 },
+      "울산": { lat: 35.5400, lng: 129.3200 },
+      "제주": { lat: 33.3800, lng: 126.5300 },
     };
 
     clusterMap.forEach((c, groupName) => {
@@ -2602,14 +2602,14 @@ async function bootstrap() {
                 </div>
               </div>
             `,
-            anchor: new naver.maps.Point(60, 24),
+            anchor: new naver.maps.Point(0, 0),
           },
           zIndex: isProvinceLevel ? 600 : 500,
         });
 
         naver.maps.Event.addListener(marker, "click", () => {
           map.setCenter(pos);
-          const nextZoom = isProvinceLevel ? 11 : 13;
+          const nextZoom = isProvinceLevel ? 12 : 14;
           map.setZoom(nextZoom, true);
           updateZoomLabel();
         });
