@@ -6787,15 +6787,25 @@ button:active {
    Detail Popup Dynamic Feature Extensions
    ======================================================== */
 
-/* Store Photo Carousel / Banner */
+/* Store Photo Carousel / Banner (Compact 120px Height) */
+.storePhotoBanner,
 .storePhotoCarousel {
-  position: relative;
-  width: 100%;
-  height: 135px;
-  overflow: hidden;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background: #0f172a;
+  position: relative !important;
+  width: 100% !important;
+  height: 120px !important;
+  max-height: 120px !important;
+  overflow: hidden !important;
+  border-radius: 10px !important;
+  margin-bottom: 8px !important;
+  background: #0f172a !important;
+}
+
+.storePhotoBanner img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 120px !important;
+  object-fit: cover !important;
+  display: block !important;
 }
 
 .carouselTrack {
@@ -6805,19 +6815,21 @@ button:active {
 }
 
 .carouselSlide {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  pointer-events: none;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 120px !important;
+  object-fit: cover !important;
+  opacity: 0 !important;
+  transition: opacity 0.25s ease !important;
+  pointer-events: none !important;
+  display: block !important;
 }
 
 .carouselSlide.active {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .carouselBtn {
