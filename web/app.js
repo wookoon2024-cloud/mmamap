@@ -1903,6 +1903,7 @@ async function bootstrap() {
   };
 
   const openPrintModal = (pointOrId) => {
+    if (typeof closeIntroPopup === "function") closeIntroPopup(false);
     let point = pointOrId;
     if (typeof pointOrId === "string" && pointOrId.trim()) {
       point = pointByFacilityKey.get(pointOrId);
@@ -2035,6 +2036,10 @@ async function bootstrap() {
   let currentCustomPoint = null;
 
   const openStoreCustomModal = (pointOrId) => {
+    if (typeof closeIntroPopup === "function") closeIntroPopup(false);
+    if (typeof closePrintModal === "function") closePrintModal();
+    window.MMAAuth?.closeProfileMenu?.();
+
     let point = pointOrId;
     if (typeof pointOrId === "string" && pointOrId.trim()) {
       point = pointByFacilityKey.get(pointOrId);
@@ -2088,6 +2093,43 @@ async function bootstrap() {
     if (txtHours) txtHours.value = settings.hoursText || "";
     if (tgSns) tgSns.checked = !!settings.snsEnabled;
     if (txtSns) txtSns.value = settings.snsUrl || "";
+
+    const updateVisibility = () => {
+      const gWrap = document.getElementById("greetingInputWrap");
+      const pWrap = document.getElementById("photoInputWrap");
+      const prWrap = document.getElementById("promoInputWrap");
+      const hWrap = document.getElementById("hoursInputWrap");
+      const sWrap = document.getElementById("snsInputWrap");
+
+      if (gWrap && tgGreeting) {
+        gWrap.style.display = tgGreeting.checked ? "block" : "none";
+        gWrap.closest(".customSettingGroup")?.classList.toggle("disabled", !tgGreeting.checked);
+      }
+      if (pWrap && tgPhoto) {
+        pWrap.style.display = tgPhoto.checked ? "block" : "none";
+        pWrap.closest(".customSettingGroup")?.classList.toggle("disabled", !tgPhoto.checked);
+      }
+      if (tgComments) {
+        tgComments.closest(".customSettingGroup")?.classList.toggle("disabled", !tgComments.checked);
+      }
+      if (prWrap && tgPromo) {
+        prWrap.style.display = tgPromo.checked ? "block" : "none";
+        prWrap.closest(".customSettingGroup")?.classList.toggle("disabled", !tgPromo.checked);
+      }
+      if (hWrap && tgHours) {
+        hWrap.style.display = tgHours.checked ? "block" : "none";
+        hWrap.closest(".customSettingGroup")?.classList.toggle("disabled", !tgHours.checked);
+      }
+      if (sWrap && tgSns) {
+        sWrap.style.display = tgSns.checked ? "block" : "none";
+        sWrap.closest(".customSettingGroup")?.classList.toggle("disabled", !tgSns.checked);
+      }
+    };
+
+    [tgGreeting, tgPhoto, tgComments, tgPromo, tgHours, tgSns].forEach((tg) => {
+      if (tg) tg.onchange = updateVisibility;
+    });
+    updateVisibility();
 
     if (backdrop) backdrop.classList.remove("hidden");
     if (modal) modal.classList.remove("hidden");
@@ -5014,6 +5056,7 @@ const MMAAuth = {
   },
 
   async openMerchantStatsModal() {
+    if (typeof closeIntroPopup === "function") closeIntroPopup(false);
     if (!this.user || this.user.role !== "merchant") return;
     const backdrop = document.getElementById("merchantStatsBackdrop");
     const modal = document.getElementById("merchantStatsModal");
