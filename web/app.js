@@ -2514,6 +2514,7 @@ async function bootstrap() {
     const currentZoom = map.getZoom();
     const isProvinceLevel = currentZoom <= 10; // Zoom <= 10: 서울, 경기, 강원 등 광역 시·도 단위
     const clusterMap = new Map();
+    const nextClusterMarkerMap = new Map();
 
     for (const p of points) {
       if (selectedCategory && toCategoryLabel(p.category || "") !== selectedCategory) continue;
