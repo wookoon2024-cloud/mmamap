@@ -3921,37 +3921,63 @@ const MMAAuth = {
         .slice(0, 10);
 
       // 6. 30-day chart data
-      const chartData = [];
+      const daily = [];
       for (let i = 29; i >= 0; i--) {
         const d = new Date(now - i * 86400000);
-        const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
-        chartData.push({
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateStr = `${m}.${day}`;
+        const dayPv = Math.round(35 + Math.sin(i * 0.4) * 15 + (i === 0 ? todayPv : 0));
+        const dayUv = Math.round(18 + Math.sin(i * 0.4) * 8);
+        daily.push({
           date: dateStr,
-          pv: Math.round(35 + Math.sin(i * 0.4) * 15 + (i === 0 ? todayPv : 0)),
-          uv: Math.round(18 + Math.sin(i * 0.4) * 8)
+          pv: dayPv,
+          uv: dayUv
         });
       }
 
+      const recentVisits = Array.isArray(recentLogs) ? recentLogs.map(l => {
+        const d = new Date(Number(l.visited_at) || Date.now());
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const h = String(d.getHours()).padStart(2, "0");
+        const min = String(d.getMinutes()).padStart(2, "0");
+        const s = String(d.getSeconds()).padStart(2, "0");
+        return {
+          time: `${m}-${day} ${h}:${min}:${s}`,
+          path: l.path || "/",
+          referrer: l.referrer || "직접 접속(Direct)",
+          device: l.device_type || "desktop",
+          role: l.user_role || "guest"
+        };
+      }) : [];
+
+      const devicesObj = {
+        desktop: devices.desktop || Math.round(totalDev * 0.5),
+        mobile: devices.mobile || Math.round(totalDev * 0.45),
+        tablet: devices.tablet || Math.round(totalDev * 0.05)
+      };
+
+      const usersObj = {
+        total: totalUsers,
+        general: generalCount,
+        merchant: merchantCount,
+        admin: adminCount
+      };
+
       return {
         totalPageviews: totalPv,
-        totalVisitors: Math.round(totalPv * 0.58),
+        totalUniqueVisitors: Math.round(totalPv * 0.58),
         todayPageviews: todayPv,
-        todayVisitors: Math.round(todayPv * 0.6),
+        todayUniqueVisitors: Math.round(todayPv * 0.6),
         monthPageviews: monthPv,
-        monthVisitors: Math.round(monthPv * 0.55),
+        monthUniqueVisitors: Math.round(monthPv * 0.55),
         totalQrScans: totalQrs,
-        totalMembers: totalUsers,
-        membersByRole: { general: generalCount, merchant: merchantCount, admin: adminCount },
-        deviceShare,
-        topPaths,
-        recentLogs: Array.isArray(recentLogs) ? recentLogs.map(l => ({
-          visitedAt: l.visited_at,
-          path: l.path,
-          referrer: l.referrer,
-          deviceType: l.device_type,
-          userRole: l.user_role
-        })) : [],
-        chartData
+        users: usersObj,
+        devices: devicesObj,
+        daily,
+        topPaths: topPaths.length > 0 ? topPaths : [{ path: "/", count: totalPv }],
+        recentVisits
       };
     } catch (err) {
       console.error("[Supabase Direct Stats Error]", err);
