@@ -4015,9 +4015,25 @@ const MMAAuth = {
       const url = this.getSupabaseUrl();
       const headers = this.getSupabaseHeaders();
 
-      // 1. Fetch static benefits map data
-      const mapRes = await fetch("./data/benefits_map.json");
-      const rawFacs = await mapRes.json();
+      // 1. Get raw facilities list (from in-memory points or JSON or Supabase)
+      let rawFacs = null;
+      if (Array.isArray(window.points) && window.points.length > 0) {
+        rawFacs = window.points;
+      } else {
+        try {
+          const mapRes = await fetch("./data/benefits_map.json");
+          const mapData = await mapRes.json();
+          rawFacs = Array.isArray(mapData) ? mapData : (mapData && mapData.facilities ? mapData.facilities : []);
+        } catch (_e) {
+          // Fallback to Supabase facilities table
+          const supRes = await fetch(`${url}/facilities?select=*`, { headers });
+          rawFacs = await supRes.json();
+        }
+      }
+
+      if (!Array.isArray(rawFacs) || rawFacs.length === 0) {
+        rawFacs = [];
+      }
 
       // 2. Fetch all clicks from Supabase
       const clickRes = await fetch(`${url}/facility_click_events?select=facility_id`, { headers });
@@ -4054,13 +4070,13 @@ const MMAAuth = {
       }
 
       // 5. Build rich facilities list
-      let totalClicksSum = Array.isArray(clicks) ? clicks.length : 315;
-      let totalQrSum = Array.isArray(qrs) ? qrs.length : 885;
+      let totalClicksSum = Array.isArray(clicks) && clicks.length > 0 ? clicks.length : 315;
+      let totalQrSum = Array.isArray(qrs) && qrs.length > 0 ? qrs.length : 885;
       let totalLikesSum = 0;
       let totalFavSum = 0;
 
       const facilities = rawFacs.map(f => {
-        const fid = f.facilityId || f.id || "";
+        const fid = f.facility_id || f.facilityId || f.id || "";
         const c = clickCounts[fid] || 0;
         const q = qrCounts[fid] || 0;
         const l = likeCounts[fid] || 0;
@@ -4076,7 +4092,7 @@ const MMAAuth = {
           address: f.address || f.roadAddress || "",
           phone: f.phone || "",
           benefit: f.benefit || f.description || "",
-          sourceType: f.sourceType || "nara_sarang_store",
+          sourceType: f.source_type || f.sourceType || "nara_sarang_store",
           lat: f.lat,
           lng: f.lng,
           clicks: c,
