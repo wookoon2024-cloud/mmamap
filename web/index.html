@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=46.0" />
+    <link rel="stylesheet" href="./styles.css?v=47.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -322,8 +322,8 @@
     <section id="adminDashboardModal" class="adminDashboardModal hidden" role="dialog" aria-modal="true" aria-labelledby="adminDashboardTitle">
       <div class="adminDashboardHead">
         <div>
-          <span class="adminBadge">👑 관리자 모드</span>
-          <h3 id="adminDashboardTitle" class="adminDashboardTitle">군필지도 관리자 운영 센터</h3>
+          <span class="adminBadge">관리자 모드</span>
+          <h3 id="adminDashboardTitle" class="adminDashboardTitle">군필지도 통합 관리자 센터</h3>
         </div>
         <button id="adminDashboardCloseBtn" class="introCloseBtn" type="button" aria-label="닫기">×</button>
       </div>
@@ -332,19 +332,19 @@
       <div class="adminTabBar" style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; gap: 8px;">
           <button type="button" id="adminTabBtnAnalytics" class="adminTabBtn active" onclick="window.MMAAuth.switchAdminTab('analytics')">
-            <span>📊 접속 & 통계 분석</span>
+            <span>접속 통계 분석</span>
           </button>
           <button type="button" id="adminTabBtnMembers" class="adminTabBtn" onclick="window.MMAAuth.switchAdminTab('members')">
-            <span>👥 회원 관리</span>
+            <span>회원 관리</span>
             <span id="adminMemberBadgeCount" class="adminTabBadge">0명</span>
           </button>
           <button type="button" id="adminTabBtnFacilities" class="adminTabBtn" onclick="window.MMAAuth.switchAdminTab('facilities')">
-            <span>🏪 가맹점별 통계</span>
+            <span>가맹점별 통계</span>
             <span id="adminFacBadgeCount" class="adminTabBadge">4,294개</span>
           </button>
         </div>
-        <button type="button" id="adminRefreshStatsBtn" class="adminRefreshBtn" onclick="window.MMAAuth.refreshAdminStats()" style="padding: 6px 14px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          🔄 실시간 새로고침
+        <button type="button" id="adminRefreshStatsBtn" class="adminRefreshBtn" onclick="window.MMAAuth.refreshAdminStats()" style="padding: 6px 14px; background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <span>새로고침</span>
         </button>
       </div>
 
@@ -354,22 +354,22 @@
           <!-- KPI Row -->
           <div class="adminKpiGrid">
             <div class="adminKpiCard highlight">
-              <span class="adminKpiLabel">📈 총 누적 페이지뷰</span>
+              <span class="adminKpiLabel">총 누적 페이지뷰</span>
               <strong id="adminTotalPv" class="adminKpiValue">0<small>PV</small></strong>
               <span id="adminTotalUv" class="adminKpiSub">순 방문자 0 UV</span>
             </div>
             <div class="adminKpiCard">
-              <span class="adminKpiLabel">☀️ 오늘 방문자 (PV / UV)</span>
+              <span class="adminKpiLabel">금일 방문자 (PV / UV)</span>
               <strong id="adminTodayPv" class="adminKpiValue">0<small>PV</small></strong>
               <span id="adminTodayUv" class="adminKpiSub">순 방문자 0 UV</span>
             </div>
             <div class="adminKpiCard">
-              <span class="adminKpiLabel">🗓️ 이번 달 방문자</span>
+              <span class="adminKpiLabel">당월 누적 방문자</span>
               <strong id="adminMonthPv" class="adminKpiValue">0<small>PV</small></strong>
               <span id="adminMonthUv" class="adminKpiSub">순 방문자 0 UV</span>
             </div>
             <div class="adminKpiCard userCard">
-              <span class="adminKpiLabel">👥 가입 회원 현황</span>
+              <span class="adminKpiLabel">등록 회원 현황</span>
               <strong id="adminTotalUsers" class="adminKpiValue">0<small>명</small></strong>
               <span id="adminUserDetail" class="adminKpiSub">일반 0 · 소상공인 0</span>
             </div>
@@ -378,7 +378,7 @@
           <!-- 30-day Chart -->
           <div class="adminStatsCard">
             <div class="adminStatsCardHead">
-              <h4>📊 최근 30일 접속 추이 (페이지뷰 & 순 방문자)</h4>
+              <h4>최근 30일 접속 추이 (페이지뷰 및 순 방문자)</h4>
               <span class="adminStatsCardSub">실시간 집계 데이터</span>
             </div>
             <div id="adminDailyChartContainer" class="adminDailyChartContainer"></div>
@@ -388,14 +388,14 @@
           <div class="adminTwoColGrid">
             <div class="adminStatsCard">
               <div class="adminStatsCardHead">
-                <h4>📱 접속 기기 점유율</h4>
+                <h4>접속 기기별 점유율</h4>
               </div>
               <div id="adminDeviceBreakdown" class="adminDeviceBreakdown"></div>
             </div>
 
             <div class="adminStatsCard">
               <div class="adminStatsCardHead">
-                <h4>🔥 인기 열람 경로 Top 10</h4>
+                <h4>주요 접속 경로 순위</h4>
               </div>
               <div id="adminTopPathsList" class="adminTopPathsList"></div>
             </div>
@@ -404,7 +404,7 @@
           <!-- Recent Logs Table -->
           <div class="adminStatsCard">
             <div class="adminStatsCardHead">
-              <h4>🕒 최근 실시간 접속 로그 (최근 10건)</h4>
+              <h4>최근 접속 로그 (최근 10건)</h4>
             </div>
             <div class="adminRecentTableWrap">
               <table class="adminRecentTable">
@@ -413,7 +413,7 @@
                     <th>접속 일시</th>
                     <th>요청 경로</th>
                     <th>유입 경로 (Referrer)</th>
-                    <th>기기</th>
+                    <th>접속 기기</th>
                     <th>회원 구분</th>
                   </tr>
                 </thead>
@@ -428,24 +428,24 @@
           <!-- Member KPI Summary -->
           <div class="adminKpiGrid">
             <div class="adminKpiCard highlight">
-              <span class="adminKpiLabel">👥 총 가입 회원</span>
+              <span class="adminKpiLabel">총 등록 회원</span>
               <strong id="adminMemTotalCount" class="adminKpiValue">0<small>명</small></strong>
-              <span class="adminKpiSub">실시간 등록 회원</span>
+              <span class="adminKpiSub">실시간 가입 회원</span>
             </div>
             <div class="adminKpiCard">
-              <span class="adminKpiLabel">🪖 일반회원 (병역이행자)</span>
+              <span class="adminKpiLabel">일반회원 (병역이행자)</span>
               <strong id="adminMemGeneralCount" class="adminKpiValue">0<small>명</small></strong>
-              <span class="adminKpiSub">찜/후기/혜택 이용</span>
+              <span class="adminKpiSub">혜택 조회 및 관심 등록</span>
             </div>
             <div class="adminKpiCard">
-              <span class="adminKpiLabel">🏪 소상공인 점주</span>
+              <span class="adminKpiLabel">소상공인 점주</span>
               <strong id="adminMemMerchantCount" class="adminKpiValue">0<small>명</small></strong>
-              <span class="adminKpiSub">가맹점 인증 완료</span>
+              <span class="adminKpiSub">가맹점 사업자 인증</span>
             </div>
             <div class="adminKpiCard userCard">
-              <span class="adminKpiLabel">👑 운영 관리자</span>
+              <span class="adminKpiLabel">운영 관리자</span>
               <strong id="adminMemAdminCount" class="adminKpiValue">0<small>명</small></strong>
-              <span class="adminKpiSub">시스템 총괄 권한</span>
+              <span class="adminKpiSub">시스템 총괄 관리</span>
             </div>
           </div>
 
@@ -453,33 +453,33 @@
           <div class="adminMemberControlBar">
             <div class="adminRoleFilterBtns">
               <button type="button" class="adminRoleFilterBtn active" data-role="all" onclick="window.MMAAuth.filterAdminMembers('all')">전체 회원</button>
-              <button type="button" class="adminRoleFilterBtn" data-role="general" onclick="window.MMAAuth.filterAdminMembers('general')">🪖 일반회원</button>
-              <button type="button" class="adminRoleFilterBtn" data-role="merchant" onclick="window.MMAAuth.filterAdminMembers('merchant')">🏪 소상공인 점주</button>
-              <button type="button" class="adminRoleFilterBtn" data-role="admin" onclick="window.MMAAuth.filterAdminMembers('admin')">👑 관리자</button>
+              <button type="button" class="adminRoleFilterBtn" data-role="general" onclick="window.MMAAuth.filterAdminMembers('general')">일반회원</button>
+              <button type="button" class="adminRoleFilterBtn" data-role="merchant" onclick="window.MMAAuth.filterAdminMembers('merchant')">소상공인</button>
+              <button type="button" class="adminRoleFilterBtn" data-role="admin" onclick="window.MMAAuth.filterAdminMembers('admin')">관리자</button>
             </div>
             <div class="adminMemberSearchWrap">
-              <input type="text" id="adminMemberSearchInput" placeholder="닉네임, 이메일, 가맹점명, 연락처 검색..." oninput="window.MMAAuth.searchAdminMembers(this.value)" />
-              <button type="button" class="adminRefreshBtn" onclick="window.MMAAuth.fetchAdminMembers()" title="새로고침">🔄</button>
+              <input type="text" id="adminMemberSearchInput" placeholder="닉네임, 이메일, 가맹점명 검색..." oninput="window.MMAAuth.searchAdminMembers(this.value)" />
+              <button type="button" class="adminRefreshBtn" onclick="window.MMAAuth.fetchAdminMembers()" title="새로고침">새로고침</button>
             </div>
           </div>
 
           <!-- Members Table -->
           <div class="adminStatsCard">
             <div class="adminStatsCardHead">
-              <h4>📋 회원 목록 (<span id="adminMemberListCount">0</span>명)</h4>
-              <span class="adminStatsCardSub">가입일시 기준 최신순</span>
+              <h4>회원 목록 (<span id="adminMemberListCount">0</span>명)</h4>
+              <span class="adminStatsCardSub">가입일시 기준 최신순 정렬</span>
             </div>
             <div class="adminRecentTableWrap">
               <table class="adminRecentTable adminMembersTable">
                 <thead>
                   <tr>
                     <th style="width: 50px;">번호</th>
-                    <th>회원 닉네임 / 이메일</th>
-                    <th style="width: 130px;">회원 구분</th>
-                    <th>인증 가맹점</th>
+                    <th>회원 정보 (닉네임 / 이메일)</th>
+                    <th style="width: 120px;">회원 구분</th>
+                    <th>연계 가맹점</th>
                     <th style="width: 120px;">연락처</th>
                     <th style="width: 130px;">가입 일시</th>
-                    <th style="width: 100px; text-align: center;">가맹점 이동</th>
+                    <th style="width: 100px; text-align: center;">가맹점 조회</th>
                   </tr>
                 </thead>
                 <tbody id="adminMembersTableBody">
@@ -497,24 +497,24 @@
           <!-- Facility KPI Summary -->
           <div class="adminKpiGrid">
             <div class="adminKpiCard highlight">
-              <span class="adminKpiLabel">🏪 총 등록 가맹점</span>
+              <span class="adminKpiLabel">총 등록 가맹점</span>
               <strong id="adminFacTotalCount" class="adminKpiValue">4,294<small>개소</small></strong>
-              <span class="adminKpiSub">전국 나라사랑 & 명문가</span>
+              <span class="adminKpiSub">나라사랑 및 병역명문가</span>
             </div>
             <div class="adminKpiCard">
-              <span class="adminKpiLabel">👁️ 총 가맹점 열람(클릭)</span>
+              <span class="adminKpiLabel">가맹점 상세 조회수</span>
               <strong id="adminFacTotalClicks" class="adminKpiValue">0<small>회</small></strong>
-              <span class="adminKpiSub">상세 정보 조회수</span>
+              <span class="adminKpiSub">마커 상세 열람 합계</span>
             </div>
             <div class="adminKpiCard">
-              <span class="adminKpiLabel">📱 총 QR 코드 스캔</span>
+              <span class="adminKpiLabel">홍보물 QR 스캔수</span>
               <strong id="adminFacTotalQrs" class="adminKpiValue">0<small>회</small></strong>
-              <span class="adminKpiSub">현장 인쇄물 유입</span>
+              <span class="adminKpiSub">현장 인쇄물 QR 유입</span>
             </div>
             <div class="adminKpiCard userCard">
-              <span class="adminKpiLabel">❤️ 누적 찜 & 좋아요</span>
+              <span class="adminKpiLabel">장병 관심 반응</span>
               <strong id="adminFacTotalEngagement" class="adminKpiValue">0<small>건</small></strong>
-              <span class="adminKpiSub">장병 관심도 합계</span>
+              <span class="adminKpiSub">좋아요 및 찜 합계</span>
             </div>
           </div>
 
@@ -522,12 +522,12 @@
           <div class="adminFacControlBar">
             <div class="adminFacFilterGroup">
               <select id="adminFacSourceFilter" class="adminFacSelect" onchange="window.MMAAuth.filterAdminFacilities()">
-                <option value="all">🎖️ 전체 데이터 (4,294개)</option>
-                <option value="nara_sarang_store">🎖️ 나라사랑가게</option>
-                <option value="myeongmunga_facility">🏛️ 병역명문가</option>
+                <option value="all">전체 구분 (4,294개)</option>
+                <option value="nara_sarang_store">나라사랑가게</option>
+                <option value="myeongmunga_facility">병역명문가</option>
               </select>
               <select id="adminFacCategoryFilter" class="adminFacSelect" onchange="window.MMAAuth.filterAdminFacilities()">
-                <option value="all">🏷️ 전체 카테고리</option>
+                <option value="all">전체 업종</option>
                 <option value="안경점">안경점</option>
                 <option value="병원">병원</option>
                 <option value="문화">문화</option>
@@ -540,17 +540,17 @@
                 <option value="주차">주차</option>
               </select>
               <select id="adminFacSortSelect" class="adminFacSelect" onchange="window.MMAAuth.sortAdminFacilities(this.value)">
-                <option value="engagement">📈 참여도 높은 순 (열람+QR+찜)</option>
-                <option value="clicks">👁️ 열람/클릭 많은 순</option>
-                <option value="qr">📱 QR 스캔 많은 순</option>
-                <option value="likes">❤️ 좋아요 많은 순</option>
-                <option value="favorites">⭐ 찜/즐겨찾기 많은 순</option>
-                <option value="name">🔤 가맹점명 가나다 순</option>
+                <option value="engagement">참여도 순 (조회+QR+찜)</option>
+                <option value="clicks">조회수 많은 순</option>
+                <option value="qr">QR 스캔 많은 순</option>
+                <option value="likes">좋아요 많은 순</option>
+                <option value="favorites">찜 등록 많은 순</option>
+                <option value="name">가맹점명 순</option>
               </select>
             </div>
             <div class="adminFacSearchWrap">
               <input type="text" id="adminFacSearchInput" placeholder="가맹점명, 주소, 혜택 검색..." oninput="window.MMAAuth.searchAdminFacilities(this.value)" />
-              <button type="button" class="adminRefreshBtn" onclick="window.MMAAuth.fetchAdminFacilities()" title="새로고침">🔄</button>
+              <button type="button" class="adminRefreshBtn" onclick="window.MMAAuth.fetchAdminFacilities()" title="새로고침">검색</button>
             </div>
           </div>
 
@@ -558,10 +558,10 @@
           <div class="adminStatsCard" style="padding: 0; overflow: hidden;">
             <div class="adminStatsCardHead" style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; margin-bottom: 0;">
               <h4 style="display: flex; align-items: center; gap: 6px;">
-                🏪 가맹점 목록 및 실시간 통계
+                가맹점 통계 현황
                 <span id="adminFacListCount" class="adminTabBadge" style="font-size: 12px;">0개</span>
               </h4>
-              <span class="adminStatsCardSub">클릭 시 해당 가맹점 지도 위치로 즉시 이동합니다</span>
+              <span class="adminStatsCardSub">목록 클릭 시 지도 상의 위치로 바로 이동합니다</span>
             </div>
             <div class="adminRecentTableWrap" style="max-height: 480px; overflow-y: auto;">
               <table class="adminRecentTable adminFacTable">
@@ -569,12 +569,12 @@
                   <tr>
                     <th style="width: 50px; text-align: center;">순위</th>
                     <th>가맹점 정보</th>
-                    <th style="width: 90px; text-align: center;">분류</th>
-                    <th style="width: 90px; text-align: center;">👁️ 열람수</th>
-                    <th style="width: 90px; text-align: center;">📱 QR스캔</th>
-                    <th style="width: 75px; text-align: center;">❤️ 좋아요</th>
-                    <th style="width: 75px; text-align: center;">⭐ 찜</th>
-                    <th style="width: 150px; text-align: center;">관리 액션</th>
+                    <th style="width: 90px; text-align: center;">업종</th>
+                    <th style="width: 90px; text-align: center;">조회수</th>
+                    <th style="width: 90px; text-align: center;">QR 스캔</th>
+                    <th style="width: 75px; text-align: center;">좋아요</th>
+                    <th style="width: 75px; text-align: center;">찜</th>
+                    <th style="width: 160px; text-align: center;">관리 기능</th>
                   </tr>
                 </thead>
                 <tbody id="adminFacilitiesTableBody">
@@ -802,10 +802,10 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v17.4</div>
+    <div class="versionBadge">v17.5</div>
 
-    <script src="./config.js?v=11.4"></script>
+    <script src="./config.js?v=11.5"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=127.0"></script>
+    <script src="./app.js?v=128.0"></script>
   </body>
 </html>

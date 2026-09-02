@@ -4355,8 +4355,8 @@ const MMAAuth = {
         const rank = idx + 1;
         const rankClass = rank === 1 ? "top1" : (rank === 2 ? "top2" : (rank === 3 ? "top3" : ""));
         const sourceBadge = f.sourceType === "nara_sarang_store"
-          ? `<span style="font-size: 10px; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 1px 5px; border-radius: 4px; border: 1px solid #bfdbfe;">🎖️ 나라사랑</span>`
-          : `<span style="font-size: 10px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 1px 5px; border-radius: 4px; border: 1px solid #a7f3d0;">🏛️ 명문가</span>`;
+          ? `<span style="font-size: 10px; font-weight: 600; color: #1d4ed8; background: #eff6ff; padding: 1px 6px; border-radius: 4px; border: 1px solid #bfdbfe;">나라사랑</span>`
+          : `<span style="font-size: 10px; font-weight: 600; color: #047857; background: #ecfdf5; padding: 1px 6px; border-radius: 4px; border: 1px solid #a7f3d0;">병역명문가</span>`;
 
         const cat = toCategoryLabel(f.category, f.name);
 
@@ -4394,10 +4394,10 @@ const MMAAuth = {
             <td style="text-align: center;">
               <div class="facActionBtns">
                 <button type="button" class="facActionBtn mapBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도 위치로 이동">
-                  🗺️ 지도
+                  지도 보기
                 </button>
                 <button type="button" class="facActionBtn printBtn" onclick="window.MMAAuth.adminOpenFacilityPrintouts('${this.escapeHtml(f.facilityId)}')" title="홍보물 3종 출력">
-                  🖨️ 인쇄물
+                  홍보물 출력
                 </button>
               </div>
             </td>
@@ -4513,10 +4513,10 @@ const MMAAuth = {
       .map((u, idx) => {
         const roleBadge =
           u.role === "admin"
-            ? `<span class="profileRoleBadge admin">👑 최고 관리자</span>`
+            ? `<span class="profileRoleBadge admin">최고 관리자</span>`
             : u.role === "merchant"
-            ? `<span class="profileRoleBadge merchant">🏪 소상공인 점주</span>`
-            : `<span class="profileRoleBadge user">🪖 일반 (병역의무자)</span>`;
+            ? `<span class="profileRoleBadge merchant">소상공인 점주</span>`
+            : `<span class="profileRoleBadge user">일반회원</span>`;
 
         let formattedDate = "-";
         if (u.createdAt) {
@@ -4540,7 +4540,7 @@ const MMAAuth = {
           : `<span style="color: #94a3b8;">-</span>`;
 
         const locateBtn = u.merchantFacilityId
-          ? `<button type="button" class="adminLocateStoreBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(u.merchantFacilityId)}')">📍 위치보기</button>`
+          ? `<button type="button" class="adminLocateStoreBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(u.merchantFacilityId)}')">가맹점 위치</button>`
           : `<span style="color: #cbd5e1; font-size: 12px;">-</span>`;
 
         return `
@@ -4622,9 +4622,9 @@ const MMAAuth = {
       const mobPct = Math.round(((stats.devices.mobile || 0) / totalDev) * 100);
       const tabPct = Math.round(((stats.devices.tablet || 0) / totalDev) * 100);
       devContainer.innerHTML = `
-        <div class="adminPathItem"><strong>💻 PC / 데스크톱</strong><span>${stats.devices.desktop || 0}건 (${pcPct}%)</span></div>
-        <div class="adminPathItem"><strong>📱 모바일 (스마트폰)</strong><span>${stats.devices.mobile || 0}건 (${mobPct}%)</span></div>
-        <div class="adminPathItem"><strong>📟 태블릿</strong><span>${stats.devices.tablet || 0}건 (${tabPct}%)</span></div>
+        <div class="adminPathItem"><strong>PC / 데스크톱</strong><span>${stats.devices.desktop || 0}건 (${pcPct}%)</span></div>
+        <div class="adminPathItem"><strong>모바일 (스마트폰)</strong><span>${stats.devices.mobile || 0}건 (${mobPct}%)</span></div>
+        <div class="adminPathItem"><strong>태블릿</strong><span>${stats.devices.tablet || 0}건 (${tabPct}%)</span></div>
       `;
     }
 
