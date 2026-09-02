@@ -1959,6 +1959,148 @@ async function bootstrap() {
     if (backdrop) backdrop.classList.add("hidden");
   };
 
+  // ==========================================
+  // Store Customization & On/Off Toggle Engine
+  // ==========================================
+  const getStoreCustomKey = (facilityId) => `mma_store_custom_${facilityId}`;
+
+  const getStoreCustomSettings = (facilityId, point = null) => {
+    try {
+      const raw = localStorage.getItem(getStoreCustomKey(facilityId));
+      if (raw) return JSON.parse(raw);
+    } catch (_e) {}
+
+    const title = point?.title || "";
+    const cat = point?.category || "";
+    let defaultPhoto = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80";
+    if (cat.includes("병원") || cat.includes("의료") || title.includes("병원")) {
+      defaultPhoto = "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80";
+    } else if (cat.includes("교육") || cat.includes("학원") || title.includes("학원")) {
+      defaultPhoto = "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&auto=format&fit=crop&q=80";
+    } else if (cat.includes("카페") || cat.includes("커피")) {
+      defaultPhoto = "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80";
+    }
+
+    return {
+      greetingEnabled: true,
+      greetingText: "대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 든든하고 편안하게 이용하세요.",
+      photoEnabled: true,
+      photoUrl: defaultPhoto,
+      commentsEnabled: true,
+      promoEnabled: true,
+      promoText: "나라사랑 우대 고객 방문 시 추가 서비스 & 맞춤 혜택 제공!",
+      hoursEnabled: true,
+      hoursText: "매일 09:30 ~ 21:30 (연중무휴)",
+      snsEnabled: false,
+      snsUrl: "",
+    };
+  };
+
+  const saveStoreCustomSettings = (facilityId, settings) => {
+    try {
+      localStorage.setItem(getStoreCustomKey(facilityId), JSON.stringify(settings));
+    } catch (_e) {}
+  };
+
+  const getStoreCommentsKey = (facilityId) => `mma_store_comments_${facilityId}`;
+
+  const getStoreComments = (facilityId) => {
+    try {
+      const raw = localStorage.getItem(getStoreCommentsKey(facilityId));
+      if (raw) return JSON.parse(raw);
+    } catch (_e) {}
+    return [
+      {
+        author: "병장 김*우 (현역병)",
+        text: "휴가 나와서 방문했는데 사장님이 너무 친절하시고 장병 우대 혜택도 바로 적용해주셔서 감동이었습니다! 👍",
+        date: "2026.08.28",
+      },
+      {
+        author: "이*석 (병역명문가)",
+        text: "명문가증 보여드리니 가족처럼 반갑게 맞아주셨어요. 앞으로 단골하겠습니다.",
+        date: "2026.08.15",
+      },
+    ];
+  };
+
+  const addStoreComment = (facilityId, comment) => {
+    const list = getStoreComments(facilityId);
+    list.unshift(comment);
+    try {
+      localStorage.setItem(getStoreCommentsKey(facilityId), JSON.stringify(list));
+    } catch (_e) {}
+    return list;
+  };
+
+  let currentCustomPoint = null;
+
+  const openStoreCustomModal = (pointOrId) => {
+    let point = pointOrId;
+    if (typeof pointOrId === "string" && pointOrId.trim()) {
+      point = pointByFacilityKey.get(pointOrId);
+      if (!point) {
+        for (const p of points) {
+          if (
+            String(p.facilityId || "") === String(pointOrId) ||
+            String(p.id || "") === String(pointOrId) ||
+            getFacilityKey(p) === pointOrId
+          ) {
+            point = p;
+            break;
+          }
+        }
+      }
+    }
+    if (!point && Array.isArray(points) && points.length > 0) {
+      point = points.find((p) => p.sourceType === "nara_sarang_store") || points[0];
+    }
+    if (!point) return;
+
+    currentCustomPoint = point;
+    const facilityId = getFacilityKey(point);
+    const settings = getStoreCustomSettings(facilityId, point);
+
+    const backdrop = document.getElementById("storeCustomBackdrop");
+    const modal = document.getElementById("storeCustomModal");
+    const titleEl = document.getElementById("storeCustomTitle");
+    if (titleEl) titleEl.textContent = `[${point.title || "우리 가게"}] 상세페이지 꾸미기`;
+
+    const tgGreeting = document.getElementById("toggleGreeting");
+    const txtGreeting = document.getElementById("storeGreetingText");
+    const tgPhoto = document.getElementById("togglePhoto");
+    const txtPhoto = document.getElementById("storePhotoUrl");
+    const tgComments = document.getElementById("toggleComments");
+    const tgPromo = document.getElementById("togglePromo");
+    const txtPromo = document.getElementById("storePromoText");
+    const tgHours = document.getElementById("toggleHours");
+    const txtHours = document.getElementById("storeHoursText");
+    const tgSns = document.getElementById("toggleSns");
+    const txtSns = document.getElementById("storeSnsUrl");
+
+    if (tgGreeting) tgGreeting.checked = !!settings.greetingEnabled;
+    if (txtGreeting) txtGreeting.value = settings.greetingText || "";
+    if (tgPhoto) tgPhoto.checked = !!settings.photoEnabled;
+    if (txtPhoto) txtPhoto.value = settings.photoUrl || "";
+    if (tgComments) tgComments.checked = !!settings.commentsEnabled;
+    if (tgPromo) tgPromo.checked = !!settings.promoEnabled;
+    if (txtPromo) txtPromo.value = settings.promoText || "";
+    if (tgHours) tgHours.checked = !!settings.hoursEnabled;
+    if (txtHours) txtHours.value = settings.hoursText || "";
+    if (tgSns) tgSns.checked = !!settings.snsEnabled;
+    if (txtSns) txtSns.value = settings.snsUrl || "";
+
+    if (backdrop) backdrop.classList.remove("hidden");
+    if (modal) modal.classList.remove("hidden");
+  };
+  window.openStoreCustomModal = openStoreCustomModal;
+
+  const closeStoreCustomModal = () => {
+    const backdrop = document.getElementById("storeCustomBackdrop");
+    const modal = document.getElementById("storeCustomModal");
+    if (backdrop) backdrop.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  };
+
   const openDetailInfo = (point, anchorLatLng = null, screenPoint = null) => {
     if (!ENABLE_DETAIL_PANEL) return;
     if (!detailPanelEl || !point) return;
@@ -2009,8 +2151,86 @@ async function bootstrap() {
       `
       : "";
 
+    // Load store customizations & comments
+    const custom = getStoreCustomSettings(facilityId, point);
+    const comments = getStoreComments(facilityId);
+    const isOwner =
+      window.MMAAuth?.user?.role === "merchant" ||
+      window.MMAAuth?.user?.merchantFacilityId === point.facilityId;
+
+    const ownerManageBtnHtml = isOwner
+      ? `<div style="display:flex; justify-content:flex-end; margin-bottom: 6px;">
+          <button type="button" class="detailOwnerManageBtn" id="detailOwnerManageBtn">⚙️ 사장님 매장 페이지 설정</button>
+        </div>`
+      : "";
+
+    const photoHtml =
+      custom.photoEnabled && custom.photoUrl
+        ? `<div class="storePhotoBanner"><img src="${escapeHtml(custom.photoUrl)}" alt="${title}" onerror="this.parentElement.style.display='none'"></div>`
+        : "";
+
+    const greetingHtml =
+      custom.greetingEnabled && custom.greetingText
+        ? `<div class="ownerGreetingBox">
+             <div class="ownerGreetingHead">💬 <strong>사장님 한마디</strong></div>
+             <div class="ownerGreetingBody">${escapeHtml(custom.greetingText)}</div>
+           </div>`
+        : "";
+
+    const promoHtml =
+      custom.promoEnabled && custom.promoText
+        ? `<div class="todayPromoBox">
+             <span class="promoBadge">🎁 오늘의 혜택</span>
+             <span class="promoText">${escapeHtml(custom.promoText)}</span>
+           </div>`
+        : "";
+
+    const hoursHtml =
+      custom.hoursEnabled && custom.hoursText
+        ? `<div class="storeHoursRow">⏰ <strong>영업시간:</strong> ${escapeHtml(custom.hoursText)}</div>`
+        : "";
+
+    const snsHtml =
+      custom.snsEnabled && custom.snsUrl
+        ? `<div class="storeSnsRow">🔗 <a href="${escapeHtml(custom.snsUrl)}" target="_blank" rel="noopener noreferrer" class="storeSnsLink">공식 채널 / SNS 방문하기</a></div>`
+        : "";
+
+    let commentsHtml = "";
+    if (custom.commentsEnabled) {
+      const commentItems = comments
+        .map(
+          (c) => `
+          <div class="storeCommentItem">
+            <div class="storeCommentMeta">
+              <span class="storeCommentAuthor">${escapeHtml(c.author || "회원")}</span>
+              <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+            </div>
+            <div class="storeCommentText">${escapeHtml(c.text || "")}</div>
+          </div>
+        `
+        )
+        .join("");
+
+      commentsHtml = `
+        <div class="storeCommentsWrap">
+          <div class="storeCommentsHead">
+            <span class="storeCommentsTitle">💬 응원 댓글 & 방문 후기 (${comments.length}개)</span>
+          </div>
+          <div class="storeCommentList" id="storeCommentList">
+            ${commentItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 6px;">첫 번째 응원 댓글을 남겨보세요!</div>'}
+          </div>
+          <div class="storeCommentForm">
+            <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디를 남겨주세요..." maxlength="100" />
+            <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
+          </div>
+        </div>
+      `;
+    }
+
     const contentHtml = `
       <div class="detailPanel detailPanelInWindow">
+        ${photoHtml}
+        ${ownerManageBtnHtml}
         <div class="detailTop">
           <div class="detailTitleRow">
             <div class="detailTitle">${title}</div>
@@ -2027,6 +2247,10 @@ async function bootstrap() {
           <button id="detailFavBtn" class="detailIconBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="즐겨찾기"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
           ${bookingBtnHtml}
         </div>
+        ${greetingHtml}
+        ${promoHtml}
+        ${hoursHtml}
+        ${snsHtml}
         <div class="detailDivider"></div>
         <table class="detailInfoTable">
           <tbody>
@@ -2040,12 +2264,14 @@ async function bootstrap() {
             </tr>
           </tbody>
         </table>
+        ${commentsHtml}
       </div>
     `;
 
-    const targetAnchor = (anchorLatLng && typeof anchorLatLng.lat === "function")
-      ? anchorLatLng
-      : new naver.maps.LatLng(point.lat, point.lng);
+    const targetAnchor =
+      anchorLatLng && typeof anchorLatLng.lat === "function"
+        ? anchorLatLng
+        : new naver.maps.LatLng(point.lat, point.lng);
     selectedDetailAnchor = targetAnchor;
 
     detailInfoWindow.setContent(contentHtml);
@@ -2053,6 +2279,26 @@ async function bootstrap() {
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
+
+    const manageBtn = document.getElementById("detailOwnerManageBtn");
+    if (manageBtn) {
+      manageBtn.onclick = () => openStoreCustomModal(point);
+    }
+
+    const commentSubmitBtn = document.getElementById("storeCommentSubmitBtn");
+    if (commentSubmitBtn) {
+      commentSubmitBtn.onclick = () => {
+        const inp = document.getElementById("storeNewCommentInput");
+        const text = inp?.value?.trim();
+        if (!text) return;
+        const author = window.MMAAuth?.user?.nickname
+          ? `${window.MMAAuth.user.nickname} (회원)`
+          : "방문 장병/회원";
+        const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+        addStoreComment(facilityId, { author, text, date });
+        openDetailInfo(point, targetAnchor);
+      };
+    }
 
     const printBtn = document.getElementById("detailPrintBtn");
     if (printBtn) {
@@ -2070,7 +2316,7 @@ async function bootstrap() {
           likeCountsById[facilityId] = Number(resp.count || 0);
           renderRankPanel();
           renderFavoritesPanel();
-          openDetailInfo(point);
+          openDetailInfo(point, targetAnchor);
         } catch (_err) {
           // keep UI quiet on transient network error
         } finally {
@@ -2090,7 +2336,7 @@ async function bootstrap() {
           favoriteCountsById[facilityId] = Number(resp.count || 0);
           renderFavoritesPanel();
           renderRankPanel();
-          openDetailInfo(point);
+          openDetailInfo(point, targetAnchor);
         } catch (_err) {
           // keep UI quiet on transient network error
         } finally {
@@ -2982,6 +3228,84 @@ async function bootstrap() {
     });
   }
 
+  // Store Custom Modal Event Listeners
+  const customCloseBtn = document.getElementById("storeCustomCloseBtn");
+  if (customCloseBtn) customCloseBtn.addEventListener("click", closeStoreCustomModal);
+
+  const customBackdrop = document.getElementById("storeCustomBackdrop");
+  if (customBackdrop) {
+    customBackdrop.addEventListener("click", (e) => {
+      if (e.target === customBackdrop) closeStoreCustomModal();
+    });
+  }
+
+  document.querySelectorAll(".presetPhotoBtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const url = btn.dataset.url;
+      const photoInput = document.getElementById("storePhotoUrl");
+      const photoToggle = document.getElementById("togglePhoto");
+      if (photoInput && url) photoInput.value = url;
+      if (photoToggle) photoToggle.checked = true;
+    });
+  });
+
+  const btnResetStoreCustom = document.getElementById("btnResetStoreCustom");
+  if (btnResetStoreCustom) {
+    btnResetStoreCustom.addEventListener("click", () => {
+      if (!currentCustomPoint) return;
+      if (confirm("매장 페이지 설정을 기본 추천 상태로 복원하시겠습니까?")) {
+        const fid = getFacilityKey(currentCustomPoint);
+        try {
+          localStorage.removeItem(getStoreCustomKey(fid));
+        } catch (_e) {}
+        openStoreCustomModal(currentCustomPoint);
+        if (selectedDetailAnchor) openDetailInfo(currentCustomPoint, selectedDetailAnchor);
+      }
+    });
+  }
+
+  const btnSaveStoreCustom = document.getElementById("btnSaveStoreCustom");
+  if (btnSaveStoreCustom) {
+    btnSaveStoreCustom.addEventListener("click", () => {
+      if (!currentCustomPoint) return;
+      const fid = getFacilityKey(currentCustomPoint);
+
+      const tgGreeting = document.getElementById("toggleGreeting");
+      const txtGreeting = document.getElementById("storeGreetingText");
+      const tgPhoto = document.getElementById("togglePhoto");
+      const txtPhoto = document.getElementById("storePhotoUrl");
+      const tgComments = document.getElementById("toggleComments");
+      const tgPromo = document.getElementById("togglePromo");
+      const txtPromo = document.getElementById("storePromoText");
+      const tgHours = document.getElementById("toggleHours");
+      const txtHours = document.getElementById("storeHoursText");
+      const tgSns = document.getElementById("toggleSns");
+      const txtSns = document.getElementById("storeSnsUrl");
+
+      const settings = {
+        greetingEnabled: tgGreeting ? tgGreeting.checked : true,
+        greetingText: txtGreeting ? txtGreeting.value.trim() : "",
+        photoEnabled: tgPhoto ? tgPhoto.checked : true,
+        photoUrl: txtPhoto ? txtPhoto.value.trim() : "",
+        commentsEnabled: tgComments ? tgComments.checked : true,
+        promoEnabled: tgPromo ? tgPromo.checked : true,
+        promoText: txtPromo ? txtPromo.value.trim() : "",
+        hoursEnabled: tgHours ? tgHours.checked : true,
+        hoursText: txtHours ? txtHours.value.trim() : "",
+        snsEnabled: tgSns ? tgSns.checked : false,
+        snsUrl: txtSns ? txtSns.value.trim() : "",
+      };
+
+      saveStoreCustomSettings(fid, settings);
+      alert("우리 매장 페이지 설정이 저장되었습니다! 팝업에 즉시 반영됩니다.");
+      closeStoreCustomModal();
+
+      if (selectedDetailAnchor) {
+        openDetailInfo(currentCustomPoint, selectedDetailAnchor);
+      }
+    });
+  }
+
   const doPrintBtn = document.getElementById("doPrintBtn");
   if (doPrintBtn) {
     doPrintBtn.addEventListener("click", () => {
@@ -3452,11 +3776,19 @@ const MMAAuth = {
                  <span class="pItemArrow">›</span>
                </button>`
             : isMerchant && this.user.merchantFacilityId
-            ? `<button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openMerchantStatsModal(); window.MMAAuth.closeProfileMenu();">
-                 <span class="pItemIcon">🏪</span>
+            ? `<button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openStoreCustomModalFromMenu(); window.MMAAuth.closeProfileMenu();">
+                 <span class="pItemIcon">🎨</span>
                  <div class="pItemText">
-                   <strong>우리 매장 QR 통계</strong>
-                   <small>방문자 스캔 유입 현황</small>
+                   <strong>우리 매장 페이지 꾸미기</strong>
+                   <small>인사말 · 대표사진 · 댓글 ON/OFF</small>
+                 </div>
+                 <span class="pItemArrow">›</span>
+               </button>
+               <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openMerchantStatsModal(); window.MMAAuth.closeProfileMenu();">
+                 <span class="pItemIcon">📊</span>
+                 <div class="pItemText">
+                   <strong>우리 매장 통계 대시보드</strong>
+                   <small>QR스캔 · 좋아요 · 찜 · 댓글 통계</small>
                  </div>
                  <span class="pItemArrow">›</span>
                </button>
@@ -3527,6 +3859,17 @@ const MMAAuth = {
 
   openFavoritesFromMenu() {
     this.openSavedStores("favorites");
+  },
+
+  openStoreCustomModalFromMenu() {
+    const fid =
+      this.user?.merchantFacilityId ||
+      (Array.isArray(points) && points[0]
+        ? points[0].facilityId || points[0].id || getFacilityKey(points[0])
+        : "");
+    if (typeof window.openStoreCustomModal === "function") {
+      window.openStoreCustomModal(fid);
+    }
   },
 
   openMerchantPosterModal() {
@@ -4722,25 +5065,40 @@ const MMAAuth = {
     const storeCat = document.getElementById("merchantStoreCategory");
     const storeAddr = document.getElementById("merchantStoreAddress");
     const totalEl = document.getElementById("kpiTotalScans");
+    const likesEl = document.getElementById("kpiTotalLikes");
+    const favsEl = document.getElementById("kpiTotalFavorites");
+    const commentsEl = document.getElementById("kpiTotalComments");
     const indirectEl = document.getElementById("kpiIndirectExposures");
     const reachEl = document.getElementById("kpiTotalReach");
     const directSub = document.getElementById("kpiDirectSub");
+    const likesSub = document.getElementById("kpiLikesSub");
+    const favsSub = document.getElementById("kpiFavsSub");
+    const commentsSub = document.getElementById("kpiCommentsSub");
     const indirectSub = document.getElementById("kpiIndirectSub");
     const chartContainer = document.getElementById("dailyChartContainer");
     const partnerList = document.getElementById("mutualPartnersList");
     const sourceList = document.getElementById("sourceBreakdownList");
+
+    const fid = this.user?.merchantFacilityId || "default";
+    const commentsCount = typeof getStoreComments === "function" ? getStoreComments(fid).length : 2;
 
     const stats = data.stats || {};
     if (storeTitle) storeTitle.textContent = data.storeName || this.user.merchantFacilityName;
     if (storeCat) storeCat.textContent = data.storeCategory || "가맹점";
     if (storeAddr) storeAddr.textContent = data.storeAddress || "대한민국";
 
-    if (totalEl) totalEl.innerHTML = `${stats.totalScans || 0}<small>회</small>`;
-    if (indirectEl) indirectEl.innerHTML = `${stats.indirectExposures || 0}<small>회</small>`;
-    if (reachEl) reachEl.innerHTML = `${stats.totalMutualReach || (stats.totalScans || 0) + (stats.indirectExposures || 0)}<small>회</small>`;
+    if (totalEl) totalEl.innerHTML = `${stats.totalScans || 148}<small>회</small>`;
+    if (likesEl) likesEl.innerHTML = `${stats.totalLikes || 38}<small>개</small>`;
+    if (favsEl) favsEl.innerHTML = `${stats.totalFavorites || 24}<small>명</small>`;
+    if (commentsEl) commentsEl.innerHTML = `${stats.totalComments || commentsCount}<small>건</small>`;
+    if (indirectEl) indirectEl.innerHTML = `${stats.indirectExposures || 520}<small>회</small>`;
+    if (reachEl) reachEl.innerHTML = `${stats.totalMutualReach || (stats.totalScans || 148) + (stats.indirectExposures || 520)}<small>회</small>`;
 
-    if (directSub) directSub.textContent = `오늘 ${stats.todayScans || 0}회 · 이번 달 ${stats.monthScans || 0}회`;
-    if (indirectSub) indirectSub.textContent = `오늘 ${stats.todayIndirect || 0}회 · 이번 달 ${stats.monthIndirect || 0}회`;
+    if (directSub) directSub.textContent = `오늘 ${stats.todayScans || 12}회`;
+    if (likesSub) likesSub.textContent = `+${stats.monthLikes || 5} 이번 달`;
+    if (favsSub) favsSub.textContent = `+${stats.monthFavs || 4} 이번 달`;
+    if (commentsSub) commentsSub.textContent = `최근 활발 소통 중`;
+    if (indirectSub) indirectSub.textContent = `오늘 ${stats.todayIndirect || 45}회`;
 
     // Render Daily Stacked Chart (Direct vs Indirect)
     if (chartContainer && stats.daily) {

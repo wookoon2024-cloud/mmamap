@@ -6381,3 +6381,470 @@ button:active {
   }
 }
 
+/* ========================================================
+   Store Customization Modal & Toggle Switches (점주 매장 관리)
+   ======================================================== */
+.storeCustomBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 99998;
+  transition: opacity 0.25s ease;
+}
+
+.storeCustomModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 92%;
+  max-width: 580px;
+  max-height: 88vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.storeCustomHead {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #f8fafc;
+}
+
+.storeCustomTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 6px 0 2px;
+}
+
+.storeCustomSub {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.storeCustomBody {
+  padding: 18px 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.customSettingGroup {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+
+.customSettingGroup:focus-within,
+.customSettingGroup:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+}
+
+.customSettingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.customSettingInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.customSettingIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.customSettingInfo strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.customSettingInfo p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+/* iOS Style Smooth Toggle Switch */
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggleSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSwitch .slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+}
+
+.toggleSwitch .slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.toggleSwitch input:checked + .slider {
+  background-color: #2563eb;
+}
+
+.toggleSwitch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.customSettingContent {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.customInput, .customTextarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.customInput:focus, .customTextarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.presetPhotoChips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.presetChipTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.presetPhotoBtn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.presetPhotoBtn:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.storeCustomFooter {
+  padding: 14px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.storeCustomBtn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.storeCustomBtn.secondary {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.storeCustomBtn.secondary:hover {
+  background: #f1f5f9;
+}
+
+.storeCustomBtn.primary {
+  background: #2563eb;
+  border: 1px solid #1d4ed8;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.storeCustomBtn.primary:hover {
+  background: #1d4ed8;
+}
+
+/* ========================================================
+   Detail Popup Dynamic Feature Extensions
+   ======================================================== */
+.detailOwnerManageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 4px;
+}
+
+.detailOwnerManageBtn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+/* Store Photo Banner */
+.storePhotoBanner {
+  width: 100%;
+  height: 125px;
+  overflow: hidden;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  position: relative;
+  background: #e2e8f0;
+}
+
+.storePhotoBanner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Owner Welcome Greeting Bubble */
+.ownerGreetingBox {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1.5px solid #86efac;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.ownerGreetingHead {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.ownerGreetingBody {
+  font-size: 12px;
+  color: #14532d;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+/* Today's Promo Alert */
+.todayPromoBox {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.promoBadge {
+  background: #f59e0b;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.promoText {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+/* Operating Hours Row */
+.storeHoursRow {
+  font-size: 11.5px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px 9px;
+  margin-bottom: 8px;
+}
+
+/* SNS Link Row */
+.storeSnsRow {
+  font-size: 11.5px;
+  margin-bottom: 8px;
+}
+
+.storeSnsLink {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.storeSnsLink:hover {
+  text-decoration: underline;
+}
+
+/* Comments & Reviews Section in Detail Popup */
+.storeCommentsWrap {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.storeCommentsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.storeCommentsTitle {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.storeCommentList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.storeCommentItem {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+}
+
+.storeCommentMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.storeCommentAuthor {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 11px;
+}
+
+.storeCommentDate {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.storeCommentText {
+  color: #334155;
+  line-height: 1.35;
+}
+
+.storeCommentForm {
+  display: flex;
+  gap: 6px;
+}
+
+.storeCommentInput {
+  flex: 1;
+  padding: 6px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-family: inherit;
+}
+
+.storeCommentInput:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.storeCommentSubmitBtn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.storeCommentSubmitBtn:hover {
+  background: #1d4ed8;
+}
+
+
