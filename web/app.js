@@ -2196,15 +2196,6 @@ async function bootstrap() {
     // Load store customizations & comments
     const custom = getStoreCustomSettings(facilityId, point);
     const comments = getStoreComments(facilityId);
-    const isOwner =
-      window.MMAAuth?.user?.role === "merchant" ||
-      window.MMAAuth?.user?.merchantFacilityId === point.facilityId;
-
-    const ownerManageBtnHtml = isOwner
-      ? `<div style="display:flex; justify-content:flex-end; margin-bottom: 6px;">
-          <button type="button" class="detailOwnerManageBtn" id="detailOwnerManageBtn">⚙️ 사장님 매장 페이지 설정</button>
-        </div>`
-      : "";
 
     const photoHtml =
       custom.photoEnabled && custom.photoUrl
@@ -2272,7 +2263,6 @@ async function bootstrap() {
     const contentHtml = `
       <div class="detailPanel detailPanelInWindow">
         ${photoHtml}
-        ${ownerManageBtnHtml}
         <div class="detailTop">
           <div class="detailTitleRow">
             <div class="detailTitle">${title}</div>
@@ -2321,11 +2311,6 @@ async function bootstrap() {
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
-
-    const manageBtn = document.getElementById("detailOwnerManageBtn");
-    if (manageBtn) {
-      manageBtn.onclick = () => openStoreCustomModal(point);
-    }
 
     const commentSubmitBtn = document.getElementById("storeCommentSubmitBtn");
     if (commentSubmitBtn) {
