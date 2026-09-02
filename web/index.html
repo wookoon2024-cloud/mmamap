@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=47.4" />
+    <link rel="stylesheet" href="./styles.css?v=48.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -334,129 +334,176 @@
         <button id="storeCustomCloseBtn" class="introCloseBtn" type="button" aria-label="닫기">×</button>
       </div>
 
+      <div class="storeCustomTabs">
+        <button type="button" class="storeCustomTabBtn active" data-tab="tab-greeting">💬 인사말 & 공지</button>
+        <button type="button" class="storeCustomTabBtn" data-tab="tab-photos">📸 사진 갤러리</button>
+        <button type="button" class="storeCustomTabBtn" data-tab="tab-community">📝 댓글 & Q/A</button>
+        <button type="button" class="storeCustomTabBtn" data-tab="tab-info">⏰ 영업 & SNS</button>
+      </div>
+
       <div class="storeCustomBody">
-        <!-- 1. 사장님 인사말 / 한마디 -->
-        <div class="customSettingGroup disabled">
-          <div class="customSettingHeader">
-            <div class="customSettingInfo">
-              <span class="customSettingIcon">💬</span>
-              <div>
-                <strong>사장님 인사말 (환영 메시지)</strong>
-                <p>가게 팝업 상단에 장병과 손님을 맞이하는 따뜻한 한마디를 표시합니다.</p>
+        <!-- 탭 1: 인사말 & 공지 -->
+        <div id="tab-greeting" class="storeCustomTabPane active">
+          <!-- 사장님 인사말 -->
+          <div class="customSettingGroup disabled">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">💬</span>
+                <div>
+                  <strong>환영 메시지 (인사말)</strong>
+                  <p>가게 팝업 상단에 장병과 손님을 맞이하는 따뜻한 메시지를 전달합니다.</p>
+                </div>
               </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="toggleGreeting" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="toggleSwitch">
-              <input type="checkbox" id="toggleGreeting" />
-              <span class="slider"></span>
-            </label>
+            <div class="customSettingContent" id="greetingInputWrap" style="display: none;">
+              <textarea id="storeGreetingText" class="customTextarea" rows="3" placeholder="예: 대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 편안하게 이용하세요."></textarea>
+            </div>
           </div>
-          <div class="customSettingContent" id="greetingInputWrap" style="display: none;">
-            <textarea id="storeGreetingText" class="customTextarea" rows="2" placeholder="예: 대한민국을 수호하는 자랑스러운 청년 장병 여러분을 진심으로 환영합니다! 든든하게 드시고 가세요."></textarea>
-          </div>
-        </div>
 
-        <!-- 2. 가게 대표 사진 / 이미지 등록 -->
-        <div class="customSettingGroup disabled">
-          <div class="customSettingHeader">
-            <div class="customSettingInfo">
-              <span class="customSettingIcon">📸</span>
-              <div>
-                <strong>가게 대표 사진 / 배너</strong>
-                <p>팝업 상단에 매장 전경, 메뉴, 대표 이미지를 배너로 띄웁니다.</p>
+          <!-- 오늘의 깜짝 혜택 / 실시간 이벤트 -->
+          <div class="customSettingGroup disabled" style="margin-top: 14px;">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">🎁</span>
+                <div>
+                  <strong>오늘의 혜택 / 실시간 공지</strong>
+                  <p>당일 진행하는 특별 이벤트(예: 음료수 1캔 무료, 10% 추가할인 등)를 강조합니다.</p>
+                </div>
               </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="togglePromo" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="toggleSwitch">
-              <input type="checkbox" id="togglePhoto" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="customSettingContent" id="photoInputWrap" style="display: none;">
-            <input type="text" id="storePhotoUrl" class="customInput" placeholder="이미지 URL을 입력하거나 아래 추천 샘플 사진을 선택하세요." />
-            <div class="presetPhotoChips">
-              <span class="presetChipTitle">추천 샘플:</span>
-              <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80">🍽️ 식당/맛집</button>
-              <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80">☕ 카페/디저트</button>
-              <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80">🏥 병원/의료</button>
-              <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&auto=format&fit=crop&q=80">📚 교육/학원</button>
-              <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80">🏋️ 헬스/체육</button>
+            <div class="customSettingContent" id="promoInputWrap" style="display: none;">
+              <input type="text" id="storePromoText" class="customInput" placeholder="예: [오늘의 혜택] 현역병 동반 식사 시 음료수 1캔 무료 제공!" />
             </div>
           </div>
         </div>
 
-        <!-- 3. 방문 후기 및 응원 댓글 기능 -->
-        <div class="customSettingGroup disabled">
-          <div class="customSettingHeader">
-            <div class="customSettingInfo">
-              <span class="customSettingIcon">📝</span>
-              <div>
-                <strong>방문 후기 & 응원 댓글</strong>
-                <p>손님과 장병들이 우리 가게에 따뜻한 응원과 리뷰를 남길 수 있습니다.</p>
+        <!-- 탭 2: 사진 갤러리 -->
+        <div id="tab-photos" class="storeCustomTabPane">
+          <div class="customSettingGroup disabled">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">📸</span>
+                <div>
+                  <strong>가게 사진 갤러리</strong>
+                  <p>팝업 상단에 매장 전경, 메뉴, 대표 사진들을 슬라이드로 띄웁니다.</p>
+                </div>
+              </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="togglePhoto" />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="customSettingContent" id="photoInputWrap" style="display: none;">
+              <div class="photoUploadActions">
+                <input type="file" id="storePhotoFileInput" multiple accept="image/*" style="display:none;" />
+                <button type="button" class="uploadFileBtn" id="btnBrowsePhotos">
+                  📂 사진 찾아보기 / 추가 (여러 장 선택 가능)
+                </button>
+                <span class="uploadTip">선택 시 최적 용량으로 자동 압축됩니다.</span>
+              </div>
+              
+              <div class="photoThumbListWrap">
+                <div class="photoThumbHeader">등록된 사진 목록 (<span id="photoCountBadge">0</span>장)</div>
+                <div id="storePhotoThumbGrid" class="storePhotoThumbGrid"></div>
+              </div>
+
+              <div class="presetPhotoChips" style="margin-top: 12px;">
+                <span class="presetChipTitle">샘플 사진 추가:</span>
+                <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80">🍽️ 식당</button>
+                <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80">☕ 카페</button>
+                <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80">🏥 병원</button>
+                <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&auto=format&fit=crop&q=80">📚 학원</button>
+                <button type="button" class="presetPhotoBtn" data-url="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80">🏋️ 헬스</button>
               </div>
             </div>
-            <label class="toggleSwitch">
-              <input type="checkbox" id="toggleComments" />
-              <span class="slider"></span>
-            </label>
           </div>
         </div>
 
-        <!-- 4. 오늘의 깜짝 혜택 / 실시간 이벤트 알림 -->
-        <div class="customSettingGroup disabled">
-          <div class="customSettingHeader">
-            <div class="customSettingInfo">
-              <span class="customSettingIcon">🎁</span>
-              <div>
-                <strong>오늘의 깜짝 혜택 / 실시간 공지</strong>
-                <p>당일 진행하는 특별 이벤트(예: 음료수 1캔 무료, 10% 추가할인 등)를 강조합니다.</p>
+        <!-- 탭 3: 소통 (댓글 & Q/A) -->
+        <div id="tab-community" class="storeCustomTabPane">
+          <!-- 방문 후기 및 응원 댓글 -->
+          <div class="customSettingGroup disabled">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">📝</span>
+                <div>
+                  <strong>방문 후기 & 응원 댓글</strong>
+                  <p>손님과 장병들이 우리 가게에 따뜻한 응원과 리뷰를 남길 수 있습니다.</p>
+                </div>
               </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="toggleComments" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="toggleSwitch">
-              <input type="checkbox" id="togglePromo" />
-              <span class="slider"></span>
-            </label>
           </div>
-          <div class="customSettingContent" id="promoInputWrap" style="display: none;">
-            <input type="text" id="storePromoText" class="customInput" placeholder="예: [오늘의 혜택] 현역병 동반 식사 시 음료수 1캔 무료 제공!" />
+
+          <!-- Q&A 게시판 -->
+          <div class="customSettingGroup disabled" style="margin-top: 14px;">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">❓</span>
+                <div>
+                  <strong>Q&A 문의 게시판</strong>
+                  <p>장병·손님의 혜택 이용 문의 질문과 사장님의 답변을 팝업에서 소통합니다.</p>
+                </div>
+              </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="toggleQa" />
+                <span class="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <!-- 5. 영업시간 및 휴무일 안내 -->
-        <div class="customSettingGroup disabled">
-          <div class="customSettingHeader">
-            <div class="customSettingInfo">
-              <span class="customSettingIcon">⏰</span>
-              <div>
-                <strong>영업시간 & 휴무일 안내</strong>
-                <p>매장 방문 전 헛걸음하지 않도록 영업시간과 휴무일을 명확히 안내합니다.</p>
+        <!-- 탭 4: 영업 & SNS -->
+        <div id="tab-info" class="storeCustomTabPane">
+          <!-- 영업시간 및 휴무일 안내 -->
+          <div class="customSettingGroup disabled">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">⏰</span>
+                <div>
+                  <strong>영업시간 & 휴무일 안내</strong>
+                  <p>매장 방문 전 헛걸음하지 않도록 영업시간과 휴무일을 명확히 안내합니다.</p>
+                </div>
               </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="toggleHours" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="toggleSwitch">
-              <input type="checkbox" id="toggleHours" />
-              <span class="slider"></span>
-            </label>
+            <div class="customSettingContent" id="hoursInputWrap" style="display: none;">
+              <input type="text" id="storeHoursText" class="customInput" placeholder="예: 평일 09:30 ~ 21:00 / 주말 10:00 ~ 20:00 (연중무휴)" />
+            </div>
           </div>
-          <div class="customSettingContent" id="hoursInputWrap" style="display: none;">
-            <input type="text" id="storeHoursText" class="customInput" placeholder="예: 평일 10:00 ~ 21:00 / 토·일 11:00 ~ 20:00 (매주 월요일 휴무)" />
-          </div>
-        </div>
 
-        <!-- 6. SNS / 공식 링크 -->
-        <div class="customSettingGroup disabled">
-          <div class="customSettingHeader">
-            <div class="customSettingInfo">
-              <span class="customSettingIcon">🔗</span>
-              <div>
-                <strong>SNS / 인스타그램 / 카카오톡 채널</strong>
-                <p>가게 소식과 문의를 위한 SNS 또는 홈페이지 링크를 연결합니다.</p>
+          <!-- SNS / 공식 링크 -->
+          <div class="customSettingGroup disabled" style="margin-top: 14px;">
+            <div class="customSettingHeader">
+              <div class="customSettingInfo">
+                <span class="customSettingIcon">🔗</span>
+                <div>
+                  <strong>SNS / 인스타그램 / 카카오톡 채널</strong>
+                  <p>가게 소식과 문의를 위한 SNS 또는 홈페이지 링크를 연결합니다.</p>
+                </div>
               </div>
+              <label class="toggleSwitch">
+                <input type="checkbox" id="toggleSns" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="toggleSwitch">
-              <input type="checkbox" id="toggleSns" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="customSettingContent" id="snsInputWrap" style="display: none;">
-            <input type="text" id="storeSnsUrl" class="customInput" placeholder="예: https://instagram.com/my_store 또는 카카오채널" />
+            <div class="customSettingContent" id="snsInputWrap" style="display: none;">
+              <input type="text" id="storeSnsUrl" class="customInput" placeholder="예: https://instagram.com/my_store 또는 카카오채널 링크" />
+            </div>
           </div>
         </div>
       </div>
@@ -962,10 +1009,10 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v18.5</div>
+    <div class="versionBadge">v19.0</div>
 
     <script src="./config.js?v=11.6"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=130.5"></script>
+    <script src="./app.js?v=131.0"></script>
   </body>
 </html>

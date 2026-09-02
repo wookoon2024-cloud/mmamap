@@ -1965,10 +1965,48 @@ async function bootstrap() {
   // ==========================================
   const getStoreCustomKey = (facilityId) => `mma_store_custom_${facilityId}`;
 
+  const compressImageFile = (file, maxWidth = 1024, quality = 0.82) => {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith("image/")) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve(null);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const getStoreCustomSettings = (facilityId, point = null) => {
     try {
       const raw = localStorage.getItem(getStoreCustomKey(facilityId));
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && !Array.isArray(parsed.photoUrls)) {
+          parsed.photoUrls = parsed.photoUrl ? [parsed.photoUrl] : [];
+        }
+        return parsed;
+      }
     } catch (_e) {}
 
     const title = point?.title || "";
@@ -1984,10 +2022,11 @@ async function bootstrap() {
 
     return {
       greetingEnabled: false,
-      greetingText: "대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 든든하고 편안하게 이용하세요.",
+      greetingText: "대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 편안하게 이용하세요.",
       photoEnabled: false,
-      photoUrl: defaultPhoto,
+      photoUrls: [defaultPhoto],
       commentsEnabled: false,
+      qaEnabled: false,
       promoEnabled: false,
       promoText: "나라사랑 우대 고객 방문 시 추가 서비스 & 맞춤 혜택 제공!",
       hoursEnabled: false,
@@ -2033,7 +2072,71 @@ async function bootstrap() {
     return list;
   };
 
+  const getStoreQaKey = (facilityId) => `mma_store_qa_${facilityId}`;
+
+  const getStoreQaList = (facilityId) => {
+    try {
+      const raw = localStorage.getItem(getStoreQaKey(facilityId));
+      if (raw) return JSON.parse(raw);
+    } catch (_e) {}
+    return [
+      {
+        q: "현역병 동반 시 가족도 함께 할인 적용되나요?",
+        author: "김*진",
+        a: "네! 현역병 본인 및 직계 가족 동반 시 동일 우대 혜택 적용해 드립니다.",
+        date: "2026.08.20",
+      },
+      {
+        q: "모범예비군증 지참 필수인가요?",
+        author: "박*호",
+        a: "모바일 앱 화면 또는 실물 신분증/확인서 지참해 주시면 즉시 확인됩니다.",
+        date: "2026.08.12",
+      },
+    ];
+  };
+
+  const addStoreQa = (facilityId, qaItem) => {
+    const list = getStoreQaList(facilityId);
+    list.unshift(qaItem);
+    try {
+      localStorage.setItem(getStoreQaKey(facilityId), JSON.stringify(list));
+    } catch (_e) {}
+    return list;
+  };
+
   let currentCustomPoint = null;
+  let currentCustomPhotos = [];
+  let currentDetailCommentPage = 1;
+
+  const renderCustomPhotoThumbs = () => {
+    const grid = document.getElementById("storePhotoThumbGrid");
+    const countBadge = document.getElementById("photoCountBadge");
+    if (countBadge) countBadge.textContent = String(currentCustomPhotos.length);
+    if (!grid) return;
+    if (currentCustomPhotos.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1 / -1; font-size: 11px; color: #94a3b8; text-align: center; padding: 12px;">등록된 사진이 없습니다. [사진 찾아보기] 버튼을 눌러 추가하세요.</div>';
+      return;
+    }
+    grid.innerHTML = currentCustomPhotos
+      .map(
+        (url, idx) => `
+        <div class="photoThumbItem">
+          <img src="${escapeHtml(url)}" class="photoThumbImg" alt="미리보기" onerror="this.src='https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80'" />
+          <button type="button" class="photoThumbDeleteBtn" data-index="${idx}" title="사진 삭제">×</button>
+        </div>
+      `
+      )
+      .join("");
+
+    grid.querySelectorAll(".photoThumbDeleteBtn").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const delIdx = Number(btn.dataset.index);
+        currentCustomPhotos.splice(delIdx, 1);
+        renderCustomPhotoThumbs();
+      };
+    });
+  };
 
   const openStoreCustomModal = (pointOrId) => {
     if (typeof closeIntroPopup === "function") closeIntroPopup(false);
@@ -2070,11 +2173,19 @@ async function bootstrap() {
     const titleEl = document.getElementById("storeCustomTitle");
     if (titleEl) titleEl.textContent = `[${point.title || "우리 가게"}] 상세페이지 꾸미기`;
 
+    // Reset tabs to first tab
+    document.querySelectorAll(".storeCustomTabBtn").forEach((btn, idx) => {
+      btn.classList.toggle("active", idx === 0);
+    });
+    document.querySelectorAll(".storeCustomTabPane").forEach((pane, idx) => {
+      pane.classList.toggle("active", idx === 0);
+    });
+
     const tgGreeting = document.getElementById("toggleGreeting");
     const txtGreeting = document.getElementById("storeGreetingText");
     const tgPhoto = document.getElementById("togglePhoto");
-    const txtPhoto = document.getElementById("storePhotoUrl");
     const tgComments = document.getElementById("toggleComments");
+    const tgQa = document.getElementById("toggleQa");
     const tgPromo = document.getElementById("togglePromo");
     const txtPromo = document.getElementById("storePromoText");
     const tgHours = document.getElementById("toggleHours");
@@ -2085,14 +2196,21 @@ async function bootstrap() {
     if (tgGreeting) tgGreeting.checked = !!settings.greetingEnabled;
     if (txtGreeting) txtGreeting.value = settings.greetingText || "";
     if (tgPhoto) tgPhoto.checked = !!settings.photoEnabled;
-    if (txtPhoto) txtPhoto.value = settings.photoUrl || "";
     if (tgComments) tgComments.checked = !!settings.commentsEnabled;
+    if (tgQa) tgQa.checked = !!settings.qaEnabled;
     if (tgPromo) tgPromo.checked = !!settings.promoEnabled;
     if (txtPromo) txtPromo.value = settings.promoText || "";
     if (tgHours) tgHours.checked = !!settings.hoursEnabled;
     if (txtHours) txtHours.value = settings.hoursText || "";
     if (tgSns) tgSns.checked = !!settings.snsEnabled;
     if (txtSns) txtSns.value = settings.snsUrl || "";
+
+    currentCustomPhotos = Array.isArray(settings.photoUrls)
+      ? [...settings.photoUrls]
+      : settings.photoUrl
+      ? [settings.photoUrl]
+      : [];
+    renderCustomPhotoThumbs();
 
     const updateVisibility = () => {
       const gWrap = document.getElementById("greetingInputWrap");
@@ -2112,6 +2230,9 @@ async function bootstrap() {
       if (tgComments) {
         tgComments.closest(".customSettingGroup")?.classList.toggle("disabled", !tgComments.checked);
       }
+      if (tgQa) {
+        tgQa.closest(".customSettingGroup")?.classList.toggle("disabled", !tgQa.checked);
+      }
       if (prWrap && tgPromo) {
         prWrap.style.display = tgPromo.checked ? "block" : "none";
         prWrap.closest(".customSettingGroup")?.classList.toggle("disabled", !tgPromo.checked);
@@ -2126,7 +2247,7 @@ async function bootstrap() {
       }
     };
 
-    [tgGreeting, tgPhoto, tgComments, tgPromo, tgHours, tgSns].forEach((tg) => {
+    [tgGreeting, tgPhoto, tgComments, tgQa, tgPromo, tgHours, tgSns].forEach((tg) => {
       if (tg) tg.onchange = updateVisibility;
     });
     updateVisibility();
@@ -2193,21 +2314,44 @@ async function bootstrap() {
       `
       : "";
 
-    // Load store customizations & comments
+    // Load store customizations, comments, and Q&A
     const custom = getStoreCustomSettings(facilityId, point);
     const comments = getStoreComments(facilityId);
+    const qaList = getStoreQaList(facilityId);
+    const photos = Array.isArray(custom.photoUrls)
+      ? custom.photoUrls.filter(Boolean)
+      : custom.photoUrl
+      ? [custom.photoUrl]
+      : [];
 
-    const photoHtml =
-      custom.photoEnabled && custom.photoUrl
-        ? `<div class="storePhotoBanner"><img src="${escapeHtml(custom.photoUrl)}" alt="${title}" onerror="this.parentElement.style.display='none'"></div>`
-        : "";
+    let photoHtml = "";
+    if (custom.photoEnabled && photos.length > 0) {
+      if (photos.length === 1) {
+        photoHtml = `<div class="storePhotoBanner"><img src="${escapeHtml(photos[0])}" alt="${title}" onerror="this.parentElement.style.display='none'"></div>`;
+      } else {
+        const slidesHtml = photos
+          .map(
+            (url, idx) => `
+            <img class="carouselSlide ${idx === 0 ? "active" : ""}" src="${escapeHtml(url)}" data-index="${idx}" alt="${title}" onerror="this.style.display='none'" />
+          `
+          )
+          .join("");
+        photoHtml = `
+          <div class="storePhotoCarousel" id="storePhotoCarousel" data-current-index="0" data-total-count="${photos.length}">
+            <div class="carouselTrack">
+              ${slidesHtml}
+            </div>
+            <button type="button" class="carouselBtn prev" id="carouselPrevBtn" aria-label="이전 사진">‹</button>
+            <button type="button" class="carouselBtn next" id="carouselNextBtn" aria-label="다음 사진">›</button>
+            <div class="carouselCounterBadge"><span id="carouselCurIdx">1</span> / ${photos.length}</div>
+          </div>
+        `;
+      }
+    }
 
     const greetingHtml =
       custom.greetingEnabled && custom.greetingText
-        ? `<div class="ownerGreetingBox">
-             <div class="ownerGreetingHead">💬 <strong>사장님 한마디</strong></div>
-             <div class="ownerGreetingBody">${escapeHtml(custom.greetingText)}</div>
-           </div>`
+        ? `<div class="ownerGreetingBox">${escapeHtml(custom.greetingText)}</div>`
         : "";
 
     const promoHtml =
@@ -2228,9 +2372,18 @@ async function bootstrap() {
         ? `<div class="storeSnsRow">🔗 <a href="${escapeHtml(custom.snsUrl)}" target="_blank" rel="noopener noreferrer" class="storeSnsLink">공식 채널 / SNS 방문하기</a></div>`
         : "";
 
+    // 2 comments per page pagination
     let commentsHtml = "";
     if (custom.commentsEnabled) {
-      const commentItems = comments
+      const pageSize = 2;
+      const totalPages = Math.ceil(comments.length / pageSize) || 1;
+      if (currentDetailCommentPage > totalPages) currentDetailCommentPage = totalPages;
+      if (currentDetailCommentPage < 1) currentDetailCommentPage = 1;
+
+      const startIdx = (currentDetailCommentPage - 1) * pageSize;
+      const pageComments = comments.slice(startIdx, startIdx + pageSize);
+
+      const commentItems = pageComments
         .map(
           (c) => `
           <div class="storeCommentItem">
@@ -2244,17 +2397,60 @@ async function bootstrap() {
         )
         .join("");
 
+      const paginationHtml =
+        totalPages > 1
+          ? `
+          <div class="storeCommentPagination">
+            <button type="button" class="commentPageBtn" id="btnCommentPrevPage" ${currentDetailCommentPage <= 1 ? "disabled" : ""}>◀ 이전</button>
+            <span class="commentPageIndicator">${currentDetailCommentPage} / ${totalPages}</span>
+            <button type="button" class="commentPageBtn" id="btnCommentNextPage" ${currentDetailCommentPage >= totalPages ? "disabled" : ""}>다음 ▶</button>
+          </div>
+        `
+          : "";
+
       commentsHtml = `
         <div class="storeCommentsWrap">
           <div class="storeCommentsHead">
-            <span class="storeCommentsTitle">💬 응원 댓글 & 방문 후기 (${comments.length}개)</span>
+            <span class="storeCommentsTitle">💬 방문 후기 & 응원 댓글 (${comments.length}개)</span>
           </div>
           <div class="storeCommentList" id="storeCommentList">
             ${commentItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 6px;">첫 번째 응원 댓글을 남겨보세요!</div>'}
           </div>
+          ${paginationHtml}
           <div class="storeCommentForm">
             <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디를 남겨주세요..." maxlength="100" />
             <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Q&A Board
+    let qaHtml = "";
+    if (custom.qaEnabled) {
+      const qaItems = qaList
+        .slice(0, 2)
+        .map(
+          (item) => `
+          <div class="storeQaItem">
+            <div class="storeQaQ"><span class="qTag">Q</span> ${escapeHtml(item.q || "")}</div>
+            ${item.a ? `<div class="storeQaA"><span class="aTag">A</span> ${escapeHtml(item.a)}</div>` : '<div style="font-size:10.5px;color:#94a3b8;padding-left:18px;">답변 대기 중</div>'}
+          </div>
+        `
+        )
+        .join("");
+
+      qaHtml = `
+        <div class="storeQaWrap">
+          <div class="storeQaHead">
+            <span class="storeQaTitle">❓ Q&A 혜택 이용 문의 (${qaList.length}건)</span>
+          </div>
+          <div class="storeQaList" id="storeQaList">
+            ${qaItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 6px;">등록된 문의가 없습니다. 궁금한 점을 질문해보세요!</div>'}
+          </div>
+          <div class="storeQaForm">
+            <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요..." maxlength="100" />
+            <button type="button" id="storeQaSubmitBtn" class="storeQaSubmitBtn">문의</button>
           </div>
         </div>
       `;
@@ -2297,6 +2493,7 @@ async function bootstrap() {
           </tbody>
         </table>
         ${commentsHtml}
+        ${qaHtml}
       </div>
     `;
 
@@ -2312,6 +2509,50 @@ async function bootstrap() {
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
 
+    // Multi-Photo Carousel Navigation Event Listeners
+    const prevBtn = document.getElementById("carouselPrevBtn");
+    const nextBtn = document.getElementById("carouselNextBtn");
+    if (prevBtn && nextBtn) {
+      let curIdx = 0;
+      const total = photos.length;
+      const slides = document.querySelectorAll(".carouselSlide");
+      const idxEl = document.getElementById("carouselCurIdx");
+
+      const showSlide = (idx) => {
+        curIdx = (idx + total) % total;
+        slides.forEach((s, i) => s.classList.toggle("active", i === curIdx));
+        if (idxEl) idxEl.textContent = String(curIdx + 1);
+      };
+
+      prevBtn.onclick = (e) => {
+        e.stopPropagation();
+        showSlide(curIdx - 1);
+      };
+      nextBtn.onclick = (e) => {
+        e.stopPropagation();
+        showSlide(curIdx + 1);
+      };
+    }
+
+    // Comment Pagination Buttons
+    const btnCommentPrev = document.getElementById("btnCommentPrevPage");
+    if (btnCommentPrev) {
+      btnCommentPrev.onclick = () => {
+        if (currentDetailCommentPage > 1) {
+          currentDetailCommentPage--;
+          openDetailInfo(point, targetAnchor);
+        }
+      };
+    }
+    const btnCommentNext = document.getElementById("btnCommentNextPage");
+    if (btnCommentNext) {
+      btnCommentNext.onclick = () => {
+        currentDetailCommentPage++;
+        openDetailInfo(point, targetAnchor);
+      };
+    }
+
+    // Comment Submit Button
     const commentSubmitBtn = document.getElementById("storeCommentSubmitBtn");
     if (commentSubmitBtn) {
       commentSubmitBtn.onclick = () => {
@@ -2323,6 +2564,22 @@ async function bootstrap() {
           : "방문 장병/회원";
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
         addStoreComment(facilityId, { author, text, date });
+        currentDetailCommentPage = 1;
+        openDetailInfo(point, targetAnchor);
+      };
+    }
+
+    // Q&A Submit Button
+    const qaSubmitBtn = document.getElementById("storeQaSubmitBtn");
+    if (qaSubmitBtn) {
+      qaSubmitBtn.onclick = () => {
+        const inp = document.getElementById("storeNewQaInput");
+        const question = inp?.value?.trim();
+        if (!question) return;
+        const author = window.MMAAuth?.user?.nickname || "방문자";
+        const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+        addStoreQa(facilityId, { q: question, author, a: "", date });
+        alert("문의 질문이 등록되었습니다! 사장님이 확인 후 답변을 작성합니다.");
         openDetailInfo(point, targetAnchor);
       };
     }
@@ -3255,7 +3512,7 @@ async function bootstrap() {
     });
   }
 
-  // Store Custom Modal Event Listeners
+  // Store Custom Modal Event Listeners & Tab Switching
   const customCloseBtn = document.getElementById("storeCustomCloseBtn");
   if (customCloseBtn) customCloseBtn.addEventListener("click", closeStoreCustomModal);
 
@@ -3266,13 +3523,55 @@ async function bootstrap() {
     });
   }
 
+  // Modal Tab Switching
+  document.querySelectorAll(".storeCustomTabBtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetTabId = btn.dataset.tab;
+      document.querySelectorAll(".storeCustomTabBtn").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".storeCustomTabPane").forEach((pane) => {
+        pane.classList.toggle("active", pane.id === targetTabId);
+      });
+    });
+  });
+
+  // Photo Upload & Auto Compression
+  const btnBrowsePhotos = document.getElementById("btnBrowsePhotos");
+  const photoFileInput = document.getElementById("storePhotoFileInput");
+  if (btnBrowsePhotos && photoFileInput) {
+    btnBrowsePhotos.addEventListener("click", () => photoFileInput.click());
+    photoFileInput.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length > 0) {
+        const compressedList = await Promise.all(files.map((f) => compressImageFile(f)));
+        const validUrls = compressedList.filter(Boolean);
+        currentCustomPhotos.push(...validUrls);
+        renderCustomPhotoThumbs();
+        const tgPhoto = document.getElementById("togglePhoto");
+        if (tgPhoto) {
+          tgPhoto.checked = true;
+          const pWrap = document.getElementById("photoInputWrap");
+          if (pWrap) pWrap.style.display = "block";
+          pWrap?.closest(".customSettingGroup")?.classList.remove("disabled");
+        }
+        photoFileInput.value = "";
+      }
+    });
+  }
+
   document.querySelectorAll(".presetPhotoBtn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const url = btn.dataset.url;
-      const photoInput = document.getElementById("storePhotoUrl");
-      const photoToggle = document.getElementById("togglePhoto");
-      if (photoInput && url) photoInput.value = url;
-      if (photoToggle) photoToggle.checked = true;
+      if (url) {
+        currentCustomPhotos.push(url);
+        renderCustomPhotoThumbs();
+        const photoToggle = document.getElementById("togglePhoto");
+        if (photoToggle) {
+          photoToggle.checked = true;
+          const pWrap = document.getElementById("photoInputWrap");
+          if (pWrap) pWrap.style.display = "block";
+          pWrap?.closest(".customSettingGroup")?.classList.remove("disabled");
+        }
+      }
     });
   });
 
@@ -3280,7 +3579,7 @@ async function bootstrap() {
   if (btnResetStoreCustom) {
     btnResetStoreCustom.addEventListener("click", () => {
       if (!currentCustomPoint) return;
-      if (confirm("매장 페이지 설정을 기본 추천 상태로 복원하시겠습니까?")) {
+      if (confirm("매장 페이지 설정을 기본 상태로 복원하시겠습니까?")) {
         const fid = getFacilityKey(currentCustomPoint);
         try {
           localStorage.removeItem(getStoreCustomKey(fid));
@@ -3300,8 +3599,8 @@ async function bootstrap() {
       const tgGreeting = document.getElementById("toggleGreeting");
       const txtGreeting = document.getElementById("storeGreetingText");
       const tgPhoto = document.getElementById("togglePhoto");
-      const txtPhoto = document.getElementById("storePhotoUrl");
       const tgComments = document.getElementById("toggleComments");
+      const tgQa = document.getElementById("toggleQa");
       const tgPromo = document.getElementById("togglePromo");
       const txtPromo = document.getElementById("storePromoText");
       const tgHours = document.getElementById("toggleHours");
@@ -3310,14 +3609,15 @@ async function bootstrap() {
       const txtSns = document.getElementById("storeSnsUrl");
 
       const settings = {
-        greetingEnabled: tgGreeting ? tgGreeting.checked : true,
+        greetingEnabled: tgGreeting ? tgGreeting.checked : false,
         greetingText: txtGreeting ? txtGreeting.value.trim() : "",
-        photoEnabled: tgPhoto ? tgPhoto.checked : true,
-        photoUrl: txtPhoto ? txtPhoto.value.trim() : "",
-        commentsEnabled: tgComments ? tgComments.checked : true,
-        promoEnabled: tgPromo ? tgPromo.checked : true,
+        photoEnabled: tgPhoto ? tgPhoto.checked : false,
+        photoUrls: currentCustomPhotos,
+        commentsEnabled: tgComments ? tgComments.checked : false,
+        qaEnabled: tgQa ? tgQa.checked : false,
+        promoEnabled: tgPromo ? tgPromo.checked : false,
         promoText: txtPromo ? txtPromo.value.trim() : "",
-        hoursEnabled: tgHours ? tgHours.checked : true,
+        hoursEnabled: tgHours ? tgHours.checked : false,
         hoursText: txtHours ? txtHours.value.trim() : "",
         snsEnabled: tgSns ? tgSns.checked : false,
         snsUrl: txtSns ? txtSns.value.trim() : "",
