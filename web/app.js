@@ -1685,17 +1685,17 @@ async function bootstrap() {
     const isMobile = window.innerWidth <= 768;
     let targetCenter = latLng;
 
-    if (isMobile) {
-      const projection = map.getProjection?.();
-      if (projection && projection.fromCoordToOffset && projection.fromOffsetToCoord) {
-        const markerOffset = projection.fromCoordToOffset(latLng);
-        // On mobile, the detail popup is ~320px tall and placed above the marker.
-        // If the map centers on the marker, the popup top goes off-screen under .topNav.
-        // By shifting the map center upward by 160px (placing the marker in the lower 35%-40% area of the screen),
-        // the detail popup ends up perfectly centered vertically in the viewport without getting cut off!
-        const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x, markerOffset.y - 160);
-        targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
-      }
+    const projection = map.getProjection?.();
+    if (projection && projection.fromCoordToOffset && projection.fromOffsetToCoord) {
+      const markerOffset = projection.fromCoordToOffset(latLng);
+      // Detail popup is ~240px-280px tall and placed above the marker.
+      // To place the POPUP itself in the exact visual center of the screen:
+      // - Desktop: Left sidebar is ~240px wide, top nav is 50px. Shift X by -100px and Y by -135px.
+      // - Mobile: Shift Y by -160px.
+      const shiftX = isMobile ? 0 : -100;
+      const shiftY = isMobile ? -160 : -135;
+      const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x + shiftX, markerOffset.y + shiftY);
+      targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
     }
 
     if (map.panTo) {
