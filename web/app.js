@@ -3232,15 +3232,6 @@ const MMAAuth = {
     }
     // Track Page Access / Visit Analytics
     this.logPageVisit();
-
-    // Check URL for admin shortcut (?admin=1 or ?admin_key=...)
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has("admin") || urlParams.has("admin_key")) {
-        const k = urlParams.get("admin_key") || "demo";
-        setTimeout(() => this.openAdminDashboardModal(k), 800);
-      }
-    } catch (_e) {}
   },
 
   async logPageVisit(customPath = "") {
@@ -4119,6 +4110,10 @@ const MMAAuth = {
   },
 
   async openAdminDashboardModal(adminKey = "") {
+    if (!this.user || this.user.role !== "admin") {
+      alert("운영 관리자 권한이 필요합니다. 관리자 계정으로 로그인해 주세요.");
+      return;
+    }
     this.lastAdminKey = adminKey;
     const backdrop = document.getElementById("adminDashboardBackdrop");
     const modal = document.getElementById("adminDashboardModal");
