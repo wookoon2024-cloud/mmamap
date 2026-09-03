@@ -2852,15 +2852,16 @@ async function bootstrap() {
         })()
       : "대상 정보 없음";
 
-    const facilityId = getFacilityKey(point);
+    const facilityId = point.facilityId || point.id || getFacilityKey(point);
+    const legacyKey = getFacilityKey(point);
     if (currentDetailFacilityId !== facilityId) {
       currentDetailFacilityId = facilityId;
       isCommentsFlyoutOpen = false;
       isQaFlyoutOpen = false;
       currentDetailCommentPage = 1;
     }
-    const isLiked = likes.has(facilityId);
-    const isFavorite = favorites.has(facilityId);
+    const isLiked = likes.has(facilityId) || (legacyKey && likes.has(legacyKey));
+    const isFavorite = favorites.has(facilityId) || (legacyKey && favorites.has(legacyKey));
     const safePhone = escapeHtml(phone);
     const telHref = normalizePhone(point.phone || "");
     const bookingUrl = getTheaterBookingUrl(point.title || "");
@@ -3631,23 +3632,28 @@ async function bootstrap() {
     const likeBtn = document.getElementById("detailLikeBtn");
     if (likeBtn) {
       likeBtn.onclick = async () => {
-        const willBeActive = !likes.has(facilityId);
+        const willBeActive = !likes.has(facilityId) && !(legacyKey && likes.has(legacyKey));
 
         // 1. Instant Optimistic UI Update
         if (willBeActive) {
           likes.add(facilityId);
+          if (legacyKey) likes.add(legacyKey);
           likeBtn.classList.add("active");
           likeBtn.title = "좋아요 취소";
           showToast(`❤️ <strong>${escapeHtml(point.title || "가맹점")}</strong> 매장에 좋아요를 보냈습니다!`);
         } else {
           likes.delete(facilityId);
+          if (legacyKey) likes.delete(legacyKey);
           likeBtn.classList.remove("active");
           likeBtn.title = "좋아요 추천";
           showToast(`🤍 <strong>${escapeHtml(point.title || "가맹점")}</strong> 좋아요를 취소했습니다.`);
         }
 
-        const nextCount = Math.max(0, (likeCountsById[facilityId] || 0) + (willBeActive ? 1 : -1));
+        const currentCnt = Math.max(likeCountsById[facilityId] || 0, (legacyKey ? likeCountsById[legacyKey] : 0) || 0);
+        const nextCount = Math.max(0, currentCnt + (willBeActive ? 1 : -1));
         likeCountsById[facilityId] = nextCount;
+        if (legacyKey) likeCountsById[legacyKey] = nextCount;
+
         const countEl = document.getElementById("detailLikeCount");
         if (countEl) countEl.textContent = nextCount;
 
@@ -3657,7 +3663,7 @@ async function bootstrap() {
         if (typeof renderRankPanel === "function") renderRankPanel();
         if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
 
-        // 2. Background Persistence to Supabase & SQLite
+        // 2. Background Persistence to Supabase
         try {
           await toggleEngagement(facilityId, "like", willBeActive);
         } catch (_err) {
@@ -3669,23 +3675,28 @@ async function bootstrap() {
     const favBtn = document.getElementById("detailFavBtn");
     if (favBtn) {
       favBtn.onclick = async () => {
-        const willBeFav = !favorites.has(facilityId);
+        const willBeFav = !favorites.has(facilityId) && !(legacyKey && favorites.has(legacyKey));
 
         // 1. Instant Optimistic UI Update
         if (willBeFav) {
           favorites.add(facilityId);
+          if (legacyKey) favorites.add(legacyKey);
           favBtn.classList.add("active");
           favBtn.title = "즐겨찾기 해제";
           showToast(`⭐ <strong>${escapeHtml(point.title || "가맹점")}</strong> 매장을 즐겨찾기(찜)에 추가했습니다!`);
         } else {
           favorites.delete(facilityId);
+          if (legacyKey) favorites.delete(legacyKey);
           favBtn.classList.remove("active");
           favBtn.title = "즐겨찾기 등록";
           showToast(`⭐ <strong>${escapeHtml(point.title || "가맹점")}</strong> 즐겨찾기에서 해제했습니다.`);
         }
 
-        const nextFavCount = Math.max(0, (favoriteCountsById[facilityId] || 0) + (willBeFav ? 1 : -1));
+        const currentFavCnt = Math.max(favoriteCountsById[facilityId] || 0, (legacyKey ? favoriteCountsById[legacyKey] : 0) || 0);
+        const nextFavCount = Math.max(0, currentFavCnt + (willBeFav ? 1 : -1));
         favoriteCountsById[facilityId] = nextFavCount;
+        if (legacyKey) favoriteCountsById[legacyKey] = nextFavCount;
+
         const countEl = document.getElementById("detailFavCount");
         if (countEl) countEl.textContent = nextFavCount;
 
@@ -3695,7 +3706,7 @@ async function bootstrap() {
         if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
         if (typeof renderRankPanel === "function") renderRankPanel();
 
-        // 2. Background Persistence to Supabase & SQLite
+        // 2. Background Persistence to Supabase
         try {
           await toggleEngagement(facilityId, "favorite", willBeFav);
         } catch (_err) {
@@ -6615,17 +6626,21 @@ const MMAAuth = {
 
       // 3. Comments and QA count from Supabase
       let totalComments = 0;
+      let storeComments = [];
       try {
-        const cRes = await fetch(`${url}/facility_comments?facility_id=like.*${encodeURIComponent(fid)}*&select=count`, { headers });
-        const cData = await cRes.json();
-        totalComments = (cData && cData[0] && typeof cData[0].count === "number") ? cData[0].count : 0;
+        const cRes = await fetch(`${url}/facility_comments?facility_id=like.*${encodeURIComponent(fid)}*&order=created_at.desc&limit=20`, { headers });
+        const cRows = await cRes.json();
+        if (Array.isArray(cRows)) {
+          totalComments = cRows.length;
+          storeComments = cRows;
+        }
       } catch (_e) {}
 
-      // 4. Likes & Favorites from local state and Supabase
+      // 4. Likes & Favorites from Supabase
       let totalLikes = 0;
       let totalFavs = 0;
       try {
-        const actRes = await fetch(`${url}/facility_action_states?facility_id=eq.${encodeURIComponent(fid)}&active=eq.1&select=action_type`, { headers });
+        const actRes = await fetch(`${url}/facility_action_states?facility_id=like.*${encodeURIComponent(fid)}*&active=eq.1&select=action_type,facility_id`, { headers });
         const acts = (await actRes.json()) || [];
         if (Array.isArray(acts)) {
           totalLikes = acts.filter(a => a.action_type === "like").length;
@@ -6633,8 +6648,37 @@ const MMAAuth = {
         }
       } catch (_e) {}
 
-      if (window.MMALikes && window.MMALikes.has(fid)) totalLikes = Math.max(totalLikes, 1);
-      if (window.MMAFavorites && window.MMAFavorites.has(fid)) totalFavs = Math.max(totalFavs, 1);
+      // Cross-check in-memory sets and counts
+      if (typeof likes !== "undefined") {
+        for (const k of likes) {
+          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+            totalLikes = Math.max(totalLikes, 1);
+            break;
+          }
+        }
+      }
+      if (typeof favorites !== "undefined") {
+        for (const k of favorites) {
+          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+            totalFavs = Math.max(totalFavs, 1);
+            break;
+          }
+        }
+      }
+      if (typeof likeCountsById !== "undefined") {
+        for (const [k, v] of Object.entries(likeCountsById)) {
+          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+            totalLikes = Math.max(totalLikes, Number(v) || 0);
+          }
+        }
+      }
+      if (typeof favoriteCountsById !== "undefined") {
+        for (const [k, v] of Object.entries(favoriteCountsById)) {
+          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+            totalFavs = Math.max(totalFavs, Number(v) || 0);
+          }
+        }
+      }
 
       // 5. 14-day Daily Chart
       const dailyMap = {};
@@ -6730,6 +6774,7 @@ const MMAAuth = {
           totalLikes,
           totalFavorites: totalFavs,
           totalComments,
+          comments: storeComments,
           daily,
           mutualPartners,
           sources
@@ -6752,6 +6797,7 @@ const MMAAuth = {
     const modal = document.getElementById("merchantStatsModal");
     if (!backdrop || !modal) return;
 
+    this.switchMerchantStatsTab("tab-mstats-overview");
     backdrop.classList.remove("hidden");
     modal.classList.remove("hidden");
 
@@ -6888,6 +6934,47 @@ const MMAAuth = {
         </div>
       `;
     }
+
+    // Tab 2 Engagement & Comments rendering
+    const tabLikesEl = document.getElementById("mstatsTabLikesCount");
+    const tabFavsEl = document.getElementById("mstatsTabFavsCount");
+    if (tabLikesEl) tabLikesEl.textContent = likesVal.toLocaleString();
+    if (tabFavsEl) tabFavsEl.textContent = favsVal.toLocaleString();
+
+    const mCommentsEl = document.getElementById("mstatsCommentsList");
+    const mCommentsSub = document.getElementById("mstatsCommentsSub");
+    if (mCommentsSub) mCommentsSub.textContent = `실제 등록된 방문 후기 ${commentsVal}건`;
+    if (mCommentsEl) {
+      const comList = Array.isArray(stats.comments) ? stats.comments : [];
+      if (comList.length === 0) {
+        mCommentsEl.innerHTML = `
+          <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;">
+            💬 아직 등록된 장병 응원 후기가 없습니다. 첫 후기를 기다리는 중입니다!
+          </div>
+        `;
+      } else {
+        mCommentsEl.innerHTML = comList.map(c => `
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <strong style="font-size: 13px; color: #1e293b;">${this.escapeHtml(c.author_name || c.author || "청년 장병")}</strong>
+              <span style="font-size: 11px; color: #94a3b8;">${this.escapeHtml(c.date || (c.created_at ? new Date(c.created_at).toLocaleDateString("ko-KR") : ""))}</span>
+            </div>
+            <div style="font-size: 13px; color: #334155; line-height: 1.5;">${this.escapeHtml(c.comment_text || c.text || "")}</div>
+          </div>
+        `).join("");
+      }
+    }
+  },
+
+  switchMerchantStatsTab(tabId) {
+    const tabs = document.querySelectorAll(".merchantStatsTabBtn");
+    const panes = document.querySelectorAll(".merchantStatsTabPane");
+    tabs.forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === tabId);
+    });
+    panes.forEach(pane => {
+      pane.classList.toggle("active", pane.id === tabId);
+    });
   },
 
   showPolicyModal(type = "terms") {
