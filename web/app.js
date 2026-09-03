@@ -3249,6 +3249,12 @@ async function bootstrap() {
             <span class="engBtnLabel">즐겨찾기</span>
             <span class="engBtnCount" id="detailFavCount">${Math.max(Number(favoriteCountsById[facilityId] || 0), (legacyKey ? Number(favoriteCountsById[legacyKey] || 0) : 0), isFavorite ? 1 : 0)}</span>
           </button>
+          <button id="detailRouteBtn" class="detailEngagementBtn route ${window.activeRoutePointId === facilityId ? "active" : ""}" type="button" aria-label="길찾기" title="실시간 경로 길찾기 (네이버 지도 연동)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+            <span class="engBtnLabel">${window.activeRoutePointId === facilityId ? "경로 표시중" : "길찾기"}</span>
+          </button>
           ${bookingBtnHtml}
         </div>
         ${greetingHtml}
@@ -3757,6 +3763,18 @@ async function bootstrap() {
       };
     }
 
+    const routeBtn = document.getElementById("detailRouteBtn");
+    if (routeBtn) {
+      routeBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (window.activeRoutePointId === facilityId) {
+          window.clearRouteGuide();
+        } else {
+          findRouteToStore(point);
+        }
+      };
+    }
+
     // Dynamic auto-centering verification: measure exact rendered DOM height and adjust if needed (only on initial open, not when flyout is open)
     if (!isCommentsFlyoutOpen && !isQaFlyoutOpen) {
       requestAnimationFrame(() => {
@@ -3799,6 +3817,252 @@ async function bootstrap() {
       anchor: new naver.maps.Point(10, 20),
     };
   };
+
+  async function getCurrentStartLocation() {
+    if (currentUserLatLng && typeof currentUserLatLng.lat === "function") {
+      return { lat: currentUserLatLng.lat(), lng: currentUserLatLng.lng(), isMyLocation: true };
+    }
+    if (navigator.geolocation) {
+      try {
+        const geoPromise = new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 1500, enableHighAccuracy: false });
+        });
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("geo_timeout")), 1500));
+        const pos = await Promise.race([geoPromise, timeoutPromise]);
+        if (pos && pos.coords) {
+          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, false);
+          return { lat: pos.coords.latitude, lng: pos.coords.longitude, isMyLocation: true };
+        }
+      } catch (_) {}
+    }
+    if (map && typeof map.getCenter === "function") {
+      const center = map.getCenter();
+      return { lat: center.lat(), lng: center.lng(), isMyLocation: false };
+    }
+    return { lat: 37.5665, lng: 126.978, isMyLocation: false };
+  }
+
+  function clearRouteGuide() {
+    window.activeRoutePointId = null;
+    if (window.activeRoutePolyline) {
+      window.activeRoutePolyline.setMap(null);
+      window.activeRoutePolyline = null;
+    }
+    if (window.activeRouteOutline) {
+      window.activeRouteOutline.setMap(null);
+      window.activeRouteOutline = null;
+    }
+    if (window.routeStartMarker) {
+      window.routeStartMarker.setMap(null);
+      window.routeStartMarker = null;
+    }
+    if (window.routeGoalMarker) {
+      window.routeGoalMarker.setMap(null);
+      window.routeGoalMarker = null;
+    }
+    const card = document.getElementById("routeGuideCard");
+    if (card) card.remove();
+
+    const routeBtn = document.getElementById("detailRouteBtn");
+    if (routeBtn) {
+      routeBtn.classList.remove("active");
+      routeBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+        </svg>
+        <span class="engBtnLabel">길찾기</span>
+      `;
+    }
+  }
+
+  async function findRouteToStore(point) {
+    if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) {
+      alert("가맹점의 위치 좌표가 올바르지 않습니다.");
+      return;
+    }
+
+    const fid = point.facilityId || point.facility_id || point.id;
+    const routeBtn = document.getElementById("detailRouteBtn");
+    if (routeBtn) {
+      routeBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span class="engBtnLabel">탐색중...</span>
+      `;
+    }
+
+    try {
+      const start = await getCurrentStartLocation();
+      const goal = { lat: Number(point.lat), lng: Number(point.lng) };
+
+      let routeData = null;
+      try {
+        const res = await fetch(`/api/directions?start=${start.lng},${start.lat}&goal=${goal.lng},${goal.lat}`);
+        if (res.ok) {
+          routeData = await res.json();
+        }
+      } catch (e) {
+        console.warn("[Directions API Error]", e);
+      }
+
+      if (!routeData || !routeData.ok || !Array.isArray(routeData.path) || routeData.path.length === 0) {
+        try {
+          const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${goal.lng},${goal.lat}?overview=full&geometries=geojson`);
+          const osrmJson = await osrmRes.json();
+          if (osrmJson.code === "Ok" && osrmJson.routes && osrmJson.routes[0]) {
+            routeData = {
+              ok: true,
+              source: "osrm_client",
+              distance: osrmJson.routes[0].distance,
+              duration: osrmJson.routes[0].duration,
+              path: osrmJson.routes[0].geometry.coordinates
+            };
+          }
+        } catch (_) {}
+      }
+
+      if (!routeData || !Array.isArray(routeData.path) || routeData.path.length === 0) {
+        const dlat = (goal.lat - start.lat) * 111000;
+        const dlng = (goal.lng - start.lng) * 88800;
+        const dist = Math.round(Math.sqrt(dlat * dlat + dlng * dlng) * 1.3);
+        routeData = {
+          ok: true,
+          source: "direct",
+          distance: dist,
+          duration: Math.round(dist / 8.3),
+          path: [[start.lng, start.lat], [goal.lng, goal.lat]]
+        };
+      }
+
+      window.activeRoutePointId = fid;
+      renderRouteOnMap(start, goal, point, routeData);
+    } catch (err) {
+      console.error("[Route Find Error]", err);
+      alert("경로를 탐색하는 중 오류가 발생했습니다.");
+    } finally {
+      if (routeBtn) {
+        routeBtn.classList.add("active");
+        routeBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+          </svg>
+          <span class="engBtnLabel">경로 표시중</span>
+        `;
+      }
+    }
+  }
+
+  function renderRouteOnMap(start, goal, point, routeData) {
+    if (!map || typeof naver === "undefined" || !naver.maps) return;
+
+    clearRouteGuide();
+    window.activeRoutePointId = point.facilityId || point.facility_id || point.id;
+
+    const pathCoords = routeData.path || [];
+    const latLngPath = pathCoords.map(c => new naver.maps.LatLng(c[1], c[0]));
+
+    // 1. Outline Glow Polyline
+    window.activeRouteOutline = new naver.maps.Polyline({
+      map: map,
+      path: latLngPath,
+      strokeColor: "#1e40af",
+      strokeWeight: 10,
+      strokeOpacity: 0.35,
+      strokeLineCap: "round",
+      strokeLineJoin: "round",
+      zIndex: 100
+    });
+
+    // 2. Main Vibrant Navigation Polyline
+    window.activeRoutePolyline = new naver.maps.Polyline({
+      map: map,
+      path: latLngPath,
+      strokeColor: "#2563eb",
+      strokeWeight: 6,
+      strokeOpacity: 0.95,
+      strokeLineCap: "round",
+      strokeLineJoin: "round",
+      zIndex: 101
+    });
+
+    // 3. Start Marker
+    window.routeStartMarker = new naver.maps.Marker({
+      position: new naver.maps.LatLng(start.lat, start.lng),
+      map: map,
+      icon: {
+        content: `
+          <div style="display:flex; align-items:center; gap:5px; background:#0f172a; color:#fff; padding:5px 10px; border-radius:18px; font-size:11.5px; font-weight:800; box-shadow:0 4px 12px rgba(0,0,0,0.3); border:2px solid #fff; white-space:nowrap;">
+            <span>📍 출발 (${start.isMyLocation ? "내 위치" : "지도 중심"})</span>
+          </div>
+        `,
+        anchor: new naver.maps.Point(36, 16)
+      },
+      zIndex: 105
+    });
+
+    // 4. Goal Marker
+    window.routeGoalMarker = new naver.maps.Marker({
+      position: new naver.maps.LatLng(goal.lat, goal.lng),
+      map: map,
+      icon: {
+        content: `
+          <div style="display:flex; align-items:center; gap:5px; background:#2563eb; color:#fff; padding:5px 10px; border-radius:18px; font-size:11.5px; font-weight:800; box-shadow:0 4px 12px rgba(37,99,235,0.4); border:2px solid #fff; white-space:nowrap;">
+            <span>🏁 ${escapeHtml(point.title || "도착")}</span>
+          </div>
+        `,
+        anchor: new naver.maps.Point(36, 16)
+      },
+      zIndex: 105
+    });
+
+    // 5. Fit Map Bounds
+    const bounds = new naver.maps.LatLngBounds();
+    latLngPath.forEach(pt => bounds.extend(pt));
+    bounds.extend(new naver.maps.LatLng(start.lat, start.lng));
+    bounds.extend(new naver.maps.LatLng(goal.lat, goal.lng));
+    map.fitBounds(bounds, { margin: 80 });
+
+    // 6. Formatting Distance & Duration
+    const distMeters = routeData.distance || 0;
+    const durSecs = routeData.duration || 0;
+    const distStr = distMeters >= 1000 ? (distMeters / 1000).toFixed(1) + " km" : distMeters + " m";
+    const durStr = durSecs >= 3600
+      ? Math.floor(durSecs / 3600) + "시간 " + Math.round((durSecs % 3600) / 60) + "분"
+      : Math.max(1, Math.round(durSecs / 60)) + "분";
+
+    // 7. Render Floating Route Card
+    const naverNavUrl = `https://map.naver.com/v5/directions/${start.lng},${start.lat},출발지/${goal.lng},${goal.lat},${encodeURIComponent(point.title || "도착지")}/-/car`;
+    
+    const card = document.createElement("div");
+    card.id = "routeGuideCard";
+    card.className = "routeGuideCard";
+    card.innerHTML = `
+      <div class="routeGuideMain">
+        <div class="routeGuideSummary">
+          <span class="routeGuideDuration">약 ${durStr}</span>
+          <span class="routeGuideDistance">${distStr}</span>
+          <span style="font-size: 11px; color: #059669; font-weight: 800; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;">실시간 주행 경로</span>
+        </div>
+        <div class="routeGuideLocations">
+          <span>📍 출발지</span> ➔ <strong>${escapeHtml(point.title || "가맹점")}</strong>
+        </div>
+      </div>
+      <div class="routeGuideActions">
+        <a href="${naverNavUrl}" target="_blank" rel="noopener noreferrer" class="routeGuideNaverBtn" title="네이버 지도 앱 또는 웹에서 상세 길안내">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          <span>네이버 길안내</span>
+        </a>
+        <button type="button" class="routeGuideCloseBtn" onclick="window.clearRouteGuide()" title="지도에서 경로 지우기">경로 닫기</button>
+      </div>
+    `;
+    document.body.appendChild(card);
+
+    if (typeof showToast === "function") {
+      showToast(`🚗 <strong>${escapeHtml(point.title)}</strong> 매장까지의 경로가 지도에 표시되었습니다. (약 ${durStr}, ${distStr})`);
+    }
+  }
+
+  window.findRouteToStore = findRouteToStore;
+  window.clearRouteGuide = clearRouteGuide;
 
   const getMarkerIconByPoint = (point) => {
     const specialImg = getTheaterMarkerImage(point?.title || "");

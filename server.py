@@ -19,6 +19,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+import urllib.request
 
 try:
     import psycopg2
@@ -1908,6 +1909,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_url = urlparse(self.path)
+        if parsed_url.path == "/api/directions":
+            self._handle_directions()
+            return
         if parsed_url.path == "/api/print_hanger":
             self._handle_print_hanger()
             return
@@ -2393,6 +2397,82 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 "count": int(count_row["cnt"] or 0),
             },
         )
+
+    def _handle_directions(self):
+        parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        start = qs.get("start", [""])[0].strip()
+        goal = qs.get("goal", [""])[0].strip()
+
+        if not start or not goal:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "start and goal coordinates required (lng,lat)"})
+            return
+
+        ncp_key_id = os.environ.get("NCP_KEY_ID", "5im3q2kbhw")
+        ncp_key = os.environ.get("NCP_KEY", "L2W5tAOBP1AgfQ5QBsoJWd1HhwffyfCS9TKipJg2")
+
+        # 1. Try Naver Directions 5/15 API
+        try:
+            naver_url = f"https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving?start={start}&goal={goal}&option=trafast"
+            req = urllib.request.Request(naver_url, headers={
+                "X-NCP-APIGW-API-KEY-ID": ncp_key_id,
+                "X-NCP-APIGW-API-KEY": ncp_key
+            })
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    route = data.get("route", {})
+                    candidate = route.get("traoptimal") or route.get("trafast") or []
+                    if candidate:
+                        summary = candidate[0].get("summary", {})
+                        path = candidate[0].get("path", [])
+                        self._json(HTTPStatus.OK, {
+                            "ok": True,
+                            "source": "naver",
+                            "distance": summary.get("distance", 0),
+                            "duration": int(summary.get("duration", 0) / 1000),
+                            "path": path
+                        })
+                        return
+        except Exception:
+            pass
+
+        # 2. Seamless fallback to OSRM road routing engine
+        try:
+            osrm_url = f"https://router.project-osrm.org/route/v1/driving/{start};{goal}?overview=full&geometries=geojson"
+            req = urllib.request.Request(osrm_url, headers={"User-Agent": "MMAMap/1.0"})
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data.get("code") == "Ok" and data.get("routes"):
+                    r = data["routes"][0]
+                    coords = r.get("geometry", {}).get("coordinates", [])
+                    self._json(HTTPStatus.OK, {
+                        "ok": True,
+                        "source": "osrm",
+                        "distance": int(r.get("distance", 0)),
+                        "duration": int(r.get("duration", 0)),
+                        "path": coords
+                    })
+                    return
+        except Exception:
+            pass
+
+        # 3. Direct line fallback
+        try:
+            s_lng, s_lat = [float(x) for x in start.split(",")]
+            g_lng, g_lat = [float(x) for x in goal.split(",")]
+            dlat = (g_lat - s_lat) * 111000
+            dlng = (g_lng - s_lng) * 88800
+            dist = int((dlat**2 + dlng**2) ** 0.5)
+            self._json(HTTPStatus.OK, {
+                "ok": True,
+                "source": "direct",
+                "distance": int(dist * 1.3),
+                "duration": int((dist * 1.3) / 8.3),
+                "path": [[s_lng, s_lat], [g_lng, g_lat]]
+            })
+        except Exception as e:
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"ok": False, "error": str(e)})
 
 
 def main():

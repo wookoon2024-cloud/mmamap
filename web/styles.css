@@ -3667,6 +3667,147 @@ button:active {
   transition: all 0.16s ease;
 }
 
+.detailEngagementBtn.route {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.detailEngagementBtn.route:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+.detailEngagementBtn.route svg {
+  stroke: #16a34a;
+  stroke-width: 2.2;
+}
+
+.detailEngagementBtn.route.active {
+  background: #16a34a !important;
+  border-color: #15803d !important;
+  color: #ffffff !important;
+}
+
+.detailEngagementBtn.route.active svg {
+  stroke: #ffffff !important;
+}
+
+.routeGuideCard {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10005;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.08);
+  border: 1.5px solid #e2e8f0;
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100vw - 32px);
+  animation: routeSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes routeSlideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -15px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.routeGuideMain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.routeGuideSummary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.routeGuideDuration {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.routeGuideDistance {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.routeGuideLocations {
+  font-size: 11.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.routeGuideActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.routeGuideNaverBtn {
+  background: #03c75a;
+  color: #ffffff !important;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.16s ease;
+  white-space: nowrap;
+}
+
+.routeGuideNaverBtn:hover {
+  background: #02b150;
+}
+
+.routeGuideCloseBtn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.routeGuideCloseBtn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 .detailIconBtn {
   width: 34px;
   height: 34px;
