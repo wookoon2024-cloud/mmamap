@@ -5784,13 +5784,13 @@ const MMAAuth = {
     const isAdmin = this.user.role === "admin";
     const isMerchant = this.user.role === "merchant";
     const roleIcon = isAdmin ? "👑" : isMerchant ? "🏪" : "🪖";
-    const roleTitle = isAdmin ? "관리자" : isMerchant ? "점주" : "회원";
+    const roleTitle = isAdmin ? "관리자" : "";
 
     wrap.innerHTML = `
       <div class="authUserBadge" onclick="${isMerchant ? "window.MMAAuth.goToMyMerchantStore(event)" : "window.MMAAuth.toggleProfileMenu()"}" title="${isMerchant ? "클릭 시 내 매장(" + this.escapeHtml(this.user.merchantFacilityName || "대전을지대학교병원") + ") 위치로 이동" : "내 메뉴 열기"}" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
         <span>${roleIcon}</span>
         <strong style="${isMerchant ? "text-decoration: underline; text-underline-offset: 3px;" : ""}">${this.escapeHtml(this.user.nickname)}</strong>
-        <small style="color:${isAdmin ? '#a21caf' : (isMerchant ? '#2563eb' : '#64748b')}; font-weight:${isMerchant ? '700' : '500'};">${roleTitle}</small>
+        ${roleTitle ? `<small style="color:#a21caf; font-weight:700;">${roleTitle}</small>` : ""}
       </div>
     `;
   },
