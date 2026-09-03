@@ -4032,7 +4032,7 @@ async function bootstrap() {
         <div class="routeGuideSummary">
           <span class="routeGuideDuration">약 ${durStr}</span>
           <span class="routeGuideDistance">${distStr}</span>
-          <span style="font-size: 11px; color: #059669; font-weight: 800; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;">실시간 주행 경로</span>
+          <span class="routeGuideTag" style="font-size: 11px; color: #059669; font-weight: 800; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;">실시간 주행 경로</span>
         </div>
         <div class="routeGuideLocations">
           <span>📍 출발지 (${escapeHtml(start.name || "정부대전청사")})</span> ➔ <strong>${escapeHtml(point.title || "가맹점")}</strong>
