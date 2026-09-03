@@ -5233,28 +5233,182 @@ async function bootstrap() {
     if (!query) return;
     const lowerQuery = query.toLowerCase().trim();
 
-    // Reset region filter so nationwide / cross-district search works seamlessly
-    selectedRegion = "";
-    if (regionSelectEl) regionSelectEl.value = "";
-
-    // 1. Exact Store Title Match ONLY (100% 일치할 때만 단일 상점 포커스)
-    const exactTitleMatch = points.find((p) => (p.title || "").toLowerCase() === lowerQuery);
+    // 1. 100% Exact Store Title Match ONLY (정확히 매장 명칭 전체가 일치할 때만 단일 상점 포커스)
+    const exactTitleMatch = points.find((p) => (p.title || "").trim().toLowerCase() === lowerQuery);
     if (exactTitleMatch) {
       const key = getFacilityKey(exactTitleMatch);
       if (key) {
+        selectedRegion = "";
+        if (regionSelectEl) regionSelectEl.value = "";
         focusFacility(key);
         return;
       }
     }
 
-    // 2. Station name normalization (e.g. "강남역" -> "강남", "종각역" -> "종각")
-    const cleanQuery = lowerQuery.replace(/역$/, "").trim();
+    // 2. Region / Administrative Area Search Priority (지역 우선 탐색)
+    // "대전시", "서울시", "수원시", "해운대구" 등 지역 명칭일 경우 부분 일치 매장이 아니라 해당 지역으로 먼저 이동
+    const cleanArea = lowerQuery
+      .replace(/(특별시|광역시|특별자치시|특별자치도)$/, "")
+      .replace(/(시|군|구|도)$/, "")
+      .trim();
 
-    // 3. Search Address, Title, Category, Region, Subtitle, Benefit
-    const matches = points.filter((p) => {
+    const MAJOR_REGIONS = {
+      "서울": ["서울"],
+      "서울시": ["서울"],
+      "서울특별시": ["서울"],
+      "경기": ["경기", "경인", "경기북부"],
+      "경기도": ["경기", "경인", "경기북부"],
+      "인천": ["인천", "경인"],
+      "인천시": ["인천", "경인"],
+      "인천광역시": ["인천", "경인"],
+      "대전": ["대전", "대전.충남"],
+      "대전시": ["대전", "대전.충남"],
+      "대전광역시": ["대전", "대전.충남"],
+      "대구": ["대구", "대구.경북"],
+      "대구시": ["대구", "대구.경북"],
+      "대구광역시": ["대구", "대구.경북"],
+      "부산": ["부산", "부산.울산"],
+      "부산시": ["부산", "부산.울산"],
+      "부산광역시": ["부산", "부산.울산"],
+      "울산": ["울산", "부산.울산"],
+      "울산시": ["울산", "부산.울산"],
+      "울산광역시": ["울산", "부산.울산"],
+      "광주": ["광주", "광주.전남"],
+      "광주시": ["광주", "광주.전남"],
+      "광주광역시": ["광주", "광주.전남"],
+      "세종": ["세종", "대전.충남"],
+      "세종시": ["세종", "대전.충남"],
+      "세종특별자치시": ["세종", "대전.충남"],
+      "강원": ["강원", "강원영동"],
+      "강원도": ["강원", "강원영동"],
+      "강원특별자치도": ["강원", "강원영동"],
+      "충북": ["충북"],
+      "충청북도": ["충북"],
+      "충남": ["충남", "대전.충남"],
+      "충청남도": ["충남", "대전.충남"],
+      "전북": ["전북"],
+      "전라북도": ["전북"],
+      "전북특별자치도": ["전북"],
+      "전남": ["전남", "광주.전남"],
+      "전라남도": ["전남", "광주.전남"],
+      "경북": ["경북", "대구.경북"],
+      "경상북도": ["경북", "대구.경북"],
+      "경남": ["경남"],
+      "경상남도": ["경남"],
+      "제주": ["제주"],
+      "제주도": ["제주"],
+      "제주시": ["제주"],
+      "제주특별자치도": ["제주"]
+    };
+
+    // 2-1. Check Major Provinces/Metropolitan Cities
+    const candidateRegions = MAJOR_REGIONS[lowerQuery] || (cleanArea && MAJOR_REGIONS[cleanArea]);
+    if (candidateRegions && candidateRegions.length > 0) {
+      // Find matching filter in regionFilters
+      const matchedFilter = candidateRegions.find(r => regionFilters.includes(r)) || candidateRegions[0];
+      
+      // Also filter stores by city address or region
+      const searchTarget = cleanArea || lowerQuery;
+      const areaStores = points.filter((p) => {
+        const addr = (p.address || "").toLowerCase();
+        const reg = (p.region || "").toLowerCase();
+        return addr.includes(searchTarget) || reg === matchedFilter.toLowerCase();
+      });
+
+      if (selectedFacilityId) hideDetailPanelOnly();
+      selectedRegion = matchedFilter;
+      if (regionSelectEl) regionSelectEl.value = matchedFilter;
+
+      if (areaStores.length >= 2) {
+        let minLat = areaStores[0].lat, maxLat = areaStores[0].lat;
+        let minLng = areaStores[0].lng, maxLng = areaStores[0].lng;
+        areaStores.forEach((p) => {
+          if (p.lat < minLat) minLat = p.lat;
+          if (p.lat > maxLat) maxLat = p.lat;
+          if (p.lng < minLng) minLng = p.lng;
+          if (p.lng > maxLng) maxLng = p.lng;
+        });
+        const sw = new naver.maps.LatLng(minLat, minLng);
+        const ne = new naver.maps.LatLng(maxLat, maxLng);
+        map.fitBounds(new naver.maps.LatLngBounds(sw, ne));
+      } else {
+        moveMapToRegion(matchedFilter);
+      }
+
+      renderVisibleMarkers();
+      if (typeof renderRankPanel === "function") renderRankPanel();
+      if (typeof renderNewStorePanel === "function") renderNewStorePanel();
+      if (typeof showToast === "function") {
+        showToast(`📍 <strong>${query}</strong> (${matchedFilter}) 지역으로 이동했습니다. (${areaStores.length}개 가맹점)`);
+      }
+      return;
+    }
+
+    // 2-2. Check City / Gun / Gu (시/군/구/읍/면/동) in Address (e.g. 수원시, 의정부시, 강남구, 해운대구 등)
+    if (cleanArea.length >= 2 || lowerQuery.length >= 2) {
+      const areaStores = points.filter((p) => {
+        const addr = (p.address || "").toLowerCase();
+        return addr.includes(lowerQuery) || (cleanArea.length >= 2 && addr.includes(cleanArea));
+      });
+
+      if (areaStores.length >= 2) {
+        if (selectedFacilityId) hideDetailPanelOnly();
+        selectedRegion = "";
+        if (regionSelectEl) regionSelectEl.value = "";
+
+        // Fit bounds of matching area stores
+        let minLat = areaStores[0].lat, maxLat = areaStores[0].lat;
+        let minLng = areaStores[0].lng, maxLng = areaStores[0].lng;
+        areaStores.forEach((p) => {
+          if (p.lat < minLat) minLat = p.lat;
+          if (p.lat > maxLat) maxLat = p.lat;
+          if (p.lng < minLng) minLng = p.lng;
+          if (p.lng > maxLng) maxLng = p.lng;
+        });
+        const sw = new naver.maps.LatLng(minLat, minLng);
+        const ne = new naver.maps.LatLng(maxLat, maxLng);
+        map.fitBounds(new naver.maps.LatLngBounds(sw, ne));
+        renderVisibleMarkers();
+        if (typeof showToast === "function") {
+          showToast(`📍 <strong>${query}</strong> 지역 검색 결과로 이동했습니다. (${areaStores.length}개 가맹점)`);
+        }
+        return;
+      }
+    }
+
+    // 3. Store Name / Keyword Search (가게명, 혜택, 업종 검색)
+    // 3-1. Title partial match
+    const titleMatches = points.filter((p) => (p.title || "").toLowerCase().includes(lowerQuery));
+    const uniqueTitles = new Set(titleMatches.map(p => (p.title || "").trim()));
+    if (titleMatches.length === 1 || (titleMatches.length > 1 && uniqueTitles.size === 1)) {
+      const key = getFacilityKey(titleMatches[0]);
+      if (key) {
+        selectedRegion = "";
+        if (regionSelectEl) regionSelectEl.value = "";
+        focusFacility(key);
+        return;
+      }
+    } else if (titleMatches.length > 1) {
+      if (selectedFacilityId) hideDetailPanelOnly();
+      selectedRegion = "";
+      if (regionSelectEl) regionSelectEl.value = "";
+      const avgLat = titleMatches.reduce((sum, p) => sum + p.lat, 0) / titleMatches.length;
+      const avgLng = titleMatches.reduce((sum, p) => sum + p.lng, 0) / titleMatches.length;
+      map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
+      map.setZoom(14, false);
+      updateZoomLabel();
+      renderVisibleMarkers();
+      if (typeof showToast === "function") {
+        showToast(`🔍 <strong>${escapeHtml(query)}</strong> 검색 결과 (${titleMatches.length}개 매장)`);
+      }
+      return;
+    }
+
+    // 3-2. General multi-field match (Station, Category, Subtitle, Benefit)
+    const cleanQuery = lowerQuery.replace(/역$/, "").trim();
+    const generalMatches = points.filter((p) => {
       const title = (p.title || "").toLowerCase();
       const addr = (p.address || "").toLowerCase();
-      const region = (p.region || "").toLowerCase();
       const cat = (p.category || "").toLowerCase();
       const sub = (p.subtitle || "").toLowerCase();
       const benefit = (p.benefit || "").toLowerCase();
@@ -5262,28 +5416,30 @@ async function bootstrap() {
       return (
         title.includes(lowerQuery) || (cleanQuery && title.includes(cleanQuery)) ||
         addr.includes(lowerQuery) || (cleanQuery && addr.includes(cleanQuery)) ||
-        region.includes(lowerQuery) || (cleanQuery && region.includes(cleanQuery)) ||
         cat.includes(lowerQuery) ||
         sub.includes(lowerQuery) ||
         benefit.includes(lowerQuery)
       );
     });
 
-    if (matches.length === 1) {
-      const key = getFacilityKey(matches[0]);
+    if (generalMatches.length === 1) {
+      const key = getFacilityKey(generalMatches[0]);
       if (key) {
+        selectedRegion = "";
+        if (regionSelectEl) regionSelectEl.value = "";
         focusFacility(key);
         return;
       }
-    } else if (matches.length > 1) {
+    } else if (generalMatches.length > 1) {
       if (selectedFacilityId) hideDetailPanelOnly();
-      const avgLat = matches.reduce((sum, p) => sum + p.lat, 0) / matches.length;
-      const avgLng = matches.reduce((sum, p) => sum + p.lng, 0) / matches.length;
+      selectedRegion = "";
+      if (regionSelectEl) regionSelectEl.value = "";
+      const avgLat = generalMatches.reduce((sum, p) => sum + p.lat, 0) / generalMatches.length;
+      const avgLng = generalMatches.reduce((sum, p) => sum + p.lng, 0) / generalMatches.length;
       map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
       map.setZoom(14, false);
       updateZoomLabel();
       renderVisibleMarkers();
-      setTimeout(() => renderVisibleMarkers(), 120);
       return;
     }
 
@@ -5299,8 +5455,16 @@ async function bootstrap() {
           updateZoomLabel();
           renderVisibleMarkers();
           setTimeout(() => renderVisibleMarkers(), 120);
+        } else {
+          if (typeof showToast === "function") {
+            showToast(`검색 결과가 없습니다: '${escapeHtml(query)}'`);
+          }
         }
       });
+    } else {
+      if (typeof showToast === "function") {
+        showToast(`검색 결과가 없습니다: '${escapeHtml(query)}'`);
+      }
     }
   };
 
