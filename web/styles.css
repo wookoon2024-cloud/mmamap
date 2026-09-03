@@ -3574,6 +3574,95 @@ button:active {
   flex: 1 1 auto;
 }
 
+.detailEngagementBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  user-select: none;
+}
+
+.detailEngagementBtn:hover {
+  transform: translateY(-1px);
+  border-color: #94a3b8;
+  background: #f8fafc;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.detailEngagementBtn:active {
+  transform: scale(0.95);
+}
+
+.detailEngagementBtn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #64748b;
+  stroke-width: 2;
+  transition: all 0.16s ease;
+}
+
+.detailEngagementBtn.like.active {
+  background: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #e11d48 !important;
+}
+
+.detailEngagementBtn.like.active svg {
+  fill: #e11d48 !important;
+  stroke: #e11d48 !important;
+  transform: scale(1.12);
+}
+
+.detailEngagementBtn.like.active .engBtnCount {
+  background: #ffe4e6 !important;
+  color: #be123c !important;
+}
+
+.detailEngagementBtn.fav.active {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #d97706 !important;
+}
+
+.detailEngagementBtn.fav.active svg {
+  fill: #f59e0b !important;
+  stroke: #f59e0b !important;
+  transform: scale(1.12);
+}
+
+.detailEngagementBtn.fav.active .engBtnCount {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+.engBtnLabel {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.engBtnCount {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+  line-height: 1;
+  transition: all 0.16s ease;
+}
+
 .detailIconBtn {
   width: 34px;
   height: 34px;

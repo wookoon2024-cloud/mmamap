@@ -578,42 +578,115 @@ async function bootstrap() {
   };
   const clientToken = getOrCreateClientToken();
 
-  const loadEngagementSnapshot = async () => {
-    const res = await fetch(`${ENGAGEMENT_API_BASE}/snapshot?clientToken=${encodeURIComponent(clientToken)}`, { method: "GET" });
-    const data = await readJsonSafe(res);
-    if (!res.ok) throw new Error(String(data?.error || "상호작용 데이터 조회 실패"));
-    const myLikes = Array.isArray(data?.myLikes) ? data.myLikes : [];
-    const myFavorites = Array.isArray(data?.myFavorites) ? data.myFavorites : [];
-    const clicks = data?.clickCounts && typeof data.clickCounts === "object" ? data.clickCounts : {};
-    const likesCount = data?.likeCounts && typeof data.likeCounts === "object" ? data.likeCounts : {};
-    const favoritesCount = data?.favoriteCounts && typeof data.favoriteCounts === "object" ? data.favoriteCounts : {};
+  const showToast = (message, type = "info") => {
+    let container = document.getElementById("mmaToastContainer");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "mmaToastContainer";
+      container.style.cssText = "position:fixed; bottom:32px; left:50%; transform:translateX(-50%); z-index:999999; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none;";
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    toast.style.cssText = "background:rgba(15,23,42,0.92); color:#ffffff; font-size:13px; font-weight:700; padding:10px 18px; border-radius:30px; box-shadow:0 10px 25px rgba(0,0,0,0.25); display:flex; align-items:center; gap:8px; backdrop-filter:blur(8px); pointer-events:auto; animation:toastPopIn 0.2s cubic-bezier(0.16,1,0.3,1); transition:opacity 0.25s, transform 0.25s;";
+    toast.innerHTML = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(8px)";
+      setTimeout(() => toast.remove(), 250);
+    }, 2200);
+  };
+  window.showToast = showToast;
 
-    favorites.clear();
-    likes.clear();
-    myFavorites.forEach((id) => favorites.add(String(id)));
-    myLikes.forEach((id) => likes.add(String(id)));
-
-    Object.keys(clickCountsById).forEach((k) => delete clickCountsById[k]);
-    Object.keys(likeCountsById).forEach((k) => delete likeCountsById[k]);
-    Object.keys(favoriteCountsById).forEach((k) => delete favoriteCountsById[k]);
-    Object.entries(clicks).forEach(([k, v]) => { clickCountsById[String(k)] = Number(v) || 0; });
-    Object.entries(likesCount).forEach(([k, v]) => { likeCountsById[String(k)] = Number(v) || 0; });
-    Object.entries(favoritesCount).forEach(([k, v]) => { favoriteCountsById[String(k)] = Number(v) || 0; });
+  const getEffectiveUserToken = () => {
+    return (window.MMAAuth?.user?.id) || (window.MMAAuth?.user?.email) || clientToken;
   };
 
-  const toggleEngagement = async (facilityId, actionType) => {
-    const res = await fetch(`${ENGAGEMENT_API_BASE}/toggle`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientToken,
-        facilityId,
-        actionType,
-      }),
-    });
-    const data = await readJsonSafe(res);
-    if (!res.ok) throw new Error(String(data?.error || "상호작용 저장 실패"));
-    return data;
+  const syncUserEngagementFromSupabase = async (targetToken = "") => {
+    try {
+      const token = targetToken || getEffectiveUserToken();
+      if (!token) return;
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const res = await fetch(`${url}/facility_action_states?client_token=eq.${encodeURIComponent(token)}&active=eq.1&select=facility_id,action_type`, {
+        headers: { "apikey": key, "Authorization": `Bearer ${key}` }
+      });
+      const rows = await res.json();
+      if (Array.isArray(rows)) {
+        rows.forEach(r => {
+          const fid = String(r.facility_id || "");
+          if (r.action_type === "like") likes.add(fid);
+          if (r.action_type === "favorite") favorites.add(fid);
+        });
+      }
+      if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
+    } catch (_err) {
+      console.warn("[Engagement Sync Error]", _err);
+    }
+  };
+  window.syncUserEngagementFromSupabase = syncUserEngagementFromSupabase;
+
+  const loadEngagementSnapshot = async () => {
+    try {
+      const res = await fetch(`${ENGAGEMENT_API_BASE}/snapshot?clientToken=${encodeURIComponent(clientToken)}`, { method: "GET" });
+      const data = await readJsonSafe(res);
+      const myLikes = Array.isArray(data?.myLikes) ? data.myLikes : [];
+      const myFavorites = Array.isArray(data?.myFavorites) ? data.myFavorites : [];
+      const clicks = data?.clickCounts && typeof data.clickCounts === "object" ? data.clickCounts : {};
+      const likesCount = data?.likeCounts && typeof data.likeCounts === "object" ? data.likeCounts : {};
+      const favoritesCount = data?.favoriteCounts && typeof data.favoriteCounts === "object" ? data.favoriteCounts : {};
+
+      myFavorites.forEach((id) => favorites.add(String(id)));
+      myLikes.forEach((id) => likes.add(String(id)));
+
+      Object.entries(clicks).forEach(([k, v]) => { clickCountsById[String(k)] = Number(v) || 0; });
+      Object.entries(likesCount).forEach(([k, v]) => { likeCountsById[String(k)] = Number(v) || 0; });
+      Object.entries(favoritesCount).forEach(([k, v]) => { favoriteCountsById[String(k)] = Number(v) || 0; });
+    } catch (_e) {}
+
+    // Also sync from Supabase
+    await syncUserEngagementFromSupabase();
+  };
+
+  const toggleEngagement = async (facilityId, actionType, forceActive = null) => {
+    const userToken = getEffectiveUserToken();
+    const setObj = actionType === "like" ? likes : favorites;
+    const willBeActive = forceActive !== null ? forceActive : !setObj.has(facilityId);
+
+    // 1. Direct Supabase Upsert (Primary)
+    try {
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      await fetch(`${url}/facility_action_states`, {
+        method: "POST",
+        headers: {
+          "apikey": key,
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({
+          client_token: userToken,
+          facility_id: String(facilityId),
+          action_type: actionType,
+          active: willBeActive ? 1 : 0,
+          updated_at: Date.now()
+        })
+      });
+    } catch (e) {
+      console.warn("[Supabase Engagement Upsert Warn]", e);
+    }
+
+    // 2. Local SQLite sync fallback
+    try {
+      await fetch(`${ENGAGEMENT_API_BASE}/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientToken: userToken, facilityId, actionType })
+      });
+    } catch (_e) {}
+
+    return { ok: true, active: willBeActive };
   };
 
   const recordFacilityClick = async (facilityId) => {
@@ -3049,8 +3122,16 @@ async function bootstrap() {
           <div style="display: flex; align-items: center; gap: 6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> <span>${telHref ? `<a href="tel:${escapeHtml(telHref)}">${safePhone}</a>` : safePhone}</span></div>
         </div>
         <div class="detailFavRow">
-          <button id="detailLikeBtn" class="detailIconBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="좋아요"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg></button>
-          <button id="detailFavBtn" class="detailIconBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="즐겨찾기"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
+          <button id="detailLikeBtn" class="detailEngagementBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="${isLiked ? "좋아요 취소" : "좋아요 추천"}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+            <span class="engBtnLabel">좋아요</span>
+            <span class="engBtnCount" id="detailLikeCount">${Number(likeCountsById[facilityId] || (isLiked ? 1 : 0))}</span>
+          </button>
+          <button id="detailFavBtn" class="detailEngagementBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="${isFavorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <span class="engBtnLabel">즐겨찾기</span>
+            <span class="engBtnCount" id="detailFavCount">${Number(favoriteCountsById[facilityId] || (isFavorite ? 1 : 0))}</span>
+          </button>
           ${bookingBtnHtml}
         </div>
         ${greetingHtml}
@@ -3476,19 +3557,37 @@ async function bootstrap() {
     const likeBtn = document.getElementById("detailLikeBtn");
     if (likeBtn) {
       likeBtn.onclick = async () => {
-        likeBtn.disabled = true;
+        const willBeActive = !likes.has(facilityId);
+
+        // 1. Instant Optimistic UI Update
+        if (willBeActive) {
+          likes.add(facilityId);
+          likeBtn.classList.add("active");
+          likeBtn.title = "좋아요 취소";
+          showToast(`❤️ <strong>${escapeHtml(point.title || "가맹점")}</strong> 매장에 좋아요를 보냈습니다!`);
+        } else {
+          likes.delete(facilityId);
+          likeBtn.classList.remove("active");
+          likeBtn.title = "좋아요 추천";
+          showToast(`🤍 <strong>${escapeHtml(point.title || "가맹점")}</strong> 좋아요를 취소했습니다.`);
+        }
+
+        const nextCount = Math.max(0, (likeCountsById[facilityId] || 0) + (willBeActive ? 1 : -1));
+        likeCountsById[facilityId] = nextCount;
+        const countEl = document.getElementById("detailLikeCount");
+        if (countEl) countEl.textContent = nextCount;
+
+        likeBtn.style.transform = "scale(1.2)";
+        setTimeout(() => { likeBtn.style.transform = ""; }, 180);
+
+        if (typeof renderRankPanel === "function") renderRankPanel();
+        if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
+
+        // 2. Background Persistence to Supabase & SQLite
         try {
-          const resp = await toggleEngagement(facilityId, "like");
-          if (resp.active) likes.add(facilityId);
-          else likes.delete(facilityId);
-          likeCountsById[facilityId] = Number(resp.count || 0);
-          renderRankPanel();
-          renderFavoritesPanel();
-          openDetailInfo(point, targetAnchor);
+          await toggleEngagement(facilityId, "like", willBeActive);
         } catch (_err) {
-          // keep UI quiet on transient network error
-        } finally {
-          likeBtn.disabled = false;
+          console.warn("[Like Sync Error]", _err);
         }
       };
     }
@@ -3496,19 +3595,37 @@ async function bootstrap() {
     const favBtn = document.getElementById("detailFavBtn");
     if (favBtn) {
       favBtn.onclick = async () => {
-        favBtn.disabled = true;
+        const willBeFav = !favorites.has(facilityId);
+
+        // 1. Instant Optimistic UI Update
+        if (willBeFav) {
+          favorites.add(facilityId);
+          favBtn.classList.add("active");
+          favBtn.title = "즐겨찾기 해제";
+          showToast(`⭐ <strong>${escapeHtml(point.title || "가맹점")}</strong> 매장을 즐겨찾기(찜)에 추가했습니다!`);
+        } else {
+          favorites.delete(facilityId);
+          favBtn.classList.remove("active");
+          favBtn.title = "즐겨찾기 등록";
+          showToast(`⭐ <strong>${escapeHtml(point.title || "가맹점")}</strong> 즐겨찾기에서 해제했습니다.`);
+        }
+
+        const nextFavCount = Math.max(0, (favoriteCountsById[facilityId] || 0) + (willBeFav ? 1 : -1));
+        favoriteCountsById[facilityId] = nextFavCount;
+        const countEl = document.getElementById("detailFavCount");
+        if (countEl) countEl.textContent = nextFavCount;
+
+        favBtn.style.transform = "scale(1.2)";
+        setTimeout(() => { favBtn.style.transform = ""; }, 180);
+
+        if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
+        if (typeof renderRankPanel === "function") renderRankPanel();
+
+        // 2. Background Persistence to Supabase & SQLite
         try {
-          const resp = await toggleEngagement(facilityId, "favorite");
-          if (resp.active) favorites.add(facilityId);
-          else favorites.delete(facilityId);
-          favoriteCountsById[facilityId] = Number(resp.count || 0);
-          renderFavoritesPanel();
-          renderRankPanel();
-          openDetailInfo(point, targetAnchor);
+          await toggleEngagement(facilityId, "favorite", willBeFav);
         } catch (_err) {
-          // keep UI quiet on transient network error
-        } finally {
-          favBtn.disabled = false;
+          console.warn("[Fav Sync Error]", _err);
         }
       };
     }
@@ -7015,6 +7132,10 @@ const MMAAuth = {
 
       this.renderNav();
       this.closeAuthModal();
+
+      if (typeof window.syncUserEngagementFromSupabase === "function") {
+        window.syncUserEngagementFromSupabase(user.id);
+      }
 
       if (type === "admin") {
         alert(`[운영 관리자 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n권한: 최고 운영 관리자 (admin)\n\n우측 상단 프로필 아이콘을 클릭하여 [관리자 통합 센터]에서 실제 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
