@@ -1,0 +1,41 @@
+name: Daily MMA Benefits Sync (매일 새벽 병무청 데이터 자동 동기화)
+
+on:
+  schedule:
+    # 매일 한국 시간(KST) 새벽 04:00 실행 (UTC 19:00)
+    - cron: '0 19 * * *'
+  workflow_dispatch: # 관리자가 필요 시 GitHub 웹에서 버튼을 눌러 즉시 실행 가능
+
+jobs:
+  sync:
+    name: Sync Nara Sarang & Myeongmunga Data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run MMA Data Sync
+        env:
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || 'sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx' }}
+        run: |
+          python scripts/sync_mma_daily.py
+
+      - name: Commit and Push if Changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "MMA Daily Sync Bot"
+          git add web/data/benefits_map.json
+          if git diff --staged --quiet; then
+            echo "No changes detected. Military benefits data is already up-to-date."
+          else
+            git commit -m "Auto-Sync: Update military benefits data from MMA API [$(date +'%Y-%m-%d %H:%M') KST]"
+            git push origin main
+            echo "Successfully updated and pushed latest benefits data."
+          fi
