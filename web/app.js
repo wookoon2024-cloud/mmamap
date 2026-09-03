@@ -4270,19 +4270,14 @@ async function bootstrap() {
   const renderRankHeadByIndex = (rows, idx) => {
     if (!rows.length) {
       if (rankTopTextEl) rankTopTextEl.textContent = "실시간 상생 랭킹";
-      if (rankTopScoreEl) rankTopScoreEl.textContent = "0";
+      if (rankTopScoreEl) rankTopScoreEl.textContent = "";
       return;
     }
     const safeIdx = ((idx % rows.length) + rows.length) % rows.length;
     const row = rows[safeIdx];
     const name = row.point.title || "-";
-    if (row.score > 0) {
-      if (rankTopTextEl) rankTopTextEl.textContent = `#${safeIdx + 1} ${name}`;
-      if (rankTopScoreEl) rankTopScoreEl.textContent = `${row.score}점`;
-    } else {
-      if (rankTopTextEl) rankTopTextEl.textContent = `#${safeIdx + 1} ${name}`;
-      if (rankTopScoreEl) rankTopScoreEl.textContent = "참여";
-    }
+    if (rankTopTextEl) rankTopTextEl.textContent = `#${safeIdx + 1} ${name}`;
+    if (rankTopScoreEl) rankTopScoreEl.textContent = "";
   };
 
   const startRankTicker = (rows) => {
@@ -4303,7 +4298,7 @@ async function bootstrap() {
     if (!rows.length) {
       stopRankTicker();
       if (rankTopTextEl) rankTopTextEl.textContent = "#1 -";
-      if (rankTopScoreEl) rankTopScoreEl.textContent = "0";
+      if (rankTopScoreEl) rankTopScoreEl.textContent = "";
       rankListEl.innerHTML = `<div class="rankEmpty">No data</div>`;
       return;
     }
@@ -4315,11 +4310,9 @@ async function bootstrap() {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "rankRow";
-      const valueText = `${row.score}`;
       btn.innerHTML = `
         <span class="rankNo">${idx + 1}</span>
         <span class="rankName">${escapeHtml(row.point.title || "Place")}</span>
-        <span class="rankVal">${escapeHtml(valueText)}</span>
       `;
       btn.addEventListener("click", () => focusFacility(row.id));
       rankListEl.appendChild(btn);

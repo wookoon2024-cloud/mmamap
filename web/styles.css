@@ -2768,9 +2768,7 @@ button:active {
 }
 
 .rankTopScore {
-  font-size: 12px;
-  font-weight: 800;
-  color: #2f6ff2;
+  display: none !important;
 }
 
 .rankTabs {
@@ -2861,12 +2859,11 @@ button:active {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
 .rankVal {
-  font-size: 12px;
-  font-weight: 800;
-  color: #2f3f60;
+  display: none !important;
 }
 
 .rankEmpty {
