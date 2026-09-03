@@ -415,6 +415,7 @@ async function bootstrap() {
   const facilities = Array.isArray(data.facilities) ? data.facilities : [];
 
   const points = [];
+  window.points = points;
   for (const f of facilities) {
     if (typeof f.lat === "number" && typeof f.lng === "number" && isValidKoreaCoord(f.lat, f.lng)) {
       points.push({
@@ -1752,11 +1753,11 @@ async function bootstrap() {
     const projection = map.getProjection?.();
     if (projection && projection.fromCoordToOffset && projection.fromOffsetToCoord) {
       const markerOffset = projection.fromCoordToOffset(latLng);
-      // Place popup balloon in the exact center of the full screen (sidebar collapsed baseline):
+      // Place popup balloon in the exact center of the full screen (assuming no sidebar):
       // - shiftX = 0 (exact horizontal center of the viewport)
-      // - shiftY = -50 (exact vertical center of the viewport)
+      // - shiftY = -230 (lowers marker down to bottom area so the popup balloon sits dead-center in the viewport)
       const shiftX = 0;
-      const shiftY = isMobile ? -40 : -50;
+      const shiftY = isMobile ? -180 : -230;
       const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x + shiftX, markerOffset.y + shiftY);
       targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
     }
@@ -2115,22 +2116,11 @@ async function bootstrap() {
       return customSettingsCache.get(facilityId);
     }
 
-    const title = point?.title || "";
-    const cat = point?.category || "";
-    let defaultPhoto = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=80";
-    if (cat.includes("병원") || cat.includes("의료") || title.includes("병원")) {
-      defaultPhoto = "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80";
-    } else if (cat.includes("교육") || cat.includes("학원") || title.includes("학원")) {
-      defaultPhoto = "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&auto=format&fit=crop&q=80";
-    } else if (cat.includes("카페") || cat.includes("커피")) {
-      defaultPhoto = "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80";
-    }
-
     const defaultSettings = {
       greetingEnabled: false,
       greetingText: "대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 편안하게 이용하세요.",
       photoEnabled: false,
-      photoUrls: [defaultPhoto],
+      photoUrls: [],
       commentsEnabled: false,
       qaEnabled: false,
       promoEnabled: false,
@@ -4592,8 +4582,8 @@ const MMAAuth = {
   openStoreCustomModalFromMenu() {
     const fid =
       this.user?.merchantFacilityId ||
-      (Array.isArray(points) && points[0]
-        ? points[0].facilityId || points[0].id || getFacilityKey(points[0])
+      (Array.isArray(window.points) && window.points[0]
+        ? window.points[0].facilityId || window.points[0].id || getFacilityKey(window.points[0])
         : "");
     if (typeof window.openStoreCustomModal === "function") {
       window.openStoreCustomModal(fid);
@@ -4603,8 +4593,8 @@ const MMAAuth = {
   openMerchantPosterModal() {
     const fid =
       this.user?.merchantFacilityId ||
-      (Array.isArray(points) && points[0]
-        ? points[0].facilityId || points[0].id || getFacilityKey(points[0])
+      (Array.isArray(window.points) && window.points[0]
+        ? window.points[0].facilityId || window.points[0].id || getFacilityKey(window.points[0])
         : "");
     if (typeof window.openPrintModal === "function") {
       window.openPrintModal(fid);
