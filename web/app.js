@@ -1999,7 +1999,63 @@ async function bootstrap() {
     });
   };
 
+  const customSettingsCache = new Map();
+  const commentsCache = new Map();
+  const qaCache = new Map();
+
+  const getSupabaseDirectConfig = () => {
+    const url = (window.MMAAuth && window.MMAAuth.getSupabaseUrl)
+      ? window.MMAAuth.getSupabaseUrl()
+      : "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+    const headers = (window.MMAAuth && window.MMAAuth.getSupabaseHeaders)
+      ? window.MMAAuth.getSupabaseHeaders()
+      : {
+          "apikey": "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx",
+          "Authorization": "Bearer sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx",
+          "Content-Type": "application/json"
+        };
+    return { url, headers };
+  };
+
+  const fetchStoreCustomSettingsFromSupabase = async (facilityId) => {
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      const res = await fetch(`${url}/facility_custom_settings?facility_id=eq.${encodeURIComponent(facilityId)}`, { headers });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const row = rows[0];
+          const settings = {
+            greetingEnabled: !!row.greeting_enabled,
+            greetingText: row.greeting_text || "",
+            photoEnabled: !!row.photo_enabled,
+            photoUrls: Array.isArray(row.photo_urls) ? row.photo_urls : (typeof row.photo_urls === "string" ? JSON.parse(row.photo_urls) : []),
+            commentsEnabled: !!row.comments_enabled,
+            qaEnabled: !!row.qa_enabled,
+            promoEnabled: !!row.promo_enabled,
+            promoText: row.promo_text || "",
+            hoursEnabled: !!row.hours_enabled,
+            hoursText: row.hours_text || "",
+            snsEnabled: !!row.sns_enabled,
+            snsUrl: row.sns_url || ""
+          };
+          customSettingsCache.set(facilityId, settings);
+          try {
+            localStorage.setItem(getStoreCustomKey(facilityId), JSON.stringify(settings));
+          } catch (_e) {}
+          return settings;
+        }
+      }
+    } catch (err) {
+      console.warn("[Supabase Custom Settings Fetch Warn]", err);
+    }
+    return null;
+  };
+
   const getStoreCustomSettings = (facilityId, point = null) => {
+    if (customSettingsCache.has(facilityId)) {
+      return customSettingsCache.get(facilityId);
+    }
     try {
       const raw = localStorage.getItem(getStoreCustomKey(facilityId));
       if (raw) {
@@ -2007,6 +2063,7 @@ async function bootstrap() {
         if (parsed && !Array.isArray(parsed.photoUrls)) {
           parsed.photoUrls = parsed.photoUrl ? [parsed.photoUrl] : [];
         }
+        customSettingsCache.set(facilityId, parsed);
         return parsed;
       }
     } catch (_e) {}
@@ -2022,7 +2079,7 @@ async function bootstrap() {
       defaultPhoto = "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80";
     }
 
-    return {
+    const defaultSettings = {
       greetingEnabled: false,
       greetingText: "대한민국을 수호하는 자랑스러운 청년 장병 및 병역명문가 여러분을 진심으로 환영합니다! 편안하게 이용하세요.",
       photoEnabled: false,
@@ -2036,20 +2093,90 @@ async function bootstrap() {
       snsEnabled: false,
       snsUrl: "",
     };
+    return defaultSettings;
   };
 
-  const saveStoreCustomSettings = (facilityId, settings) => {
+  const saveStoreCustomSettings = async (facilityId, settings) => {
+    customSettingsCache.set(facilityId, settings);
     try {
       localStorage.setItem(getStoreCustomKey(facilityId), JSON.stringify(settings));
     } catch (_e) {}
+
+    // 100% Direct Supabase PostgreSQL Upsert
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      const upsertHeaders = {
+        ...headers,
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      };
+
+      const payload = {
+        facility_id: String(facilityId),
+        greeting_enabled: !!settings.greetingEnabled,
+        greeting_text: settings.greetingText || "",
+        photo_enabled: !!settings.photoEnabled,
+        photo_urls: settings.photoUrls || [],
+        comments_enabled: !!settings.commentsEnabled,
+        qa_enabled: !!settings.qaEnabled,
+        promo_enabled: !!settings.promoEnabled,
+        promo_text: settings.promoText || "",
+        hours_enabled: !!settings.hoursEnabled,
+        hours_text: settings.hoursText || "",
+        sns_enabled: !!settings.snsEnabled,
+        sns_url: settings.snsUrl || "",
+        updated_at: new Date().toISOString()
+      };
+
+      await fetch(`${url}/facility_custom_settings`, {
+        method: "POST",
+        headers: upsertHeaders,
+        body: JSON.stringify(payload)
+      });
+      console.log(`[Supabase Direct] Facility custom settings persisted for ${facilityId}`);
+    } catch (err) {
+      console.error("[Supabase Direct Save Custom Settings Error]", err);
+    }
   };
 
   const getStoreCommentsKey = (facilityId) => `mma_store_comments_${facilityId}`;
 
+  const fetchStoreCommentsFromSupabase = async (facilityId) => {
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      const res = await fetch(`${url}/facility_comments?facility_id=eq.${encodeURIComponent(facilityId)}&order=id.desc`, { headers });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const list = rows.map((r) => ({
+            id: r.id,
+            author: r.author,
+            text: r.text,
+            date: r.created_at
+          }));
+          commentsCache.set(facilityId, list);
+          try {
+            localStorage.setItem(getStoreCommentsKey(facilityId), JSON.stringify(list));
+          } catch (_e) {}
+          return list;
+        }
+      }
+    } catch (err) {
+      console.warn("[Supabase Comments Fetch Warn]", err);
+    }
+    return null;
+  };
+
   const getStoreComments = (facilityId) => {
+    if (commentsCache.has(facilityId)) {
+      return commentsCache.get(facilityId);
+    }
     try {
       const raw = localStorage.getItem(getStoreCommentsKey(facilityId));
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const list = JSON.parse(raw);
+        commentsCache.set(facilityId, list);
+        return list;
+      }
     } catch (_e) {}
     return [
       {
@@ -2065,21 +2192,74 @@ async function bootstrap() {
     ];
   };
 
-  const addStoreComment = (facilityId, comment) => {
+  const addStoreComment = async (facilityId, comment) => {
     const list = getStoreComments(facilityId);
     list.unshift(comment);
+    commentsCache.set(facilityId, list);
     try {
       localStorage.setItem(getStoreCommentsKey(facilityId), JSON.stringify(list));
     } catch (_e) {}
+
+    // Direct Supabase REST Insert
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      await fetch(`${url}/facility_comments`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          facility_id: String(facilityId),
+          author: comment.author || "방문자",
+          text: comment.text || "",
+          created_at: comment.date || new Date().toISOString().slice(0, 10).replace(/-/g, ".")
+        })
+      });
+      console.log(`[Supabase Direct] Comment inserted for ${facilityId}`);
+    } catch (err) {
+      console.error("[Supabase Direct Comment Insert Error]", err);
+    }
     return list;
   };
 
   const getStoreQaKey = (facilityId) => `mma_store_qa_${facilityId}`;
 
+  const fetchStoreQaFromSupabase = async (facilityId) => {
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      const res = await fetch(`${url}/facility_qa?facility_id=eq.${encodeURIComponent(facilityId)}&order=id.desc`, { headers });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const list = rows.map((r) => ({
+            id: r.id,
+            q: r.question,
+            author: r.author,
+            a: r.answer || "",
+            date: r.created_at
+          }));
+          qaCache.set(facilityId, list);
+          try {
+            localStorage.setItem(getStoreQaKey(facilityId), JSON.stringify(list));
+          } catch (_e) {}
+          return list;
+        }
+      }
+    } catch (err) {
+      console.warn("[Supabase QA Fetch Warn]", err);
+    }
+    return null;
+  };
+
   const getStoreQaList = (facilityId) => {
+    if (qaCache.has(facilityId)) {
+      return qaCache.get(facilityId);
+    }
     try {
       const raw = localStorage.getItem(getStoreQaKey(facilityId));
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const list = JSON.parse(raw);
+        qaCache.set(facilityId, list);
+        return list;
+      }
     } catch (_e) {}
     return [
       {
@@ -2097,12 +2277,32 @@ async function bootstrap() {
     ];
   };
 
-  const addStoreQa = (facilityId, qaItem) => {
+  const addStoreQa = async (facilityId, qaItem) => {
     const list = getStoreQaList(facilityId);
     list.unshift(qaItem);
+    qaCache.set(facilityId, list);
     try {
       localStorage.setItem(getStoreQaKey(facilityId), JSON.stringify(list));
     } catch (_e) {}
+
+    // Direct Supabase REST Insert
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      await fetch(`${url}/facility_qa`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          facility_id: String(facilityId),
+          question: qaItem.q || "",
+          author: qaItem.author || "방문자",
+          answer: qaItem.a || "",
+          created_at: qaItem.date || new Date().toISOString().slice(0, 10).replace(/-/g, ".")
+        })
+      });
+      console.log(`[Supabase Direct] QA inserted for ${facilityId}`);
+    } catch (err) {
+      console.error("[Supabase Direct QA Insert Error]", err);
+    }
     return list;
   };
 
@@ -2259,6 +2459,27 @@ async function bootstrap() {
 
     if (backdrop) backdrop.classList.remove("hidden");
     if (modal) modal.classList.remove("hidden");
+
+    // Fetch latest remote settings from Supabase
+    fetchStoreCustomSettingsFromSupabase(facilityId).then((remote) => {
+      if (remote && currentCustomPoint && getFacilityKey(currentCustomPoint) === facilityId) {
+        if (tgGreeting) tgGreeting.checked = !!remote.greetingEnabled;
+        if (txtGreeting) txtGreeting.value = remote.greetingText || "";
+        if (tgPhoto) tgPhoto.checked = !!remote.photoEnabled;
+        if (tgComments) tgComments.checked = !!remote.commentsEnabled;
+        if (tgQa) tgQa.checked = !!remote.qaEnabled;
+        if (tgPromo) tgPromo.checked = !!remote.promoEnabled;
+        if (txtPromo) txtPromo.value = remote.promoText || "";
+        if (tgHours) tgHours.checked = !!remote.hoursEnabled;
+        if (txtHours) txtHours.value = remote.hoursText || "";
+        if (tgSns) tgSns.checked = !!remote.snsEnabled;
+        if (txtSns) txtSns.value = remote.snsUrl || "";
+
+        currentCustomPhotos = Array.isArray(remote.photoUrls) ? [...remote.photoUrls] : [];
+        renderCustomPhotoThumbs();
+        updateVisibility();
+      }
+    });
   };
   window.openStoreCustomModal = openStoreCustomModal;
 
@@ -2325,10 +2546,34 @@ async function bootstrap() {
       `
       : "";
 
-    // Load store customizations, comments, and Q&A
+    // Load store customizations, comments, and Q&A (Cached / Instant local fallback)
     const custom = getStoreCustomSettings(facilityId, point);
     const comments = getStoreComments(facilityId);
     const qaList = getStoreQaList(facilityId);
+
+    // Background Supabase Sync for cross-device realtime consistency
+    if (!customSettingsCache.has(facilityId)) {
+      fetchStoreCustomSettingsFromSupabase(facilityId).then((remote) => {
+        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor) {
+          openDetailInfo(point, selectedDetailAnchor);
+        }
+      });
+    }
+    if (!commentsCache.has(facilityId)) {
+      fetchStoreCommentsFromSupabase(facilityId).then((remote) => {
+        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor && isCommentsFlyoutOpen) {
+          openDetailInfo(point, selectedDetailAnchor);
+        }
+      });
+    }
+    if (!qaCache.has(facilityId)) {
+      fetchStoreQaFromSupabase(facilityId).then((remote) => {
+        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor && isQaFlyoutOpen) {
+          openDetailInfo(point, selectedDetailAnchor);
+        }
+      });
+    }
+
     const photos = Array.isArray(custom.photoUrls)
       ? custom.photoUrls.filter(Boolean)
       : custom.photoUrl
@@ -3682,7 +3927,7 @@ async function bootstrap() {
 
   const btnSaveStoreCustom = document.getElementById("btnSaveStoreCustom");
   if (btnSaveStoreCustom) {
-    btnSaveStoreCustom.addEventListener("click", () => {
+    btnSaveStoreCustom.addEventListener("click", async () => {
       if (!currentCustomPoint) return;
       const fid = getFacilityKey(currentCustomPoint);
 
@@ -3713,7 +3958,7 @@ async function bootstrap() {
         snsUrl: txtSns ? txtSns.value.trim() : "",
       };
 
-      saveStoreCustomSettings(fid, settings);
+      await saveStoreCustomSettings(fid, settings);
       alert("우리 매장 페이지 설정이 저장되었습니다! 팝업에 즉시 반영됩니다.");
       closeStoreCustomModal();
 
