@@ -5563,19 +5563,28 @@ const MMAAuth = {
       const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
       const startOfMonthMs = startOfMonth.getTime();
 
-      const recentAllRes = await fetch(`${url}/page_visits?select=id,visited_at,device_type,path,referrer,user_role,ip_hash&order=visited_at.desc&limit=1000`, { headers });
+      const recentAllRes = await fetch(`${url}/page_visits?select=id,visited_at,device_type,path,referrer,user_role,ip_hash,user_agent_short&order=visited_at.desc&limit=1000`, { headers });
       const recentList = (await recentAllRes.json()) || [];
+
+      // Helper for true unique visitor identification
+      const getVisitorKey = (r) => {
+        const hash = (r.ip_hash || "").trim();
+        if (hash) return hash;
+        const ua = (r.user_agent_short || "").trim();
+        if (ua) return `ua_${ua.substring(0, 50)}`;
+        return "legacy_dev_browser";
+      };
 
       // Real today and month counts & real unique visitors (UV)
       const todayRows = Array.isArray(recentList) ? recentList.filter(r => (Number(r.visited_at) || 0) >= startOfTodayMs) : [];
       const todayPv = todayRows.length;
-      const todayUv = new Set(todayRows.map(r => r.ip_hash || r.id || r.visited_at)).size;
+      const todayUv = new Set(todayRows.map(getVisitorKey)).size;
 
       const monthRows = Array.isArray(recentList) ? recentList.filter(r => (Number(r.visited_at) || 0) >= startOfMonthMs) : [];
       const monthPv = monthRows.length;
-      const monthUv = new Set(monthRows.map(r => r.ip_hash || r.id || r.visited_at)).size;
+      const monthUv = new Set(monthRows.map(getVisitorKey)).size;
 
-      const totalUv = Array.isArray(recentList) ? new Set(recentList.map(r => r.ip_hash || r.id || r.visited_at)).size : 0;
+      const totalUv = Array.isArray(recentList) ? new Set(recentList.map(getVisitorKey)).size : 0;
 
       // Real Device breakdown
       const devices = { mobile: 0, desktop: 0, tablet: 0 };
@@ -5621,7 +5630,7 @@ const MMAAuth = {
           const dateKey = `${m}.${day}`;
           if (dayMap[dateKey]) {
             dayMap[dateKey].pv++;
-            dayMap[dateKey].uvSet.add(r.ip_hash || r.id || String(vTime));
+            dayMap[dateKey].uvSet.add(getVisitorKey(r));
           }
         });
       }
