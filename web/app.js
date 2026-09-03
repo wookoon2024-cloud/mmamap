@@ -6081,6 +6081,9 @@ const MMAAuth = {
             </td>
             <td style="text-align: center;">
               <div class="facActionBtns">
+                <button type="button" class="facActionBtn statsBtn" onclick="window.MMAAuth.openMerchantStatsModal('${this.escapeHtml(f.facilityId)}')" title="매장 실시간 상생 통계 보기" style="background:#f0fdf4; color:#166534; border: 1px solid #bbf7d0;">
+                  통계 보기
+                </button>
                 <button type="button" class="facActionBtn mapBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도 위치로 이동">
                   지도 보기
                 </button>
@@ -6339,9 +6342,242 @@ const MMAAuth = {
     }
   },
 
-  async openMerchantStatsModal() {
+  async fetchSupabaseStoreStats(facilityId) {
+    try {
+      const url = this.getSupabaseUrl();
+      const headers = this.getSupabaseHeaders();
+      const fid = String(facilityId || "").trim();
+
+      // Find store meta from window.points or fallback
+      let store = null;
+      if (Array.isArray(window.points)) {
+        store = window.points.find(p => (p.facilityId || p.facility_id || p.id) === fid);
+      }
+
+      const storeName = store ? (store.title || store.name) : (fid === this.user?.merchantFacilityId ? this.user.merchantFacilityName : fid);
+      const storeCategory = store ? (store.subtitle || store.category || "가맹점") : "가맹점";
+      const storeAddress = store ? (store.address || "") : "";
+      const storePhone = store ? (store.phone || "") : "";
+
+      const startOfTodayMs = new Date().setHours(0, 0, 0, 0);
+      const startOfMonthMs = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+      const fourteenDaysAgoMs = startOfTodayMs - 13 * 86400000;
+
+      // 1. Direct page visits for this store from Supabase page_visits
+      const pvRes = await fetch(`${url}/page_visits?path=like.*${encodeURIComponent(fid)}*&select=id,visited_at,device_type`, { headers });
+      const pvList = (await pvRes.json()) || [];
+      const totalPv = Array.isArray(pvList) ? pvList.length : 0;
+      const todayPv = Array.isArray(pvList) ? pvList.filter(p => (Number(p.visited_at) || 0) >= startOfTodayMs).length : 0;
+      const monthPv = Array.isArray(pvList) ? pvList.filter(p => (Number(p.visited_at) || 0) >= startOfMonthMs).length : 0;
+
+      // 2. QR scans from Supabase qr_scan_events
+      const qrRes = await fetch(`${url}/qr_scan_events?facility_id=eq.${encodeURIComponent(fid)}&select=event_id,created_at,source,is_indirect,parent_facility_id`, { headers });
+      const qrList = (await qrRes.json()) || [];
+      const directQrList = Array.isArray(qrList) ? qrList.filter(q => Number(q.is_indirect) !== 1) : [];
+      const indirectQrList = Array.isArray(qrList) ? qrList.filter(q => Number(q.is_indirect) === 1) : [];
+
+      const totalDirectScans = directQrList.length + totalPv;
+      const todayDirectScans = directQrList.filter(q => (Number(q.created_at) || 0) >= startOfTodayMs).length + todayPv;
+      const monthDirectScans = directQrList.filter(q => (Number(q.created_at) || 0) >= startOfMonthMs).length + monthPv;
+
+      const totalIndirect = indirectQrList.length;
+      const todayIndirect = indirectQrList.filter(q => (Number(q.created_at) || 0) >= startOfTodayMs).length;
+      const monthIndirect = indirectQrList.filter(q => (Number(q.created_at) || 0) >= startOfMonthMs).length;
+      const totalReach = totalDirectScans + totalIndirect;
+
+      // 3. Comments and QA count from Supabase
+      let totalComments = 0;
+      try {
+        const cRes = await fetch(`${url}/facility_comments?facility_id=like.*${encodeURIComponent(fid)}*&select=count`, { headers });
+        const cData = await cRes.json();
+        totalComments = (cData && cData[0] && typeof cData[0].count === "number") ? cData[0].count : 0;
+      } catch (_e) {}
+
+      // 4. Likes & Favorites from local state and Supabase
+      let totalLikes = 0;
+      let totalFavs = 0;
+      try {
+        const actRes = await fetch(`${url}/facility_action_states?facility_id=eq.${encodeURIComponent(fid)}&active=eq.1&select=action_type`, { headers });
+        const acts = (await actRes.json()) || [];
+        if (Array.isArray(acts)) {
+          totalLikes = acts.filter(a => a.action_type === "like").length;
+          totalFavs = acts.filter(a => a.action_type === "favorite").length;
+        }
+      } catch (_e) {}
+
+      if (window.MMALikes && window.MMALikes.has(fid)) totalLikes = Math.max(totalLikes, 1);
+      if (window.MMAFavorites && window.MMAFavorites.has(fid)) totalFavs = Math.max(totalFavs, 1);
+
+      // 5. 14-day Daily Chart
+      const dailyMap = {};
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(startOfTodayMs - i * 86400000);
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateKey = `${m}.${day}`;
+        dailyMap[dateKey] = { date: dateKey, count: 0, directCount: 0, indirectCount: 0 };
+      }
+
+      if (Array.isArray(pvList)) {
+        pvList.forEach(p => {
+          const vTime = Number(p.visited_at) || 0;
+          if (vTime >= fourteenDaysAgoMs) {
+            const d = new Date(vTime);
+            const key = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+            if (dailyMap[key]) {
+              dailyMap[key].directCount++;
+              dailyMap[key].count++;
+            }
+          }
+        });
+      }
+
+      if (Array.isArray(qrList)) {
+        qrList.forEach(q => {
+          const cTime = Number(q.created_at) || 0;
+          if (cTime >= fourteenDaysAgoMs) {
+            const d = new Date(cTime);
+            const key = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+            if (dailyMap[key]) {
+              if (Number(q.is_indirect) === 1) {
+                dailyMap[key].indirectCount++;
+              } else {
+                dailyMap[key].directCount++;
+              }
+              dailyMap[key].count++;
+            }
+          }
+        });
+      }
+
+      const daily = Object.values(dailyMap);
+
+      // 6. Mutual Partner Stores
+      const partnerCounts = {};
+      indirectQrList.forEach(q => {
+        const pid = String(q.parent_facility_id || "").trim();
+        if (pid) partnerCounts[pid] = (partnerCounts[pid] || 0) + 1;
+      });
+      const mutualPartners = Object.entries(partnerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([pid, cnt]) => {
+          const pStore = Array.isArray(window.points) ? window.points.find(p => (p.facility_id || p.id) === pid) : null;
+          return {
+            partnerId: pid,
+            partnerName: pStore ? (pStore.name || pStore.title) : "이웃 가맹점",
+            partnerCategory: pStore ? (pStore.category || "가맹점") : "가맹점",
+            count: cnt
+          };
+        });
+
+      // 7. Sources breakdown
+      const sources = { poster: 0, table_stand: 0, door_hanger: 0, mobile_landing: 0 };
+      if (Array.isArray(qrList)) {
+        qrList.forEach(q => {
+          const s = String(q.source || "poster").toLowerCase();
+          if (sources[s] !== undefined) sources[s]++;
+          else sources.poster++;
+        });
+      }
+      if (totalPv > 0) {
+        sources.mobile_landing += totalPv;
+      }
+
+      return {
+        ok: true,
+        facilityId: fid,
+        storeName,
+        storeCategory,
+        storeAddress,
+        storePhone,
+        stats: {
+          totalScans: totalDirectScans,
+          indirectExposures: totalIndirect,
+          totalMutualReach: totalReach,
+          todayScans: todayDirectScans,
+          todayIndirect,
+          monthScans: monthDirectScans,
+          monthIndirect,
+          totalLikes,
+          totalFavorites: totalFavs,
+          totalComments,
+          daily,
+          mutualPartners,
+          sources
+        }
+      };
+    } catch (err) {
+      console.error("[Supabase Store Stats Error]", err);
+      return null;
+    }
+  },
+
+  onMerchantStoreSearchInput(query) {
+    const resultsEl = document.getElementById("merchantStoreSearchResults");
+    if (!resultsEl) return;
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) {
+      resultsEl.classList.add("hidden");
+      resultsEl.innerHTML = "";
+      return;
+    }
+    const points = Array.isArray(window.points) ? window.points : [];
+    const matched = points.filter(p => 
+      (p.title || p.name || "").toLowerCase().includes(q) ||
+      (p.address || "").toLowerCase().includes(q) ||
+      (p.subtitle || p.category || "").toLowerCase().includes(q)
+    ).slice(0, 15);
+
+    if (matched.length === 0) {
+      resultsEl.innerHTML = `<div style="padding: 10px; font-size: 12px; color: #94a3b8; text-align: center;">검색 결과가 없습니다.</div>`;
+      resultsEl.classList.remove("hidden");
+      return;
+    }
+
+    resultsEl.innerHTML = matched.map(p => {
+      const fid = p.facilityId || p.facility_id || p.id;
+      const name = this.escapeHtml(p.title || p.name || "");
+      const addr = this.escapeHtml(p.address || "");
+      const cat = this.escapeHtml(p.subtitle || p.category || "가맹점");
+      return `
+        <div style="padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
+             onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'"
+             onclick="window.MMAAuth.selectStoreForStats('${fid}')">
+          <div>
+            <strong style="font-size: 13px; color: #0f172a;">${name}</strong>
+            <span style="font-size: 11px; color: #64748b; margin-left: 6px;">(${cat})</span>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${addr}</div>
+          </div>
+          <button type="button" style="font-size: 11.5px; font-weight: 600; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 4px 8px; cursor: pointer;">통계 보기</button>
+        </div>
+      `;
+    }).join("");
+    resultsEl.classList.remove("hidden");
+  },
+
+  selectStoreForStats(facilityId) {
+    const resultsEl = document.getElementById("merchantStoreSearchResults");
+    if (resultsEl) resultsEl.classList.add("hidden");
+    const searchInput = document.getElementById("merchantStoreSearchInput");
+    if (searchInput) searchInput.value = "";
+    this.openMerchantStatsModal(facilityId);
+  },
+
+  resetMerchantStatsToMyStore() {
+    const searchInput = document.getElementById("merchantStoreSearchInput");
+    if (searchInput) searchInput.value = "";
+    const fid = this.user?.merchantFacilityId || "nara_3218";
+    this.openMerchantStatsModal(fid);
+  },
+
+  async openMerchantStatsModal(customFacilityId = "") {
     if (typeof closeIntroPopup === "function") closeIntroPopup(false);
-    if (!this.user || this.user.role !== "merchant") return;
+    
+    // Allow merchant, admin, or any tester
+    const targetFid = customFacilityId || this.currentStatsFacilityId || this.user?.merchantFacilityId || "nara_3218";
+    this.currentStatsFacilityId = targetFid;
+
     const backdrop = document.getElementById("merchantStatsBackdrop");
     const modal = document.getElementById("merchantStatsModal");
     if (!backdrop || !modal) return;
@@ -6349,34 +6585,10 @@ const MMAAuth = {
     backdrop.classList.remove("hidden");
     modal.classList.remove("hidden");
 
-    try {
-      const res = await fetch("/api/merchant/stats", {
-        headers: { Authorization: `Bearer ${this.token}` },
-      });
-      const data = await res.json();
-      if (data && data.ok) {
-        this.renderMerchantStats(data);
-      } else {
-        throw new Error(data?.message || "No API response");
-      }
-    } catch (err) {
-      this.renderMerchantStats({
-        ok: true,
-        storeName: this.user?.merchantFacilityName || "의정부성모병원 (나라사랑가게)",
-        storeCategory: "병원 · 안경점",
-        storeAddress: "경기도 의정부시 천보로 271",
-        stats: {
-          totalScans: 148,
-          indirectExposures: 520,
-          directGrowth: "+18%",
-          indirectGrowth: "+24%",
-          sources: [
-            { name: "A4 포스터 QR", count: 82, pct: 55 },
-            { name: "미니 테이블 스탠드 QR", count: 46, pct: 31 },
-            { name: "도어행거 QR", count: 20, pct: 14 }
-          ]
-        }
-      });
+    // Fetch real stats directly from Supabase
+    const data = await this.fetchSupabaseStoreStats(targetFid);
+    if (data) {
+      this.renderMerchantStats(data);
     }
   },
 
@@ -6406,40 +6618,45 @@ const MMAAuth = {
     const partnerList = document.getElementById("mutualPartnersList");
     const sourceList = document.getElementById("sourceBreakdownList");
 
-    const fid = this.user?.merchantFacilityId || "default";
-    const commentsCount = typeof getStoreComments === "function" ? getStoreComments(fid).length : 0;
-
     const stats = data.stats || {};
-    if (storeTitle) storeTitle.textContent = data.storeName || this.user.merchantFacilityName;
+    if (storeTitle) storeTitle.textContent = data.storeName || this.user?.merchantFacilityName || "가맹점";
     if (storeCat) storeCat.textContent = data.storeCategory || "가맹점";
     if (storeAddr) storeAddr.textContent = data.storeAddress || "대한민국";
 
-    if (totalEl) totalEl.innerHTML = `${stats.totalScans || 148}<small>회</small>`;
-    if (likesEl) likesEl.innerHTML = `${stats.totalLikes || 38}<small>개</small>`;
-    if (favsEl) favsEl.innerHTML = `${stats.totalFavorites || 24}<small>명</small>`;
-    if (commentsEl) commentsEl.innerHTML = `${stats.totalComments || commentsCount}<small>건</small>`;
-    if (indirectEl) indirectEl.innerHTML = `${stats.indirectExposures || 520}<small>회</small>`;
-    if (reachEl) reachEl.innerHTML = `${stats.totalMutualReach || (stats.totalScans || 148) + (stats.indirectExposures || 520)}<small>회</small>`;
+    const totalScansVal = Number(stats.totalScans) || 0;
+    const likesVal = Number(stats.totalLikes) || 0;
+    const favsVal = Number(stats.totalFavorites) || 0;
+    const commentsVal = Number(stats.totalComments) || 0;
+    const indirectVal = Number(stats.indirectExposures) || 0;
+    const reachVal = Number(stats.totalMutualReach) || (totalScansVal + indirectVal);
 
-    if (directSub) directSub.textContent = `오늘 ${stats.todayScans || 12}회`;
-    if (likesSub) likesSub.textContent = `+${stats.monthLikes || 5} 이번 달`;
-    if (favsSub) favsSub.textContent = `+${stats.monthFavs || 4} 이번 달`;
-    if (commentsSub) commentsSub.textContent = `최근 활발 소통 중`;
-    if (indirectSub) indirectSub.textContent = `오늘 ${stats.todayIndirect || 45}회`;
+    if (totalEl) totalEl.innerHTML = `${totalScansVal.toLocaleString()}<small>회</small>`;
+    if (likesEl) likesEl.innerHTML = `${likesVal.toLocaleString()}<small>개</small>`;
+    if (favsEl) favsEl.innerHTML = `${favsVal.toLocaleString()}<small>명</small>`;
+    if (commentsEl) commentsEl.innerHTML = `${commentsVal.toLocaleString()}<small>건</small>`;
+    if (indirectEl) indirectEl.innerHTML = `${indirectVal.toLocaleString()}<small>회</small>`;
+    if (reachEl) reachEl.innerHTML = `${reachVal.toLocaleString()}<small>회</small>`;
+
+    if (directSub) directSub.textContent = `오늘 ${(Number(stats.todayScans) || 0).toLocaleString()}회`;
+    if (likesSub) likesSub.textContent = `장병·회원 추천`;
+    if (favsSub) favsSub.textContent = `단골 등록자`;
+    if (commentsSub) commentsSub.textContent = commentsVal > 0 ? `소통 글 ${commentsVal}건` : `아직 등록된 후기 없음`;
+    if (indirectSub) indirectSub.textContent = `오늘 ${(Number(stats.todayIndirect) || 0).toLocaleString()}회`;
 
     // Render Daily Stacked Chart (Direct vs Indirect)
-    if (chartContainer && stats.daily) {
-      const maxCount = Math.max(...stats.daily.map((d) => d.count), 5);
+    if (chartContainer && Array.isArray(stats.daily)) {
+      const maxCount = Math.max(...stats.daily.map((d) => d.count || 0), 1);
       chartContainer.innerHTML = stats.daily
         .map((d) => {
-          const directPct = Math.round(((d.directCount || 0) / maxCount) * 100);
-          const indirectPct = Math.round(((d.indirectCount || 0) / maxCount) * 100);
+          const directPct = d.count > 0 ? Math.round(((d.directCount || 0) / d.count) * 100) : 0;
+          const indirectPct = d.count > 0 ? Math.round(((d.indirectCount || 0) / d.count) * 100) : 0;
+          const barHeightPct = d.count > 0 ? Math.max(12, Math.round((d.count / maxCount) * 100)) : 6;
           return `
             <div class="chartBarCol">
-              <span class="chartBarValue">${d.count > 0 ? d.count : ''}</span>
-              <div style="display: flex; flex-direction: column-reverse; width: 100%; max-width: 18px; height: ${Math.max(8, Math.round((d.count / maxCount) * 100))}%;">
-                <div style="background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); height: ${d.count > 0 ? Math.round((d.directCount / d.count) * 100) : 0}%; border-radius: 0 0 3px 3px;"></div>
-                <div style="background: linear-gradient(180deg, #34d399 0%, #10b981 100%); height: ${d.count > 0 ? Math.round((d.indirectCount / d.count) * 100) : 0}%; border-radius: 3px 3px 0 0;"></div>
+              <span class="chartBarValue">${d.count > 0 ? d.count : 0}</span>
+              <div style="display: flex; flex-direction: column-reverse; width: 100%; max-width: 18px; height: ${barHeightPct}%;">
+                <div style="background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); height: ${directPct}%; border-radius: 0 0 3px 3px;"></div>
+                <div style="background: linear-gradient(180deg, #34d399 0%, #10b981 100%); height: ${indirectPct}%; border-radius: 3px 3px 0 0;"></div>
               </div>
               <span class="chartBarLabel">${d.date}</span>
             </div>
@@ -6468,8 +6685,8 @@ const MMAAuth = {
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 12px; font-weight: 800; color: #2563eb; background: #eff6ff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">${idx + 1}</span>
                 <div>
-                  <strong style="font-size: 13.5px; color: #1e293b;">${escapeHtml(p.partnerName)}</strong>
-                  <span style="font-size: 11px; color: #64748b; margin-left: 4px;">(${escapeHtml(p.partnerCategory)})</span>
+                  <strong style="font-size: 13.5px; color: #1e293b;">${this.escapeHtml(p.partnerName)}</strong>
+                  <span style="font-size: 11px; color: #64748b; margin-left: 4px;">(${this.escapeHtml(p.partnerCategory)})</span>
                 </div>
               </div>
               <span style="font-weight: 700; color: #059669; font-size: 13px;">${p.count}회 상생 노출</span>
@@ -6480,24 +6697,24 @@ const MMAAuth = {
     }
 
     // Render Source Breakdown
-    if (sourceList && stats.sources) {
-      const src = stats.sources;
+    if (sourceList) {
+      const src = stats.sources || { poster: 0, table_stand: 0, door_hanger: 0, mobile_landing: 0 };
       sourceList.innerHTML = `
         <div class="sourceItem">
           <strong>🖼️ A4 상생 포스터</strong>
-          <span>${src.poster || 0}회</span>
+          <span>${(src.poster || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
           <strong>📐 미니 테이블 스탠드</strong>
-          <span>${src.table_stand || 0}회</span>
+          <span>${(src.table_stand || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
           <strong>🚪 도어행거 (문고리형)</strong>
-          <span>${src.door_hanger || 0}회</span>
+          <span>${(src.door_hanger || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
           <strong>📱 모바일 안내 페이지 연계</strong>
-          <span>${src.mobile_landing || 0}회</span>
+          <span>${(src.mobile_landing || 0).toLocaleString()}회</span>
         </div>
       `;
     }
