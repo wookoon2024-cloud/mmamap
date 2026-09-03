@@ -401,13 +401,13 @@ async function bootstrap() {
   await loadNaverMapScript();
 
   const map = new naver.maps.Map("map", {
-    center: new naver.maps.LatLng(36.3623, 127.3849),
+    center: new naver.maps.LatLng(37.5665, 126.978),
     zoom: 14,
     mapTypeId: naver.maps.MapTypeId.NORMAL,
   });
   window.naverMap = map;
 
-  const defaultCenter = new naver.maps.LatLng(36.3623, 127.3849);
+  const defaultCenter = new naver.maps.LatLng(37.5665, 126.978);
   const defaultZoom = 14;
 
   const res = await fetch(DATA_URL);
@@ -939,9 +939,6 @@ async function bootstrap() {
     }
     if (introPopupEl) introPopupEl.classList.add("hidden");
     if (introBackdropEl) introBackdropEl.classList.add("hidden");
-    if (typeof updateCurrentLocationMarker === "function") {
-      updateCurrentLocationMarker(36.3623, 127.3849, true);
-    }
   };
 
   const openIntroPopup = async () => {
@@ -3821,17 +3818,28 @@ async function bootstrap() {
     };
   };
 
-  const DAEJEON_GOV_COMPLEX = {
-    lat: 36.3623,
-    lng: 127.3849,
-    name: "정부대전청사"
-  };
-
   async function getCurrentStartLocation() {
     if (currentUserLatLng && typeof currentUserLatLng.lat === "function") {
-      return { lat: currentUserLatLng.lat(), lng: currentUserLatLng.lng(), isMyLocation: true, name: "정부대전청사" };
+      return { lat: currentUserLatLng.lat(), lng: currentUserLatLng.lng(), isMyLocation: true, name: "내 위치" };
     }
-    return { lat: DAEJEON_GOV_COMPLEX.lat, lng: DAEJEON_GOV_COMPLEX.lng, isMyLocation: true, name: "정부대전청사" };
+    if (navigator.geolocation) {
+      try {
+        const geoPromise = new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 2000, enableHighAccuracy: true });
+        });
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("geo_timeout")), 2000));
+        const pos = await Promise.race([geoPromise, timeoutPromise]);
+        if (pos && pos.coords) {
+          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, false);
+          return { lat: pos.coords.latitude, lng: pos.coords.longitude, isMyLocation: true, name: "내 위치" };
+        }
+      } catch (_) {}
+    }
+    if (map && typeof map.getCenter === "function") {
+      const center = map.getCenter();
+      return { lat: center.lat(), lng: center.lng(), isMyLocation: false, name: "지도 중심" };
+    }
+    return { lat: 37.5665, lng: 126.978, isMyLocation: false, name: "지도 중심" };
   }
 
   function clearRouteGuide() {
@@ -3983,7 +3991,7 @@ async function bootstrap() {
       icon: {
         content: `
           <div style="display:flex; align-items:center; gap:5px; background:#0f172a; color:#fff; padding:5px 10px; border-radius:18px; font-size:11.5px; font-weight:800; box-shadow:0 4px 12px rgba(0,0,0,0.3); border:2px solid #fff; white-space:nowrap;">
-            <span>📍 출발 (${escapeHtml(start.name || "정부대전청사")})</span>
+            <span>📍 출발 (${escapeHtml(start.name || (start.isMyLocation ? "내 위치" : "출발지"))})</span>
           </div>
         `,
         anchor: new naver.maps.Point(36, 16)
@@ -4022,7 +4030,7 @@ async function bootstrap() {
       : Math.max(1, Math.round(durSecs / 60)) + "분";
 
     // 7. Render Floating Route Card
-    const naverNavUrl = `https://map.naver.com/v5/directions/${start.lng},${start.lat},${encodeURIComponent(start.name || "정부대전청사")}/${goal.lng},${goal.lat},${encodeURIComponent(point.title || "도착지")}/-/car`;
+    const naverNavUrl = `https://map.naver.com/v5/directions/${start.lng},${start.lat},${encodeURIComponent(start.name || (start.isMyLocation ? "내 위치" : "출발지"))}/${goal.lng},${goal.lat},${encodeURIComponent(point.title || "도착지")}/-/car`;
     
     const card = document.createElement("div");
     card.id = "routeGuideCard";
@@ -4035,7 +4043,7 @@ async function bootstrap() {
           <span class="routeGuideTag" style="font-size: 11px; color: #059669; font-weight: 800; background: #ecfdf5; padding: 2px 6px; border-radius: 4px;">실시간 주행 경로</span>
         </div>
         <div class="routeGuideLocations">
-          <span>📍 출발지 (${escapeHtml(start.name || "정부대전청사")})</span> ➔ <strong>${escapeHtml(point.title || "가맹점")}</strong>
+          <span>📍 출발지 (${escapeHtml(start.name || (start.isMyLocation ? "내 위치" : "지도 중심"))})</span> ➔ <strong>${escapeHtml(point.title || "가맹점")}</strong>
         </div>
       </div>
       <div class="routeGuideActions">
@@ -4758,10 +4766,9 @@ async function bootstrap() {
   if (btnZoomOut) btnZoomOut.addEventListener("click", () => { closeDetailPanel(); map.setZoom(map.getZoom() - 1, true); updateZoomLabel(); });
   if (zoomLevelBtn) zoomLevelBtn.addEventListener("click", () => { closeDetailPanel(); map.setCenter(defaultCenter); map.setZoom(defaultZoom, true); updateZoomLabel(); });
   const updateCurrentLocationMarker = (lat, lng, panTo = false) => {
-    // Force virtual location to Government Complex Daejeon (정부대전청사)
-    lat = DAEJEON_GOV_COMPLEX.lat;
-    lng = DAEJEON_GOV_COMPLEX.lng;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 30) return;
     currentUserLatLng = new naver.maps.LatLng(lat, lng);
+    window.currentUserLatLng = currentUserLatLng;
 
     if (!currentLocationMarker) {
       currentLocationMarker = new naver.maps.Marker({
@@ -4773,7 +4780,7 @@ async function bootstrap() {
               <div class="myLocationRipple"></div>
               <div class="myLocationRadarRing"></div>
               <div class="myLocationCoreDot"></div>
-              <div class="myLocationPinLabel">📍 현재 내 위치 (정부대전청사)</div>
+              <div class="myLocationPinLabel">📍 현재 내 위치</div>
             </div>
           `,
           anchor: new naver.maps.Point(16, 16),
@@ -4794,8 +4801,12 @@ async function bootstrap() {
     }
 
     if (panTo) {
-      map.panTo(currentUserLatLng);
-      map.setZoom(Math.max(map.getZoom(), 16), true);
+      if (typeof map.morph === "function") {
+        map.morph(currentUserLatLng, Math.max(map.getZoom(), 16));
+      } else {
+        map.setCenter(currentUserLatLng);
+        map.setZoom(Math.max(map.getZoom(), 16), true);
+      }
       updateZoomLabel();
       renderVisibleMarkers();
     }
@@ -4804,15 +4815,71 @@ async function bootstrap() {
   if (btnLocate) {
     btnLocate.addEventListener("click", () => {
       closeDetailPanel();
-      updateCurrentLocationMarker(DAEJEON_GOV_COMPLEX.lat, DAEJEON_GOV_COMPLEX.lng, true);
-      if (typeof showToast === "function") {
-        showToast("📍 가상 내 위치(정부대전청사)로 이동했습니다.");
+      if (currentUserLatLng) {
+        if (typeof map.morph === "function") {
+          map.morph(currentUserLatLng, Math.max(map.getZoom(), 16));
+        } else {
+          map.setCenter(currentUserLatLng);
+          map.setZoom(Math.max(map.getZoom(), 16), true);
+        }
+        updateZoomLabel();
+        renderVisibleMarkers();
+        if (typeof showToast === "function") {
+          showToast("📍 현재 내 위치로 이동했습니다.");
+        }
+        return;
+      }
+      if (navigator.geolocation) {
+        btnLocate.style.opacity = "0.6";
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            btnLocate.style.opacity = "1";
+            updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, true);
+            if (typeof showToast === "function") {
+              showToast("📍 현재 내 위치로 이동했습니다.");
+            }
+          },
+          () => {
+            btnLocate.style.opacity = "1";
+            alert("현재 위치를 가져오지 못했습니다. 브라우저 위치 접근 권한을 확인해 주세요.");
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
+        );
       }
     });
 
-    // Initialize virtual location marker gracefully at 정부대전청사
-    updateCurrentLocationMarker(DAEJEON_GOV_COMPLEX.lat, DAEJEON_GOV_COMPLEX.lng, false);
+    // Request location once gracefully on startup
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, false);
+        },
+        () => {},
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+      );
+    }
   }
+
+  window.moveToMyLocation = () => {
+    if (currentUserLatLng) {
+      if (typeof map.morph === "function") {
+        map.morph(currentUserLatLng, Math.max(map.getZoom(), 16));
+      } else {
+        map.setCenter(currentUserLatLng);
+        map.setZoom(Math.max(map.getZoom(), 16), true);
+      }
+      updateZoomLabel();
+      renderVisibleMarkers();
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, true);
+        },
+        () => {},
+        { enableHighAccuracy: false, timeout: 6000 }
+      );
+    }
+  };
 
   const brandLogoEl = document.getElementById("brandLogo");
   if (brandLogoEl) brandLogoEl.addEventListener("click", () => { window.location.reload(); });
