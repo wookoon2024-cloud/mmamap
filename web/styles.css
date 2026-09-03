@@ -6356,6 +6356,12 @@ button:active {
     padding: 6px 10px !important;
     gap: 4px !important;
   }
+
+  /* 10. Mobile Detail Card: Max Height strictly constrained above map controls */
+  .detailPanel.detailPanelInWindow {
+    max-height: calc(100vh - 270px) !important;
+    overflow-y: auto !important;
+  }
 }
 
 /* ============================================================

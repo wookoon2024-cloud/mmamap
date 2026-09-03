@@ -22,6 +22,7 @@ const LS_INTRO_DISMISS_KEY = "mma_map_intro_dismiss_v1";
 const LS_CLIENT_TOKEN_KEY = "mma_map_client_token_v1";
 const REVIEW_API_BASE = "/api/reviews";
 const ENGAGEMENT_API_BASE = "/api/engagement";
+const IS_STATIC_HOST = typeof window !== "undefined" && (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("github.io") || window.location.protocol === "file:");
 const CATEGORY_LEGEND_IMAGE_ORDER = ["1.png", "2.png", "3.png", "4.png", "5.png", "6.png", "7.png", "8.png", "9.png", "10.png"];
 const CATEGORY_FIXED_IMAGE_LABEL_ORDER = ["안경점", "병원", "문화", "음식점", "교육", "기타", "체육", "미용실", "카페", "주차"];
 const AUDIENCE_LEGEND_IMAGE_ORDER = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png"];
@@ -723,14 +724,16 @@ async function bootstrap() {
       console.warn("[Supabase Engagement Upsert Warn]", e);
     }
 
-    // 2. Local SQLite sync fallback
-    try {
-      await fetch(`${ENGAGEMENT_API_BASE}/toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientToken: userToken, facilityId, actionType })
-      });
-    } catch (_e) {}
+    // 2. Local SQLite sync fallback (only when local server is present)
+    if (!IS_STATIC_HOST) {
+      try {
+        await fetch(`${ENGAGEMENT_API_BASE}/toggle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientToken: userToken, facilityId, actionType })
+        });
+      } catch (_e) {}
+    }
 
     return { ok: true, active: willBeActive };
   };
@@ -761,14 +764,16 @@ async function bootstrap() {
       });
     } catch (_e) {}
 
-    // 2. Local fallback
-    try {
-      await fetch(`${ENGAGEMENT_API_BASE}/click`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientToken: userToken, facilityId: fid })
-      });
-    } catch (_e) {}
+    // 2. Local fallback (only when local server is present)
+    if (!IS_STATIC_HOST) {
+      try {
+        await fetch(`${ENGAGEMENT_API_BASE}/click`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientToken: userToken, facilityId: fid })
+        });
+      } catch (_e) {}
+    }
 
     return { ok: true, clickCount: clickCountsById[fid] };
   };
@@ -1893,7 +1898,7 @@ async function bootstrap() {
     const isMobile = window.innerWidth <= 768;
     const viewH = window.innerHeight;
     const topSafety = isMobile ? 55 : 75; // Top navigation bar safety padding
-    const bottomSafety = isMobile ? 190 : 45; // On mobile, keep popup card safely above map controls (내위치, -, +) and bottom sheet
+    const bottomSafety = isMobile ? 220 : 45; // On mobile, keep popup card strictly above map controls (내위치, -, +) and bottom sheet
 
     let actualH = 0;
     if (panelEl && typeof panelEl.offsetHeight === "number" && panelEl.offsetHeight > 50) {
@@ -1912,16 +1917,24 @@ async function bootstrap() {
       if (ben.length > 120) actualH += 60;
       else if (ben.length > 60) actualH += 30;
     }
-    if (!actualH) actualH = 460;
+    if (!actualH) actualH = 420;
 
-    actualH = Math.min(actualH, viewH - 120);
+    const maxAllowedH = viewH - topSafety - bottomSafety;
+    actualH = Math.min(actualH, Math.max(180, maxAllowedH));
 
-    const idealPopupCenterY = Math.round((topSafety + (viewH - bottomSafety)) / 2);
-    let desiredPopupTop = idealPopupCenterY - Math.round(actualH / 2);
-
-    // Guaranteed top margin: never allow popup top closer than topSafety + 15 to the top
-    if (desiredPopupTop < topSafety + 15) {
-      desiredPopupTop = topSafety + 15;
+    let desiredPopupTop;
+    if (isMobile) {
+      // On mobile, anchor bottom to (viewH - bottomSafety) to guarantee clearance above 내위치 and +/-
+      desiredPopupTop = (viewH - bottomSafety) - actualH;
+      if (desiredPopupTop < topSafety) {
+        desiredPopupTop = topSafety;
+      }
+    } else {
+      const idealPopupCenterY = Math.round((topSafety + (viewH - bottomSafety)) / 2);
+      desiredPopupTop = idealPopupCenterY - Math.round(actualH / 2);
+      if (desiredPopupTop < topSafety + 15) {
+        desiredPopupTop = topSafety + 15;
+      }
     }
 
     const desiredPopupBottom = desiredPopupTop + actualH;
@@ -5629,25 +5642,27 @@ const MMAAuth = {
       const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
       const targetPath = customPath || (window.location.pathname + window.location.search) || "/";
 
-      // 1. Try local server endpoint first
+      // 1. Try local server endpoint first (only if not on static host like Vercel)
       let logged = false;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
-        const res = await fetch("/api/analytics/visit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({
-            path: targetPath,
-            referrer: document.referrer || "",
-            device_type: deviceType,
-            user_role: this.user ? this.user.role : "guest",
-          }),
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) logged = true;
-      } catch (_e) {}
+      if (!IS_STATIC_HOST) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          const res = await fetch("/api/analytics/visit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
+            body: JSON.stringify({
+              path: targetPath,
+              referrer: document.referrer || "",
+              device_type: deviceType,
+              user_role: this.user ? this.user.role : "guest",
+            }),
+          });
+          clearTimeout(timeoutId);
+          if (res.ok) logged = true;
+        } catch (_e) {}
+      }
 
       // 2. Direct Supabase insert if local API is unreachable (e.g. on Vercel)
       if (!logged) {
@@ -5692,18 +5707,20 @@ const MMAAuth = {
       return;
     }
     let authenticated = false;
-    try {
-      const res = await fetch("/api/auth/me", {
-        headers: { Authorization: `Bearer ${this.token}` },
-      });
-      const data = await res.json();
-      if (data.ok && data.authenticated && data.user) {
-        this.user = data.user;
-        this.favorites = new Set(data.favorites || []);
-        this.likes = new Set(data.likes || []);
-        authenticated = true;
-      }
-    } catch (_err) {}
+    if (!IS_STATIC_HOST) {
+      try {
+        const res = await fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${this.token}` },
+        });
+        const data = await res.json();
+        if (data.ok && data.authenticated && data.user) {
+          this.user = data.user;
+          this.favorites = new Set(data.favorites || []);
+          this.likes = new Set(data.likes || []);
+          authenticated = true;
+        }
+      } catch (_err) {}
+    }
 
     // Direct Supabase fallback for Vercel / static hosting
     if (!authenticated && this.token) {
