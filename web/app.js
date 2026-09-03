@@ -6891,7 +6891,7 @@ const MMAAuth = {
       if (partners.length === 0) {
         partnerList.innerHTML = `
           <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 13px;">
-            🤝 주변 나라사랑가게 포스터/스탠드가 인쇄되면 여기에 상생 파트너 매장이 자동 기록됩니다.
+            주변 나라사랑가게 포스터/스탠드가 인쇄되면 여기에 상생 파트너 매장이 자동 기록됩니다.
           </div>
         `;
       } else {
@@ -6917,19 +6917,19 @@ const MMAAuth = {
       const src = stats.sources || { poster: 0, table_stand: 0, door_hanger: 0, mobile_landing: 0 };
       sourceList.innerHTML = `
         <div class="sourceItem">
-          <strong>🖼️ A4 상생 포스터</strong>
+          <strong>A4 상생 포스터</strong>
           <span>${(src.poster || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
-          <strong>📐 미니 테이블 스탠드</strong>
+          <strong>미니 테이블 스탠드</strong>
           <span>${(src.table_stand || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
-          <strong>🚪 도어행거 (문고리형)</strong>
+          <strong>도어행거 (문고리형)</strong>
           <span>${(src.door_hanger || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
-          <strong>📱 모바일 안내 페이지 연계</strong>
+          <strong>모바일 안내 페이지 연계</strong>
           <span>${(src.mobile_landing || 0).toLocaleString()}회</span>
         </div>
       `;
@@ -6949,7 +6949,7 @@ const MMAAuth = {
       if (comList.length === 0) {
         mCommentsEl.innerHTML = `
           <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;">
-            💬 아직 등록된 장병 응원 후기가 없습니다. 첫 후기를 기다리는 중입니다!
+            아직 등록된 장병 응원 후기가 없습니다. 첫 후기를 기다리는 중입니다.
           </div>
         `;
       } else {

@@ -1089,8 +1089,10 @@ button:active {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 10050;
-  width: min(780px, calc(100vw - 28px));
-  max-height: min(90vh, 850px);
+  width: min(840px, calc(100vw - 28px));
+  height: min(85vh, 760px);
+  min-height: min(85vh, 760px);
+  max-height: min(85vh, 760px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
