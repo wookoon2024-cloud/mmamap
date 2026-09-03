@@ -2863,9 +2863,10 @@ async function bootstrap() {
       window.MMAAuth?.logPageVisit?.(`/facility/${encodeURIComponent(fid)}`);
     } catch (_e) {}
     const address = normalizeTextBlock(point.address || "주소 정보 없음");
-    const phone = normalizeTextBlock(point.phone || "전화번호 정보 없음");
-    const benefit = formatBenefitText(point.benefit || "혜택 정보 없음");
-    const rawCategory = toCategoryLabel(point.category);
+    const rawBenefit = String(point.benefit || "").trim();
+    const benefit = formatBenefitText(rawBenefit || "혜택 정보 없음");
+    const rawBenefitPlain = rawBenefit.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const isLongBenefit = rawBenefitPlain.length > 55 || rawBenefit.includes("\n") || (rawBenefit.match(/<br\s*\/?>/gi) || []).length >= 2;
     const category = escapeHtml(rawCategory);
     const title = escapeHtml(point.title || "시설");
     const rawSubtitle = String(point.subtitle || "").trim();
@@ -3269,8 +3270,22 @@ async function bootstrap() {
               <td class="detailValueCell detailAudienceList">${audienceText}</td>
             </tr>
             <tr>
-              <td class="detailLabelCell">혜택 :</td>
-              <td class="detailValueCell benefitText">${benefit}</td>
+              <td class="detailLabelCell" style="${isLongBenefit ? "vertical-align: top; padding-top: 3px;" : ""}">혜택 :</td>
+              <td class="detailValueCell benefitText">
+                ${
+                  isLongBenefit
+                    ? `
+                  <div class="benefitContentWrapper collapsed" id="benefitContentWrapper">
+                    ${benefit}
+                  </div>
+                  <button type="button" class="btnBenefitToggle" id="btnBenefitToggle" aria-label="혜택 상세 더보기">
+                    <span class="btnBenefitToggleText">더보기</span>
+                    <span class="benefitToggleArrow">▼</span>
+                  </button>
+                `
+                    : benefit
+                }
+              </td>
             </tr>
           </tbody>
         </table>
@@ -3307,7 +3322,7 @@ async function bootstrap() {
         }
         openDetailInfo(point, targetAnchor);
 
-        if (isCommentsFlyoutOpen) {
+        if (isCommentsFlyoutOpen && window.innerWidth > 800) {
           setTimeout(() => {
             const panel = document.querySelector(".detailPanelInWindow");
             if (panel && typeof map !== "undefined" && map.panBy) {
@@ -3342,7 +3357,7 @@ async function bootstrap() {
         }
         openDetailInfo(point, targetAnchor);
 
-        if (isQaFlyoutOpen) {
+        if (isQaFlyoutOpen && window.innerWidth > 800) {
           setTimeout(() => {
             const panel = document.querySelector(".detailPanelInWindow");
             if (panel && typeof map !== "undefined" && map.panBy) {
@@ -3362,6 +3377,27 @@ async function bootstrap() {
       btnCloseQa.onclick = () => {
         isQaFlyoutOpen = false;
         openDetailInfo(point, targetAnchor);
+      };
+    }
+
+    // Benefit More/Collapse Toggle
+    const btnBenefitToggle = document.getElementById("btnBenefitToggle");
+    const benefitWrapper = document.getElementById("benefitContentWrapper");
+    if (btnBenefitToggle && benefitWrapper) {
+      btnBenefitToggle.onclick = (e) => {
+        e.stopPropagation();
+        const isCollapsed = benefitWrapper.classList.contains("collapsed");
+        if (isCollapsed) {
+          benefitWrapper.classList.remove("collapsed");
+          btnBenefitToggle.classList.add("expanded");
+          const label = btnBenefitToggle.querySelector(".btnBenefitToggleText");
+          if (label) label.textContent = "접기";
+        } else {
+          benefitWrapper.classList.add("collapsed");
+          btnBenefitToggle.classList.remove("expanded");
+          const label = btnBenefitToggle.querySelector(".btnBenefitToggleText");
+          if (label) label.textContent = "더보기";
+        }
       };
     }
 

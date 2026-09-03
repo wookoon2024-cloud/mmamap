@@ -6344,6 +6344,17 @@ button:active {
   .simText small {
     font-size: 9.5px !important;
   }
+
+  /* 9. Mobile Detail Card: Hide '좋아요', '즐겨찾기' text, show only icons & counts */
+  .detailEngagementBtn.like .engBtnLabel,
+  .detailEngagementBtn.fav .engBtnLabel {
+    display: none !important;
+  }
+  .detailEngagementBtn.like,
+  .detailEngagementBtn.fav {
+    padding: 6px 10px !important;
+    gap: 4px !important;
+  }
 }
 
 /* ============================================================
@@ -7545,13 +7556,80 @@ button:active {
 
 @media (max-width: 800px) {
   .storeSideFlyout {
+    position: absolute !important;
+    inset: 0 !important;
     left: 0 !important;
     top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
     border-radius: 18px !important;
-    animation: none !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    z-index: 1500 !important;
+    animation: flyoutFadeIn 0.15s ease !important;
   }
+}
+
+@keyframes flyoutFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Collapsible Benefit Section in Store Detail */
+.benefitContentWrapper {
+  position: relative;
+  transition: max-height 0.25s ease;
+}
+
+.benefitContentWrapper.collapsed {
+  max-height: 48px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+.btnBenefitToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  margin-top: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnBenefitToggle:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.benefitToggleArrow {
+  font-size: 9px;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.btnBenefitToggle.expanded .benefitToggleArrow {
+  transform: rotate(180deg);
 }
 
 .storeSideFlyout.hidden {
