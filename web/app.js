@@ -3945,8 +3945,20 @@ async function bootstrap() {
   const btnSaveStoreCustom = document.getElementById("btnSaveStoreCustom");
   if (btnSaveStoreCustom) {
     btnSaveStoreCustom.addEventListener("click", async () => {
-      if (!currentCustomPoint) return;
-      const fid = getFacilityKey(currentCustomPoint);
+      let targetPoint = currentCustomPoint;
+      if (!targetPoint && window.MMAAuth?.user?.merchantFacilityId) {
+        targetPoint = pointByFacilityKey.get(window.MMAAuth.user.merchantFacilityId) ||
+          points.find(p => String(p.facilityId || p.id) === String(window.MMAAuth.user.merchantFacilityId));
+      }
+      if (!targetPoint && Array.isArray(points) && points.length > 0) {
+        targetPoint = points.find((p) => p.sourceType === "nara_sarang_store") || points[0];
+      }
+      if (!targetPoint) {
+        alert("저장할 매장 정보를 확인할 수 없습니다.");
+        return;
+      }
+      currentCustomPoint = targetPoint;
+      const fid = getFacilityKey(targetPoint);
 
       const tgGreeting = document.getElementById("toggleGreeting");
       const txtGreeting = document.getElementById("storeGreetingText");
@@ -3975,12 +3987,38 @@ async function bootstrap() {
         snsUrl: txtSns ? txtSns.value.trim() : "",
       };
 
-      await saveStoreCustomSettings(fid, settings);
-      alert("우리 매장 페이지 설정이 저장되었습니다! 팝업에 즉시 반영됩니다.");
-      closeStoreCustomModal();
+      // 1. Immediate visual feedback
+      btnSaveStoreCustom.disabled = true;
+      btnSaveStoreCustom.textContent = "저장 중...";
+      btnSaveStoreCustom.style.opacity = "0.75";
 
-      if (selectedDetailAnchor) {
-        openDetailInfo(currentCustomPoint, selectedDetailAnchor);
+      try {
+        await saveStoreCustomSettings(fid, settings);
+        btnSaveStoreCustom.textContent = "저장 완료";
+        btnSaveStoreCustom.style.backgroundColor = "#16a34a";
+
+        setTimeout(() => {
+          btnSaveStoreCustom.disabled = false;
+          btnSaveStoreCustom.textContent = "저장";
+          btnSaveStoreCustom.style.opacity = "";
+          btnSaveStoreCustom.style.backgroundColor = "";
+          closeStoreCustomModal();
+
+          if (selectedDetailAnchor) {
+            openDetailInfo(targetPoint, selectedDetailAnchor);
+          } else if (targetPoint && (targetPoint.lat || targetPoint.lng)) {
+            if (typeof window.focusFacility === "function") {
+              window.focusFacility(targetPoint.facilityId || targetPoint.id || fid);
+            }
+          }
+        }, 500);
+      } catch (err) {
+        console.error("Store custom save error:", err);
+        btnSaveStoreCustom.disabled = false;
+        btnSaveStoreCustom.textContent = "저장";
+        btnSaveStoreCustom.style.opacity = "";
+        btnSaveStoreCustom.style.backgroundColor = "";
+        closeStoreCustomModal();
       }
     });
   }
