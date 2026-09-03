@@ -696,6 +696,9 @@ async function bootstrap() {
   };
 
   const toggleEngagement = async (facilityId, actionType, forceActive = null) => {
+    if (!window.MMAAuth?.user) {
+      return { ok: false, error: "login_required" };
+    }
     const userToken = getEffectiveUserToken();
     const setObj = actionType === "like" ? likes : favorites;
     const willBeActive = forceActive !== null ? forceActive : !setObj.has(facilityId);
@@ -3732,6 +3735,12 @@ async function bootstrap() {
     const likeBtn = document.getElementById("detailLikeBtn");
     if (likeBtn) {
       likeBtn.onclick = async () => {
+        if (!isUserLoggedIn) {
+          alert("로그인 후 이용하실 수 있습니다.");
+          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          return;
+        }
+
         const willBeActive = !likes.has(facilityId) && !(legacyKey && likes.has(legacyKey));
 
         // 1. Instant Optimistic UI Update
@@ -3757,9 +3766,6 @@ async function bootstrap() {
         const countEl = document.getElementById("detailLikeCount");
         if (countEl) countEl.textContent = nextCount;
 
-        likeBtn.style.transform = "scale(1.2)";
-        setTimeout(() => { likeBtn.style.transform = ""; }, 180);
-
         if (typeof renderRankPanel === "function") renderRankPanel();
         if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
 
@@ -3775,6 +3781,12 @@ async function bootstrap() {
     const favBtn = document.getElementById("detailFavBtn");
     if (favBtn) {
       favBtn.onclick = async () => {
+        if (!isUserLoggedIn) {
+          alert("로그인 후 이용하실 수 있습니다.");
+          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          return;
+        }
+
         const willBeFav = !favorites.has(facilityId) && !(legacyKey && favorites.has(legacyKey));
 
         // 1. Instant Optimistic UI Update
@@ -3799,9 +3811,6 @@ async function bootstrap() {
 
         const countEl = document.getElementById("detailFavCount");
         if (countEl) countEl.textContent = nextFavCount;
-
-        favBtn.style.transform = "scale(1.2)";
-        setTimeout(() => { favBtn.style.transform = ""; }, 180);
 
         if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
         if (typeof renderRankPanel === "function") renderRankPanel();
