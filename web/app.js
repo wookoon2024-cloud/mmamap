@@ -1774,6 +1774,8 @@ async function bootstrap() {
     pendingDetailPoint = point;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
     selectedFacilityId = getFacilityKey(point);
+    isCommentsFlyoutOpen = false;
+    isQaFlyoutOpen = false;
     hideDetailPanelOnly();
 
     let opened = false;
@@ -1992,6 +1994,7 @@ async function bootstrap() {
   };
 
   const addDebugLog = (msg, type = "info") => {
+    window.addDebugLog = addDebugLog;
     console.log(`[MMAMap Debug] ${msg}`);
     const list = document.getElementById("liveDebugLogList");
     if (!list) return;
@@ -2239,6 +2242,81 @@ async function bootstrap() {
     return null;
   };
 
+  const parseAuthorMeta = (rawAuthor = "") => {
+    const m = String(rawAuthor || "").match(/^(.*?)\s*\[uid:(.*?)\]\s*$/);
+    if (m) {
+      return { displayName: m[1].trim(), uid: m[2].trim() };
+    }
+    return { displayName: String(rawAuthor || "방문자").trim(), uid: "" };
+  };
+
+  const parseQuestionMeta = (rawQuestion = "") => {
+    const m = String(rawQuestion || "").match(/^\[(SECRET|PUBLIC)(?::([^\]]+))?\]\s*([\s\S]*)$/);
+    if (m) {
+      return {
+        isSecret: m[1] === "SECRET",
+        authorUid: (m[2] || "").trim(),
+        text: m[3].trim()
+      };
+    }
+    return {
+      isSecret: false,
+      authorUid: "",
+      text: String(rawQuestion || "").trim()
+    };
+  };
+
+  const isUserMerchantOfPoint = (facilityId, point = null) => {
+    const u = window.MMAAuth?.user;
+    if (!u || u.role !== "merchant") return false;
+    if (u.merchantFacilityId && (u.merchantFacilityId === facilityId || facilityId.startsWith(u.merchantFacilityId))) return true;
+    if (point && u.merchantFacilityName && point.title && u.merchantFacilityName.trim() === point.title.trim()) return true;
+    return false;
+  };
+
+  const canDeleteCommentItem = (comment, facilityId, point = null) => {
+    const u = window.MMAAuth?.user;
+    if (!u) return false;
+    if (u.role === "admin") return true;
+    if (isUserMerchantOfPoint(facilityId, point)) return true;
+    const meta = parseAuthorMeta(comment?.author);
+    if (meta.uid && (meta.uid === String(u.id) || meta.uid === String(u.phone))) return true;
+    return false;
+  };
+
+  const canDeleteQaItem = (qaItem, facilityId, point = null) => {
+    const u = window.MMAAuth?.user;
+    if (!u) return false;
+    if (u.role === "admin") return true;
+    if (isUserMerchantOfPoint(facilityId, point)) return true;
+    const qMeta = parseQuestionMeta(qaItem?.q);
+    const aMeta = parseAuthorMeta(qaItem?.author);
+    const authorUid = qMeta.authorUid || aMeta.uid;
+    if (authorUid && (authorUid === String(u.id) || authorUid === String(u.phone))) return true;
+    return false;
+  };
+
+  const canReplyQaItem = (qaItem, facilityId, point = null) => {
+    const u = window.MMAAuth?.user;
+    if (!u) return false;
+    if (u.role === "admin") return true;
+    if (isUserMerchantOfPoint(facilityId, point)) return true;
+    return false;
+  };
+
+  const canViewSecretQaItem = (qaItem, facilityId, point = null) => {
+    const qMeta = parseQuestionMeta(qaItem?.q);
+    if (!qMeta.isSecret) return true;
+    const u = window.MMAAuth?.user;
+    if (!u) return false;
+    if (u.role === "admin") return true;
+    if (isUserMerchantOfPoint(facilityId, point)) return true;
+    const aMeta = parseAuthorMeta(qaItem?.author);
+    const authorUid = qMeta.authorUid || aMeta.uid;
+    if (authorUid && (authorUid === String(u.id) || authorUid === String(u.phone))) return true;
+    return false;
+  };
+
   const getStoreComments = (facilityId) => {
     if (commentsCache.has(facilityId)) {
       return commentsCache.get(facilityId);
@@ -2248,15 +2326,19 @@ async function bootstrap() {
 
   const addStoreComment = async (facilityId, comment) => {
     const list = getStoreComments(facilityId);
+    if (!comment.id) comment.id = "temp_" + Date.now();
     list.unshift(comment);
     commentsCache.set(facilityId, list);
 
     // Direct Supabase REST Insert
     try {
       const { url, headers } = getSupabaseDirectConfig();
-      await fetch(`${url}/facility_comments`, {
+      const res = await fetch(`${url}/facility_comments`, {
         method: "POST",
-        headers,
+        headers: {
+          ...headers,
+          "Prefer": "return=representation"
+        },
         body: JSON.stringify({
           facility_id: String(facilityId),
           author: comment.author || "방문자",
@@ -2264,9 +2346,33 @@ async function bootstrap() {
           created_at: comment.date || new Date().toISOString().slice(0, 10).replace(/-/g, ".")
         })
       });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows[0]?.id) {
+          comment.id = rows[0].id;
+        }
+      }
       console.log(`[Supabase Direct] Comment inserted for ${facilityId}`);
     } catch (err) {
       console.error("[Supabase Direct Comment Insert Error]", err);
+    }
+    return list;
+  };
+
+  const deleteStoreComment = async (facilityId, commentId) => {
+    let list = getStoreComments(facilityId);
+    list = list.filter((c) => String(c.id) !== String(commentId));
+    commentsCache.set(facilityId, list);
+
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      await fetch(`${url}/facility_comments?id=eq.${encodeURIComponent(commentId)}`, {
+        method: "DELETE",
+        headers
+      });
+      console.log(`[Supabase Direct] Comment deleted id=${commentId}`);
+    } catch (err) {
+      console.error("[Supabase Direct Comment Delete Error]", err);
     }
     return list;
   };
@@ -2306,15 +2412,19 @@ async function bootstrap() {
 
   const addStoreQa = async (facilityId, qaItem) => {
     const list = getStoreQaList(facilityId);
+    if (!qaItem.id) qaItem.id = "temp_" + Date.now();
     list.unshift(qaItem);
     qaCache.set(facilityId, list);
 
     // Direct Supabase REST Insert
     try {
       const { url, headers } = getSupabaseDirectConfig();
-      await fetch(`${url}/facility_qa`, {
+      const res = await fetch(`${url}/facility_qa`, {
         method: "POST",
-        headers,
+        headers: {
+          ...headers,
+          "Prefer": "return=representation"
+        },
         body: JSON.stringify({
           facility_id: String(facilityId),
           question: qaItem.q || "",
@@ -2323,9 +2433,57 @@ async function bootstrap() {
           created_at: qaItem.date || new Date().toISOString().slice(0, 10).replace(/-/g, ".")
         })
       });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows[0]?.id) {
+          qaItem.id = rows[0].id;
+        }
+      }
       console.log(`[Supabase Direct] QA inserted for ${facilityId}`);
     } catch (err) {
       console.error("[Supabase Direct QA Insert Error]", err);
+    }
+    return list;
+  };
+
+  const deleteStoreQa = async (facilityId, qaId) => {
+    let list = getStoreQaList(facilityId);
+    list = list.filter((q) => String(q.id) !== String(qaId));
+    qaCache.set(facilityId, list);
+
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      await fetch(`${url}/facility_qa?id=eq.${encodeURIComponent(qaId)}`, {
+        method: "DELETE",
+        headers
+      });
+      console.log(`[Supabase Direct] QA deleted id=${qaId}`);
+    } catch (err) {
+      console.error("[Supabase Direct QA Delete Error]", err);
+    }
+    return list;
+  };
+
+  const replyStoreQa = async (facilityId, qaId, answerText) => {
+    const list = getStoreQaList(facilityId);
+    const target = list.find((q) => String(q.id) === String(qaId));
+    if (target) {
+      target.a = answerText;
+    }
+    qaCache.set(facilityId, list);
+
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      await fetch(`${url}/facility_qa?id=eq.${encodeURIComponent(qaId)}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          answer: answerText
+        })
+      });
+      console.log(`[Supabase Direct] QA answered id=${qaId}`);
+    } catch (err) {
+      console.error("[Supabase Direct QA Reply Error]", err);
     }
     return list;
   };
@@ -2681,6 +2839,14 @@ async function bootstrap() {
       `;
     }
 
+    // Current user context
+    const currentUser = window.MMAAuth?.user || null;
+    const isUserLoggedIn = !!currentUser;
+    const userDisplayName = currentUser ? (currentUser.nickname || currentUser.name || "회원") : "";
+    const userRoleBadge = currentUser
+      ? (currentUser.role === "merchant" ? "점주" : currentUser.role === "admin" ? "관리자" : "회원")
+      : "";
+
     // Side Popup Flyout: 2 comments per page pagination
     let commentsFlyoutHtml = "";
     if (custom.commentsEnabled) {
@@ -2693,17 +2859,20 @@ async function bootstrap() {
       const pageComments = comments.slice(startIdx, startIdx + pageSize);
 
       const commentItems = pageComments
-        .map(
-          (c) => `
-          <div class="storeCommentItem">
-            <div class="storeCommentMeta">
-              <span class="storeCommentAuthor">${escapeHtml(c.author || "회원")}</span>
-              <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+        .map((c) => {
+          const cMeta = parseAuthorMeta(c.author);
+          const canDelete = canDeleteCommentItem(c, facilityId, point);
+          return `
+            <div class="storeCommentItem">
+              <div class="storeCommentMeta">
+                <span class="storeCommentAuthor">${escapeHtml(cMeta.displayName || "회원")}</span>
+                <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+                ${canDelete ? `<button type="button" class="commentItemDeleteBtn" data-comment-id="${escapeHtml(String(c.id))}" title="댓글 삭제">삭제</button>` : ""}
+              </div>
+              <div class="storeCommentText">${escapeHtml(c.text || "")}</div>
             </div>
-            <div class="storeCommentText">${escapeHtml(c.text || "")}</div>
-          </div>
-        `
-        )
+          `;
+        })
         .join("");
 
       const paginationHtml =
@@ -2716,6 +2885,24 @@ async function bootstrap() {
           </div>
         `
           : "";
+
+      const commentFooterHtml = isUserLoggedIn
+        ? `
+          <div class="storeAuthorBadge">
+            <span class="badgeDot"></span>
+            <span><strong>${escapeHtml(userDisplayName)}</strong> (${userRoleBadge}) 님으로 작성</span>
+          </div>
+          <div class="storeCommentForm">
+            <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디..." maxlength="100" />
+            <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
+          </div>
+        `
+        : `
+          <div class="storeLoginRequiredBox">
+            <div class="loginRequiredNotice">💡 이용후기 및 댓글은 로그인 후 작성할 수 있습니다.</div>
+            <button type="button" class="storeLoginPromptBtn" id="btnCommentLoginPrompt">로그인하기</button>
+          </div>
+        `;
 
       commentsFlyoutHtml = `
         <div class="storeSideFlyout ${isCommentsFlyoutOpen ? "" : "hidden"}" id="storeCommentsFlyout">
@@ -2730,10 +2917,7 @@ async function bootstrap() {
             ${paginationHtml}
           </div>
           <div class="storeSideFlyoutFoot">
-            <div class="storeCommentForm">
-              <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디..." maxlength="100" />
-              <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
-            </div>
+            ${commentFooterHtml}
           </div>
         </div>
       `;
@@ -2744,15 +2928,89 @@ async function bootstrap() {
     if (custom.qaEnabled) {
       const qaItems = qaList
         .slice(0, 3)
-        .map(
-          (item) => `
-          <div class="storeQaItem">
-            <div class="storeQaQ"><span class="qTag">Q</span> ${escapeHtml(item.q || "")}</div>
-            ${item.a ? `<div class="storeQaA"><span class="aTag">A</span> ${escapeHtml(item.a)}</div>` : '<div style="font-size:10.5px;color:#94a3b8;padding-left:18px;">답변 대기 중</div>'}
+        .map((item) => {
+          const qMeta = parseQuestionMeta(item.q);
+          const aMeta = parseAuthorMeta(item.author);
+          const isSecret = qMeta.isSecret;
+          const canView = canViewSecretQaItem(item, facilityId, point);
+          const canDelete = canDeleteQaItem(item, facilityId, point);
+          const canReply = canReplyQaItem(item, facilityId, point);
+
+          let qDisplay = "";
+          if (!canView) {
+            qDisplay = `<span class="qaSecretMaskedText">🔒 비밀글입니다. (작성자와 해당 매장 점주만 열람 가능)</span>`;
+          } else {
+            qDisplay = `${isSecret ? '<span class="qaSecretBadge">🔒 비밀글</span> ' : ""}${escapeHtml(qMeta.text)}`;
+          }
+
+          let aHtml = "";
+          if (item.a) {
+            if (!canView) {
+              aHtml = `<div class="storeQaA"><span class="aTag">A</span> <span class="qaSecretMaskedText">🔒 비밀 답변입니다.</span></div>`;
+            } else {
+              aHtml = `
+                <div class="storeQaA">
+                  <span class="aTag">A</span>
+                  <div class="storeQaAText">
+                    <span class="storeQaMerchantTag">점주 답변</span>
+                    ${escapeHtml(item.a)}
+                  </div>
+                  ${canReply ? `<button type="button" class="qaAnswerEditBtn" data-qa-id="${escapeHtml(String(item.id))}" title="답변 수정">수정</button>` : ""}
+                </div>
+              `;
+            }
+          } else {
+            if (canReply) {
+              aHtml = `
+                <div class="qaReplyForm" id="qaReplyForm_${escapeHtml(String(item.id))}">
+                  <div class="qaReplyInputWrap">
+                    <input type="text" class="qaReplyInput" id="qaReplyInput_${escapeHtml(String(item.id))}" placeholder="점주 답변을 작성해주세요..." maxlength="150" />
+                    <button type="button" class="qaReplySubmitBtn" data-qa-id="${escapeHtml(String(item.id))}">답글 등록</button>
+                  </div>
+                </div>
+              `;
+            } else {
+              aHtml = `<div style="font-size:10.5px;color:#94a3b8;padding-left:18px;">답변 대기 중</div>`;
+            }
+          }
+
+          return `
+            <div class="storeQaItem">
+              <div class="storeQaMeta">
+                <span class="storeQaAuthor">${escapeHtml(canView ? (aMeta.displayName || "회원") : "익명")}</span>
+                <span class="storeQaDate">${escapeHtml(item.date || "")}</span>
+                ${canDelete ? `<button type="button" class="qaItemDeleteBtn" data-qa-id="${escapeHtml(String(item.id))}" title="문의 삭제">삭제</button>` : ""}
+              </div>
+              <div class="storeQaQ"><span class="qTag">Q</span> ${qDisplay}</div>
+              ${aHtml}
+            </div>
+          `;
+        })
+        .join("");
+
+      const qaFooterHtml = isUserLoggedIn
+        ? `
+          <div class="storeAuthorBadge">
+            <span class="badgeDot"></span>
+            <span><strong>${escapeHtml(userDisplayName)}</strong> (${userRoleBadge}) 님으로 문의</span>
+          </div>
+          <div class="storeQaSecretRow">
+            <label class="storeQaSecretLabel">
+              <input type="checkbox" id="storeQaSecretCheck" />
+              <span>🔒 비공개 (작성자와 점주만 보기)</span>
+            </label>
+          </div>
+          <div class="storeQaForm">
+            <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요..." maxlength="100" />
+            <button type="button" id="storeQaSubmitBtn" class="storeQaSubmitBtn">문의 등록</button>
           </div>
         `
-        )
-        .join("");
+        : `
+          <div class="storeLoginRequiredBox">
+            <div class="loginRequiredNotice">💡 혜택 이용 문의(Q&A)는 로그인 후 작성할 수 있습니다.</div>
+            <button type="button" class="storeLoginPromptBtn" id="btnQaLoginPrompt">로그인하기</button>
+          </div>
+        `;
 
       qaFlyoutHtml = `
         <div class="storeSideFlyout ${isQaFlyoutOpen ? "" : "hidden"}" id="storeQaFlyout">
@@ -2766,10 +3024,7 @@ async function bootstrap() {
             </div>
           </div>
           <div class="storeSideFlyoutFoot">
-            <div class="storeQaForm">
-              <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요..." maxlength="100" />
-              <button type="button" id="storeQaSubmitBtn" class="storeQaSubmitBtn">문의</button>
-            </div>
+            ${qaFooterHtml}
           </div>
         </div>
       `;
@@ -2909,18 +3164,46 @@ async function bootstrap() {
       };
     }
 
+    // Comment Login Prompt Button
+    const btnCommentLoginPrompt = document.getElementById("btnCommentLoginPrompt");
+    if (btnCommentLoginPrompt) {
+      btnCommentLoginPrompt.onclick = () => {
+        if (window.MMAAuth && typeof window.MMAAuth.openAuthModal === "function") {
+          window.MMAAuth.openAuthModal("login");
+        } else {
+          alert("로그인 후 이용하실 수 있습니다.");
+        }
+      };
+    }
+
+    // QA Login Prompt Button
+    const btnQaLoginPrompt = document.getElementById("btnQaLoginPrompt");
+    if (btnQaLoginPrompt) {
+      btnQaLoginPrompt.onclick = () => {
+        if (window.MMAAuth && typeof window.MMAAuth.openAuthModal === "function") {
+          window.MMAAuth.openAuthModal("login");
+        } else {
+          alert("로그인 후 이용하실 수 있습니다.");
+        }
+      };
+    }
+
     // Comment Submit Button
     const commentSubmitBtn = document.getElementById("storeCommentSubmitBtn");
     if (commentSubmitBtn) {
-      commentSubmitBtn.onclick = () => {
+      commentSubmitBtn.onclick = async () => {
+        if (!isUserLoggedIn) {
+          alert("로그인 후 작성하실 수 있습니다.");
+          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          return;
+        }
         const inp = document.getElementById("storeNewCommentInput");
         const text = inp?.value?.trim();
         if (!text) return;
-        const author = window.MMAAuth?.user?.nickname
-          ? `${window.MMAAuth.user.nickname} (회원)`
-          : "방문 장병/회원";
+        const author = `${userDisplayName} [uid:${currentUser.id || currentUser.phone || "u"}]`;
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
-        addStoreComment(facilityId, { author, text, date });
+        commentSubmitBtn.disabled = true;
+        await addStoreComment(facilityId, { author, text, date });
         currentDetailCommentPage = 1;
         isCommentsFlyoutOpen = true;
         openDetailInfo(point, targetAnchor);
@@ -2930,18 +3213,93 @@ async function bootstrap() {
     // Q&A Submit Button
     const qaSubmitBtn = document.getElementById("storeQaSubmitBtn");
     if (qaSubmitBtn) {
-      qaSubmitBtn.onclick = () => {
+      qaSubmitBtn.onclick = async () => {
+        if (!isUserLoggedIn) {
+          alert("로그인 후 작성하실 수 있습니다.");
+          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          return;
+        }
         const inp = document.getElementById("storeNewQaInput");
         const question = inp?.value?.trim();
         if (!question) return;
-        const author = window.MMAAuth?.user?.nickname || "방문자";
+        const isSecret = !!document.getElementById("storeQaSecretCheck")?.checked;
+        const prefix = isSecret
+          ? `[SECRET:${currentUser.id || currentUser.phone || "u"}]`
+          : `[PUBLIC:${currentUser.id || currentUser.phone || "u"}]`;
+        const qText = `${prefix} ${question}`;
+        const author = `${userDisplayName} [uid:${currentUser.id || currentUser.phone || "u"}]`;
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
-        addStoreQa(facilityId, { q: question, author, a: "", date });
-        alert("문의 질문이 등록되었습니다! 사장님이 확인 후 답변을 작성합니다.");
+        qaSubmitBtn.disabled = true;
+        await addStoreQa(facilityId, { q: qText, author, a: "", date });
+        alert(isSecret ? "🔒 비밀 문의가 등록되었습니다! 작성자와 해당 매장 점주만 열람할 수 있습니다." : "문의 질문이 등록되었습니다!");
         isQaFlyoutOpen = true;
         openDetailInfo(point, targetAnchor);
       };
     }
+
+    // Comment Delete Buttons
+    document.querySelectorAll(".commentItemDeleteBtn").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const cid = btn.getAttribute("data-comment-id");
+        if (!cid) return;
+        if (!confirm("해당 댓글을 삭제하시겠습니까?")) return;
+        btn.disabled = true;
+        await deleteStoreComment(facilityId, cid);
+        isCommentsFlyoutOpen = true;
+        openDetailInfo(point, targetAnchor);
+      };
+    });
+
+    // QA Delete Buttons
+    document.querySelectorAll(".qaItemDeleteBtn").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const qid = btn.getAttribute("data-qa-id");
+        if (!qid) return;
+        if (!confirm("해당 문의(Q&A)를 삭제하시겠습니까?")) return;
+        btn.disabled = true;
+        await deleteStoreQa(facilityId, qid);
+        isQaFlyoutOpen = true;
+        openDetailInfo(point, targetAnchor);
+      };
+    });
+
+    // QA Reply Submit Buttons
+    document.querySelectorAll(".qaReplySubmitBtn").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const qid = btn.getAttribute("data-qa-id");
+        if (!qid) return;
+        const inp = document.getElementById(`qaReplyInput_${qid}`);
+        const replyText = inp?.value?.trim();
+        if (!replyText) {
+          alert("답변 내용을 입력해주세요.");
+          inp?.focus();
+          return;
+        }
+        btn.disabled = true;
+        await replyStoreQa(facilityId, qid, replyText);
+        isQaFlyoutOpen = true;
+        openDetailInfo(point, targetAnchor);
+      };
+    });
+
+    // QA Answer Edit Buttons
+    document.querySelectorAll(".qaAnswerEditBtn").forEach((btn) => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const qid = btn.getAttribute("data-qa-id");
+        if (!qid) return;
+        const target = getStoreQaList(facilityId).find((q) => String(q.id) === String(qid));
+        const newAns = prompt("수정할 답변 내용을 입력하세요:", target?.a || "");
+        if (newAns === null) return;
+        btn.disabled = true;
+        await replyStoreQa(facilityId, qid, newAns.trim());
+        isQaFlyoutOpen = true;
+        openDetailInfo(point, targetAnchor);
+      };
+    });
 
     const printBtn = document.getElementById("detailPrintBtn");
     if (printBtn) {
@@ -4300,6 +4658,7 @@ async function bootstrap() {
 // AUTHENTICATION & MERCHANT VERIFICATION & STATS MODULE
 // ============================================================
 const LS_AUTH_TOKEN_KEY = "mmamap_auth_token_v1";
+const addDebugLog = (msg, type = "info") => (typeof window !== "undefined" && typeof window.addDebugLog === "function" ? window.addDebugLog(msg, type) : console.log(msg));
 
 const MMAAuth = {
   token: (() => {

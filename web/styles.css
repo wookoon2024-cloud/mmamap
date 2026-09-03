@@ -7278,6 +7278,218 @@ button:active {
   background: #334155;
 }
 
+/* Store Auth Required Notice Box */
+.storeLoginRequiredBox {
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.loginRequiredNotice {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.storeLoginPromptBtn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.storeLoginPromptBtn:hover {
+  background: #1d4ed8;
+}
+
+/* Author Badge */
+.storeAuthorBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.storeAuthorBadge .badgeDot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Secret QA Toggle Row */
+.storeQaSecretRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.storeQaSecretLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+}
+
+.storeQaSecretLabel input {
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+/* Delete Buttons for Comments and QA */
+.commentItemDeleteBtn,
+.qaItemDeleteBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: auto;
+  transition: all 0.15s ease;
+}
+
+.commentItemDeleteBtn:hover,
+.qaItemDeleteBtn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* QA Meta Header */
+.storeQaMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.storeQaAuthor {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 11px;
+}
+
+.storeQaDate {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* Secret QA Badges & Masking */
+.qaSecretBadge {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+
+.qaSecretMaskedText {
+  color: #94a3b8 !important;
+  font-style: italic;
+  font-size: 11px;
+}
+
+/* QA Reply Form & Edit */
+.qaReplyForm {
+  margin-top: 5px;
+  padding: 5px 7px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.qaReplyInputWrap {
+  display: flex;
+  gap: 5px;
+}
+
+.qaReplyInput {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 11px;
+  font-family: inherit;
+  min-width: 0;
+}
+
+.qaReplyInput:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.qaReplySubmitBtn {
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.qaReplySubmitBtn:hover {
+  background: #334155;
+}
+
+.storeQaMerchantTag {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+
+.qaAnswerEditBtn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.qaAnswerEditBtn:hover {
+  text-decoration: underline;
+  background: #eff6ff;
+}
+
+.storeQaWait {
+  font-size: 10.5px;
+  color: #94a3b8;
+  padding-left: 18px;
+}
+
 
 
 
