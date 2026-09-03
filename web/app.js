@@ -628,24 +628,57 @@ async function bootstrap() {
 
   const loadEngagementSnapshot = async () => {
     try {
-      const res = await fetch(`${ENGAGEMENT_API_BASE}/snapshot?clientToken=${encodeURIComponent(clientToken)}`, { method: "GET" });
-      const data = await readJsonSafe(res);
-      const myLikes = Array.isArray(data?.myLikes) ? data.myLikes : [];
-      const myFavorites = Array.isArray(data?.myFavorites) ? data.myFavorites : [];
-      const clicks = data?.clickCounts && typeof data.clickCounts === "object" ? data.clickCounts : {};
-      const likesCount = data?.likeCounts && typeof data.likeCounts === "object" ? data.likeCounts : {};
-      const favoritesCount = data?.favoriteCounts && typeof data.favoriteCounts === "object" ? data.favoriteCounts : {};
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const userToken = getEffectiveUserToken();
 
-      myFavorites.forEach((id) => favorites.add(String(id)));
-      myLikes.forEach((id) => likes.add(String(id)));
+      // 1. Fetch real action states (likes & favorites) from Supabase
+      const actRes = await fetch(`${url}/facility_action_states?active=eq.1&select=facility_id,action_type,client_token`, {
+        headers: { "apikey": key, "Authorization": `Bearer ${key}` }
+      });
+      const actRows = (await actRes.json()) || [];
 
-      Object.entries(clicks).forEach(([k, v]) => { clickCountsById[String(k)] = Number(v) || 0; });
-      Object.entries(likesCount).forEach(([k, v]) => { likeCountsById[String(k)] = Number(v) || 0; });
-      Object.entries(favoritesCount).forEach(([k, v]) => { favoriteCountsById[String(k)] = Number(v) || 0; });
-    } catch (_e) {}
+      favorites.clear();
+      likes.clear();
+      Object.keys(likeCountsById).forEach((k) => delete likeCountsById[k]);
+      Object.keys(favoriteCountsById).forEach((k) => delete favoriteCountsById[k]);
 
-    // Also sync from Supabase
-    await syncUserEngagementFromSupabase();
+      if (Array.isArray(actRows)) {
+        actRows.forEach(r => {
+          const fid = String(r.facility_id || "");
+          if (r.action_type === "like") {
+            likeCountsById[fid] = (likeCountsById[fid] || 0) + 1;
+            if (userToken && r.client_token === userToken) {
+              likes.add(fid);
+            }
+          } else if (r.action_type === "favorite") {
+            favoriteCountsById[fid] = (favoriteCountsById[fid] || 0) + 1;
+            if (userToken && r.client_token === userToken) {
+              favorites.add(fid);
+            }
+          }
+        });
+      }
+
+      // 2. Fetch real click events from Supabase
+      const clickRes = await fetch(`${url}/facility_click_events?select=facility_id`, {
+        headers: { "apikey": key, "Authorization": `Bearer ${key}` }
+      });
+      const clickRows = (await clickRes.json()) || [];
+      Object.keys(clickCountsById).forEach((k) => delete clickCountsById[k]);
+      if (Array.isArray(clickRows)) {
+        clickRows.forEach(r => {
+          const fid = String(r.facility_id || "");
+          clickCountsById[fid] = (clickCountsById[fid] || 0) + 1;
+        });
+      }
+
+      // Refresh panels with 100% real Supabase data
+      if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
+      if (typeof renderRankPanel === "function") renderRankPanel();
+    } catch (err) {
+      console.warn("[Supabase Engagement Snapshot Warn]", err);
+    }
   };
 
   const toggleEngagement = async (facilityId, actionType, forceActive = null) => {
@@ -653,7 +686,7 @@ async function bootstrap() {
     const setObj = actionType === "like" ? likes : favorites;
     const willBeActive = forceActive !== null ? forceActive : !setObj.has(facilityId);
 
-    // 1. Direct Supabase Upsert (Primary)
+    // 1. Direct Supabase Upsert (Primary & Authoritative)
     try {
       const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
@@ -690,25 +723,66 @@ async function bootstrap() {
   };
 
   const recordFacilityClick = async (facilityId) => {
-    const res = await fetch(`${ENGAGEMENT_API_BASE}/click`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientToken,
-        facilityId,
-      }),
-    });
-    const data = await readJsonSafe(res);
-    if (!res.ok) throw new Error(String(data?.error || "클릭 저장 실패"));
-    return data;
+    const fid = String(facilityId || "");
+    const userToken = getEffectiveUserToken();
+    clickCountsById[fid] = (clickCountsById[fid] || 0) + 1;
+    if (typeof renderRankPanel === "function") renderRankPanel();
+
+    // 1. Direct Supabase Insert (Primary & Authoritative)
+    try {
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      await fetch(`${url}/facility_click_events`, {
+        method: "POST",
+        headers: {
+          "apikey": key,
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          event_id: `clk_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          facility_id: fid,
+          client_token: userToken,
+          created_at: Date.now()
+        })
+      });
+    } catch (_e) {}
+
+    // 2. Local fallback
+    try {
+      await fetch(`${ENGAGEMENT_API_BASE}/click`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientToken: userToken, facilityId: fid })
+      });
+    } catch (_e) {}
+
+    return { ok: true, clickCount: clickCountsById[fid] };
   };
 
   const fetchReviewPosts = async () => {
-    const res = await fetch(`${REVIEW_API_BASE}?page=1&page_size=200`, { method: "GET" });
-    const data = await readJsonSafe(res);
-    if (!res.ok) throw new Error(String(data?.error || "후기 목록 조회 실패"));
-    const rows = Array.isArray(data?.items) ? data.items : [];
-    reviewBoardPosts = rows.map(normalizeReviewPost);
+    try {
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const res = await fetch(`${url}/review_posts?order=created_at.desc&limit=100`, {
+        headers: { "apikey": key, "Authorization": `Bearer ${key}` }
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) {
+          reviewBoardPosts = rows.map(normalizeReviewPost);
+          return;
+        }
+      }
+    } catch (_err) {}
+
+    // Fallback to local
+    try {
+      const res = await fetch(`${REVIEW_API_BASE}?page=1&page_size=200`, { method: "GET" });
+      const data = await readJsonSafe(res);
+      const rows = Array.isArray(data?.items) ? data.items : [];
+      reviewBoardPosts = rows.map(normalizeReviewPost);
+    } catch (_e) {}
   };
 
   const verifyReviewPassword = async (postId, password) => {
@@ -3763,16 +3837,21 @@ async function bootstrap() {
       .map(([id, point]) => ({ id, point }))
       .filter((row) => pointMatchRegion(row.point, selectedRegion));
 
-    const clickedRows = allRows
-      .map((row) => ({ ...row, score: getClickCount(row.id) }))
+    const activeRows = allRows
+      .map((row) => {
+        const clicks = getClickCount(row.id);
+        const lks = getLikeCount(row.id);
+        const favs = getFavoriteCount(row.id);
+        const totalScore = clicks + (lks * 2) + (favs * 3);
+        return { ...row, score: totalScore, clicks, likes: lks, favorites: favs };
+      })
       .filter((row) => row.score > 0)
       .sort((a, b) => b.score - a.score || a.point.title.localeCompare(b.point.title, "ko"));
 
-    if (clickedRows.length > 0) return clickedRows;
+    if (activeRows.length > 0) return activeRows;
 
-    return allRows
-      .slice(0, 30)
-      .map((row, idx) => ({ ...row, score: Math.max(1, 35 - idx) }));
+    // If no stores have clicks or likes yet, display real registered stores with 0 engagement (NO FAKE DATA)
+    return allRows.slice(0, 20).map((row) => ({ ...row, score: 0 }));
   };
 
   const buildRankAudienceFilters = () => {
@@ -3804,14 +3883,20 @@ async function bootstrap() {
 
   const renderRankHeadByIndex = (rows, idx) => {
     if (!rows.length) {
-      if (rankTopTextEl) rankTopTextEl.textContent = "#1 -";
+      if (rankTopTextEl) rankTopTextEl.textContent = "실시간 상생 랭킹";
       if (rankTopScoreEl) rankTopScoreEl.textContent = "0";
       return;
     }
     const safeIdx = ((idx % rows.length) + rows.length) % rows.length;
     const row = rows[safeIdx];
-    if (rankTopTextEl) rankTopTextEl.textContent = `#${safeIdx + 1} ${row.point.title || "-"}`;
-    if (rankTopScoreEl) rankTopScoreEl.textContent = `${row.score}`;
+    const name = row.point.title || "-";
+    if (row.score > 0) {
+      if (rankTopTextEl) rankTopTextEl.textContent = `#${safeIdx + 1} ${name}`;
+      if (rankTopScoreEl) rankTopScoreEl.textContent = `${row.score}점`;
+    } else {
+      if (rankTopTextEl) rankTopTextEl.textContent = `#${safeIdx + 1} ${name}`;
+      if (rankTopScoreEl) rankTopScoreEl.textContent = "참여";
+    }
   };
 
   const startRankTicker = (rows) => {
