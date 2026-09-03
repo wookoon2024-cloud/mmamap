@@ -6201,6 +6201,8 @@ button:active {
     font-size: 12px;
     font-weight: 900;
     color: #2563eb;
+    display: inline-block;
+    transform-origin: center center;
     transition: transform 0.25s ease;
   }
 

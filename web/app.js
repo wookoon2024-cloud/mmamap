@@ -5276,13 +5276,9 @@ async function bootstrap() {
       if (isExpanded) {
         legendBar.classList.remove("mobile-expanded");
         legendBar.classList.add("mobile-collapsed");
-        const chevron = document.getElementById("mobileSheetChevron");
-        if (chevron) chevron.textContent = "▲";
       } else {
         legendBar.classList.add("mobile-expanded");
         legendBar.classList.remove("mobile-collapsed");
-        const chevron = document.getElementById("mobileSheetChevron");
-        if (chevron) chevron.textContent = "▼";
       }
     });
   }
