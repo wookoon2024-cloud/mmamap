@@ -7003,21 +7003,74 @@ button:active {
   margin-left: 5px;
 }
 
-/* Internal Popup Overlay for Comments & Q/A */
+/* Right-Side Attached Flyout for Comments & Q/A */
 .storeSideFlyout {
   position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
+  left: calc(100% + 14px) !important;
+  top: 0 !important;
+  width: 380px !important;
   height: 100% !important;
+  min-height: 480px !important;
+  max-height: 560px !important;
   background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
   border-radius: 18px !important;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22) !important;
-  z-index: 1000 !important;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22) !important;
+  z-index: 1200 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
-  transition: none !important;
+  animation: flyoutSlideRight 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes flyoutSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 801px) {
+  .storeSideFlyout::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 36px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #ffffff;
+    z-index: 10;
+  }
+  .storeSideFlyout::after {
+    content: "";
+    position: absolute;
+    left: -9px;
+    top: 36px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #cbd5e1;
+    z-index: 9;
+  }
+}
+
+@media (max-width: 800px) {
+  .storeSideFlyout {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 18px !important;
+    animation: none !important;
+  }
 }
 
 .storeSideFlyout.hidden {

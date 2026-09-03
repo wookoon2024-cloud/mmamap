@@ -3102,6 +3102,19 @@ async function bootstrap() {
           });
         }
         openDetailInfo(point, targetAnchor);
+
+        if (isCommentsFlyoutOpen) {
+          setTimeout(() => {
+            const panel = document.querySelector(".detailPanelInWindow");
+            if (panel && typeof map !== "undefined" && map.panBy) {
+              const rect = panel.getBoundingClientRect();
+              const neededRight = rect.right + 410;
+              if (neededRight > window.innerWidth) {
+                map.panBy(new naver.maps.Point(-Math.round(neededRight - window.innerWidth + 24), 0));
+              }
+            }
+          }, 50);
+        }
       };
     }
 
@@ -3124,6 +3137,19 @@ async function bootstrap() {
           });
         }
         openDetailInfo(point, targetAnchor);
+
+        if (isQaFlyoutOpen) {
+          setTimeout(() => {
+            const panel = document.querySelector(".detailPanelInWindow");
+            if (panel && typeof map !== "undefined" && map.panBy) {
+              const rect = panel.getBoundingClientRect();
+              const neededRight = rect.right + 410;
+              if (neededRight > window.innerWidth) {
+                map.panBy(new naver.maps.Point(-Math.round(neededRight - window.innerWidth + 24), 0));
+              }
+            }
+          }, 50);
+        }
       };
     }
 
