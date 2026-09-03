@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=59.0" />
+    <link rel="stylesheet" href="./styles.css?v=60.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -1050,7 +1050,10 @@
     <aside id="accountSimulatorWidget" class="accountSimulatorWidget" aria-label="계정 체험 시뮬레이터">
       <div class="simHeader">
         <span class="simTitle">🎮 계정 체험 시뮬레이터</span>
-        <button type="button" id="simToggleBtn" class="simToggleBtn" title="접기/펼치기">−</button>
+        <div class="simHeaderActions">
+          <button type="button" id="simToggleBtn" class="simToggleBtn" title="최소화/펼치기">−</button>
+          <button type="button" id="simCloseBtn" class="simCloseBtn" title="시뮬레이터 닫기 (화면 캡처)">✕</button>
+        </div>
       </div>
       <div id="simBody" class="simBody">
         <button type="button" class="simBtn soldier" onclick="window.MMAAuth.loginSimulator('soldier')">
@@ -1076,11 +1079,12 @@
         </button>
       </div>
     </aside>
+    <button type="button" id="simRestoreBtn" class="simRestoreBtn hidden" title="계정 체험 시뮬레이터 열기">🎮</button>
 
-    <div class="versionBadge">v22.0</div>
+    <div class="versionBadge">v22.1</div>
 
     <script src="./config.js?v=13.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=152.0"></script>
+    <script src="./app.js?v=153.0"></script>
   </body>
 </html>

@@ -7798,13 +7798,30 @@ const MMAAuth = {
   },
 
   bindEvents() {
-    // Simulator Toggle
+    // Simulator Toggle & Close (for clean capture)
     const simToggle = document.getElementById("simToggleBtn");
+    const simClose = document.getElementById("simCloseBtn");
+    const simRestore = document.getElementById("simRestoreBtn");
     const simWidget = document.getElementById("accountSimulatorWidget");
     if (simToggle && simWidget) {
       simToggle.onclick = () => {
         simWidget.classList.toggle("collapsed");
         simToggle.textContent = simWidget.classList.contains("collapsed") ? "+" : "−";
+      };
+    }
+    if (simClose && simWidget) {
+      simClose.onclick = () => {
+        simWidget.classList.add("hidden");
+        if (simRestore) simRestore.classList.remove("hidden");
+        if (typeof showToast === "function") {
+          showToast("📸 캡처 모드: 시뮬레이터가 숨겨졌습니다. (우측 하단 🎮 클릭 시 다시 표시)");
+        }
+      };
+    }
+    if (simRestore && simWidget) {
+      simRestore.onclick = () => {
+        simWidget.classList.remove("hidden");
+        simRestore.classList.add("hidden");
       };
     }
 

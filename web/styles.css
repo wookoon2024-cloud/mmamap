@@ -6317,6 +6317,12 @@ button:active {
   letter-spacing: -0.2px;
 }
 
+.simHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .simToggleBtn {
   background: transparent;
   border: 0;
@@ -6326,6 +6332,66 @@ button:active {
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.simToggleBtn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.simCloseBtn {
+  background: transparent;
+  border: 0;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.simCloseBtn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  color: #fca5a5;
+}
+
+.accountSimulatorWidget.hidden {
+  display: none !important;
+}
+
+.simRestoreBtn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9998;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1e40af;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.simRestoreBtn:hover {
+  transform: scale(1.1);
+  background: #2563eb;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+}
+
+.simRestoreBtn.hidden {
+  display: none !important;
 }
 
 .simBody {
