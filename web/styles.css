@@ -4274,19 +4274,9 @@ button:active {
     height: auto;
   }
 
-  .hubNav {
-    left: 8px;
-    right: 8px;
-    top: 58px;
-    height: 48px;
-    overflow-x: auto;
-    justify-content: flex-start;
-    gap: 14px;
-    padding: 0 6px;
-    background: rgba(255, 255, 255, 0.92);
-    border-radius: 10px;
-    border: 1px solid #d8e0ef;
-    backdrop-filter: blur(3px);
+  .hubNav,
+  .hubMega {
+    display: none !important;
   }
 
   .hubPrimaryBtn {
@@ -6033,6 +6023,11 @@ button:active {
   .headerRightControls .rankPanel {
     display: none !important; /* Hide long rank ticker to prevent overlap */
   }
+  /* Hide Top Hub Menu Navigation on Mobile */
+  .hubNav,
+  .hubMega {
+    display: none !important;
+  }
   .authNavBtn {
     height: 32px !important;
     padding: 0 10px !important;
@@ -6261,12 +6256,20 @@ button:active {
     transform: none !important;
   }
 
-  /* 8. Simulator on Mobile */
+  /* 8. Simulator on Mobile - Attach to LEFT side to prevent overlapping with zoom controls */
   .accountSimulatorWidget {
-    right: 8px !important;
-    bottom: 56px !important;
-    width: 175px !important;
-    z-index: 950 !important;
+    right: auto !important;
+    left: 10px !important;
+    bottom: 58px !important;
+    width: 180px !important;
+    max-width: calc(100vw - 90px) !important;
+    z-index: 10015 !important;
+  }
+  .simRestoreBtn {
+    right: auto !important;
+    left: 12px !important;
+    bottom: 58px !important;
+    z-index: 10015 !important;
   }
   .simTitle {
     font-size: 10.5px !important;
