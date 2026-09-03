@@ -860,6 +860,7 @@ async function bootstrap() {
     borderWidth: 0,
     disableAnchor: true,
     pixelOffset: new naver.maps.Point(0, -36),
+    zIndex: 500,
   });
 
   let renderedMarkers = [];
@@ -1891,8 +1892,8 @@ async function bootstrap() {
   const calculateDynamicShiftY = (panelEl = null, point = null) => {
     const isMobile = window.innerWidth <= 768;
     const viewH = window.innerHeight;
-    const topSafety = isMobile ? 65 : 75; // Top navigation bar safety padding
-    const bottomSafety = isMobile ? 80 : 35;
+    const topSafety = isMobile ? 55 : 75; // Top navigation bar safety padding
+    const bottomSafety = isMobile ? 190 : 45; // On mobile, keep popup card safely above map controls (내위치, -, +) and bottom sheet
 
     let actualH = 0;
     if (panelEl && typeof panelEl.offsetHeight === "number" && panelEl.offsetHeight > 50) {

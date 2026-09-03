@@ -4132,7 +4132,7 @@ button:active {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 1000;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -6315,6 +6315,7 @@ button:active {
     bottom: 58px !important;
     top: auto !important;
     transform: none !important;
+    z-index: 50 !important;
   }
 
   /* 8. Simulator on Mobile - Attach to LEFT side to prevent overlapping with zoom controls */
