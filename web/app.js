@@ -1065,7 +1065,7 @@ async function bootstrap() {
           <div class="hubCard">
             <h4>지원 규격 (3종)</h4>
             <ul>
-              <li><b>A4 포스터</b>: 출입문, 카운터, 벽면 부착용 (상생지도 결합형)</li>
+              <li><b>포스터</b>: 출입문, 카운터, 벽면 부착용 (상생지도 결합형)</li>
               <li><b>미니 테이블 스탠드</b>: 카운터 결제대, 테이블 거치용</li>
               <li><b>도어행거 (문고리형)</b>: 손잡이에 거는 슬림형</li>
             </ul>
@@ -1223,7 +1223,7 @@ async function bootstrap() {
               <h4>주요 기능</h4>
               <ul>
                 <li><b>위치 기반 가맹점 탐색</b>: 내 주변 혜택 가게 1초 검색 및 카테고리 필터링</li>
-                <li><b>원터치 홍보물 생성</b>: 가맹점주를 위한 A4 상생지도 포스터/스탠드 자동 인쇄</li>
+                <li><b>원터치 홍보물 생성</b>: 가맹점주를 위한 상생지도 포스터/스탠드 자동 인쇄</li>
                 <li><b>실시간 공유게시판</b>: 혜택 이용 후기 및 팁 공유 커뮤니티</li>
               </ul>
             </div>
@@ -1987,7 +1987,7 @@ async function bootstrap() {
     if (!container || !point) return;
 
     const facilityId = point.facilityId || point.id || "";
-    const tplTitle = tplName === "poster" ? "A4 포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
+    const tplTitle = tplName === "poster" ? "포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
 
     const dims = {
       poster: { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 },
@@ -5109,7 +5109,7 @@ async function bootstrap() {
   if (doPrintBtn) {
     doPrintBtn.addEventListener("click", () => {
       if (!currentPrintPoint) return;
-      const tplTitle = currentPrintTemplate === "poster" ? "A4포스터" : (currentPrintTemplate === "table_stand" ? "미니스탠드" : "도어행거");
+      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : (currentPrintTemplate === "table_stand" ? "미니스탠드" : "도어행거");
       const filename = `나라사랑가게_${tplTitle}_${currentPrintPoint.name || currentPrintPoint.title || "홍보물"}.png`;
       
       const iframe = document.getElementById("printIframe");
@@ -7458,7 +7458,7 @@ const MMAAuth = {
       const src = stats.sources || { poster: 0, table_stand: 0, door_hanger: 0, mobile_landing: 0 };
       sourceList.innerHTML = `
         <div class="sourceItem">
-          <strong>A4 상생 포스터</strong>
+          <strong>포스터 (상생지도 결합)</strong>
           <span>${(src.poster || 0).toLocaleString()}회</span>
         </div>
         <div class="sourceItem">
