@@ -5686,7 +5686,7 @@ const MMAAuth = {
     const roleTitle = isAdmin ? "관리자" : isMerchant ? "점주" : "회원";
 
     wrap.innerHTML = `
-      <div class="authUserBadge" onclick="${isMerchant ? "window.MMAAuth.goToMyMerchantStore(event)" : "window.MMAAuth.toggleProfileMenu()"}" title="${isMerchant ? "클릭 시 내 매장(" + this.escapeHtml(this.user.merchantFacilityName || "의정부간호학원") + ") 위치로 이동" : "내 메뉴 열기"}" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+      <div class="authUserBadge" onclick="${isMerchant ? "window.MMAAuth.goToMyMerchantStore(event)" : "window.MMAAuth.toggleProfileMenu()"}" title="${isMerchant ? "클릭 시 내 매장(" + this.escapeHtml(this.user.merchantFacilityName || "대전을지대학교병원") + ") 위치로 이동" : "내 메뉴 열기"}" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
         <span>${roleIcon}</span>
         <strong style="${isMerchant ? "text-decoration: underline; text-underline-offset: 3px;" : ""}">${this.escapeHtml(this.user.nickname)}</strong>
         <small style="color:${isAdmin ? '#a21caf' : (isMerchant ? '#2563eb' : '#64748b')}; font-weight:${isMerchant ? '700' : '500'};">${roleTitle}</small>
@@ -5699,14 +5699,14 @@ const MMAAuth = {
       e.preventDefault();
       e.stopPropagation();
     }
-    const fid = this.user?.merchantFacilityId || "nara_3218";
+    const fid = this.user?.merchantFacilityId || "mmg_3141";
     if (typeof closeIntroPopup === "function") closeIntroPopup(false);
     this.closeProfileMenu();
     if (typeof window.focusFacility === "function") {
       window.focusFacility(fid);
     }
     if (typeof showToast === "function") {
-      showToast(`🏪 <strong>${this.escapeHtml(this.user?.merchantFacilityName || "의정부간호학원")}</strong> 매장 위치로 이동했습니다.`);
+      showToast(`🏪 <strong>${this.escapeHtml(this.user?.merchantFacilityName || "대전을지대학교병원")}</strong> 매장 위치로 이동했습니다.`);
     }
   },
 
@@ -7854,6 +7854,13 @@ const MMAAuth = {
         }
       } catch (_err) {}
 
+      if (type === "merchant" && dbUser) {
+        dbUser.merchant_facility_id = "mmg_3141";
+        dbUser.merchant_facility_name = "대전을지대학교병원";
+        dbUser.nickname = "대전을지대병원_담당자";
+        dbUser.merchant_phone = "1899-0001";
+      }
+
       // Fallback: If not found in Supabase, ensure it exists by upserting real record
       if (!dbUser) {
         const defaultRecords = {
@@ -7871,12 +7878,12 @@ const MMAAuth = {
           merchant: {
             id: "31242a4e-fed4-468b-b79f-ca14dbc09fa9",
             email: "merchant_demo@mmamap.org",
-            nickname: "의정부간호학원_원장",
+            nickname: "대전을지대병원_담당자",
             role: "merchant",
             email_verified: 1,
-            merchant_facility_id: "nara_3218",
-            merchant_facility_name: "의정부간호학원",
-            merchant_phone: "031-845-0381",
+            merchant_facility_id: "mmg_3141",
+            merchant_facility_name: "대전을지대학교병원",
+            merchant_phone: "1899-0001",
             created_at: 1788237062150
           },
           soldier: {
@@ -7931,9 +7938,9 @@ const MMAAuth = {
       if (type === "admin") {
         alert(`[운영 관리자 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n권한: 최고 운영 관리자 (admin)\n\n우측 상단 프로필 아이콘을 클릭하여 [관리자 통합 센터]에서 실제 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
       } else if (type === "merchant") {
-        alert(`[소상공인 점주 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n담당 매장: 의정부간호학원 (${user.merchantFacilityId})\n\n지도에서 의정부간호학원 위치로 이동합니다.\n점주 답변 작성 및 매장 관리를 확인해 보세요!`);
+        alert(`[소상공인 점주 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n담당 매장: 대전을지대학교병원 (${user.merchantFacilityId})\n\n지도에서 대전을지대학교병원 위치로 이동합니다.\n점주 답변 작성 및 매장 관리를 확인해 보세요!`);
         if (typeof window.focusFacility === "function") {
-          window.focusFacility("nara_3218");
+          window.focusFacility("mmg_3141");
         }
       } else {
         alert(`[병역의무자 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n권한: 일반 회원 (general)\n\n후기 작성, 비밀 Q&A 등록 및 본인 글 삭제 권한이 실제 DB 계정 기준으로 정상 연동됩니다.`);

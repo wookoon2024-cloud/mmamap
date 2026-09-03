@@ -1140,11 +1140,11 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             phone = ""
         elif sim_type == "merchant":
             email = "merchant_demo@mmamap.org"
-            nickname = "의정부간호학원_원장"
+            nickname = "대전을지대병원_담당자"
             role = "merchant"
-            facility_id = "nara_3218"
-            facility_name = "의정부간호학원"
-            phone = "031-845-0381"
+            facility_id = "mmg_3141"
+            facility_name = "대전을지대학교병원"
+            phone = "1899-0001"
         else: # soldier / general user
             email = "soldier_demo@mmamap.org"
             nickname = "청년장병_민우"
@@ -1768,7 +1768,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
     def _seed_default_demo_accounts(self, conn):
         seeds = [
             ("admin_demo@mmamap.org", "총괄관리자_마스터", "admin", "", "", ""),
-            ("merchant_demo@mmamap.org", "의정부간호학원_원장", "merchant", "nara_3218", "의정부간호학원", "031-845-0381"),
+            ("merchant_demo@mmamap.org", "대전을지대병원_담당자", "merchant", "mmg_3141", "대전을지대학교병원", "1899-0001"),
             ("soldier_demo@mmamap.org", "청년장병_민우", "general", "", "", ""),
         ]
         now = now_ms()
