@@ -495,6 +495,11 @@ async function bootstrap() {
   const favorites = new Set();
   const likes = new Set();
   window.MMAFavorites = favorites;
+  window.MMALikes = likes;
+  const clickCountsById = {};
+  const likeCountsById = {};
+  const favoriteCountsById = {};
+  let reviewBoardPosts = [];
   const ratingsById = {};
   const saveRatings = async (facilityId, rating) => {
     if (!ratingsById[facilityId]) ratingsById[facilityId] = [];
