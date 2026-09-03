@@ -495,13 +495,28 @@ async function bootstrap() {
   const favorites = new Set();
   const likes = new Set();
   window.MMAFavorites = favorites;
-  window.MMALikes = likes;
-  const ratingsById = JSON.parse(localStorage.getItem(LS_RATINGS_KEY) || "{}");
-  const clickCountsById = {};
-  const likeCountsById = {};
-  const favoriteCountsById = {};
-  let reviewBoardPosts = [];
-  const saveRatings = () => localStorage.setItem(LS_RATINGS_KEY, JSON.stringify(ratingsById));
+  const ratingsById = {};
+  const saveRatings = async (facilityId, rating) => {
+    if (!ratingsById[facilityId]) ratingsById[facilityId] = [];
+    ratingsById[facilityId].push(rating);
+    try {
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      await fetch(`${url}/facility_ratings`, {
+        method: "POST",
+        headers: {
+          "apikey": key,
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          facility_id: String(facilityId),
+          client_token: typeof clientToken !== "undefined" ? clientToken : "",
+          rating: Number(rating)
+        })
+      });
+    } catch (_err) {}
+  };
   const getRatings = (id) => (Array.isArray(ratingsById[id]) ? ratingsById[id] : []);
   const getAverageRating = (id) => {
     const arr = getRatings(id);
@@ -544,10 +559,15 @@ async function bootstrap() {
   };
 
   const getOrCreateClientToken = () => {
-    const existing = String(localStorage.getItem(LS_CLIENT_TOKEN_KEY) || "").trim();
+    let existing = "";
+    try {
+      existing = String(sessionStorage.getItem(LS_CLIENT_TOKEN_KEY) || "").trim();
+    } catch (_e) {}
     if (existing) return existing;
     const created = `ct_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    localStorage.setItem(LS_CLIENT_TOKEN_KEY, created);
+    try {
+      sessionStorage.setItem(LS_CLIENT_TOKEN_KEY, created);
+    } catch (_e) {}
     return created;
   };
   const clientToken = getOrCreateClientToken();
@@ -624,7 +644,7 @@ async function bootstrap() {
   };
 
   const getReviewAuthHeaders = () => {
-    const token = window.MMAAuth?.token || localStorage.getItem("mma_map_auth_token_v1") || "";
+    const token = window.MMAAuth?.token || "";
     return token ? { "Authorization": `Bearer ${token}` } : {};
   };
 
@@ -727,15 +747,51 @@ async function bootstrap() {
   const introConfirmBtnEl = document.getElementById("introConfirmBtn");
   let activeHubPrimaryKey = "";
 
-  const closeIntroPopup = (saveDismiss = false) => {
-    if (saveDismiss && introNeverCheckEl?.checked) localStorage.setItem(LS_INTRO_DISMISS_KEY, "1");
+  let isIntroDismissed = false;
+
+  const closeIntroPopup = async (saveDismiss = false) => {
+    if (saveDismiss && introNeverCheckEl?.checked) {
+      isIntroDismissed = true;
+      try {
+        const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+        const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+        await fetch(`${url}/client_preferences`, {
+          method: "POST",
+          headers: {
+            "apikey": key,
+            "Authorization": `Bearer ${key}`,
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates,return=minimal"
+          },
+          body: JSON.stringify({
+            client_token: clientToken,
+            intro_dismissed: true,
+            updated_at: new Date().toISOString()
+          })
+        });
+      } catch (_e) {}
+    }
     if (introPopupEl) introPopupEl.classList.add("hidden");
     if (introBackdropEl) introBackdropEl.classList.add("hidden");
   };
 
-  const openIntroPopup = () => {
-    const dismissed = localStorage.getItem(LS_INTRO_DISMISS_KEY) === "1";
-    if (dismissed) return;
+  const openIntroPopup = async () => {
+    if (isIntroDismissed) return;
+    try {
+      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const res = await fetch(`${url}/client_preferences?client_token=eq.${encodeURIComponent(clientToken)}`, {
+        headers: { "apikey": key, "Authorization": `Bearer ${key}` }
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0 && rows[0].intro_dismissed) {
+          isIntroDismissed = true;
+          return;
+        }
+      }
+    } catch (_e) {}
+
     if (introNeverCheckEl) introNeverCheckEl.checked = false;
     if (introPopupEl) introPopupEl.classList.remove("hidden");
     if (introBackdropEl) introBackdropEl.classList.remove("hidden");
@@ -2040,9 +2096,6 @@ async function bootstrap() {
             snsUrl: row.sns_url || ""
           };
           customSettingsCache.set(facilityId, settings);
-          try {
-            localStorage.setItem(getStoreCustomKey(facilityId), JSON.stringify(settings));
-          } catch (_e) {}
           return settings;
         }
       }
@@ -2056,17 +2109,6 @@ async function bootstrap() {
     if (customSettingsCache.has(facilityId)) {
       return customSettingsCache.get(facilityId);
     }
-    try {
-      const raw = localStorage.getItem(getStoreCustomKey(facilityId));
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && !Array.isArray(parsed.photoUrls)) {
-          parsed.photoUrls = parsed.photoUrl ? [parsed.photoUrl] : [];
-        }
-        customSettingsCache.set(facilityId, parsed);
-        return parsed;
-      }
-    } catch (_e) {}
 
     const title = point?.title || "";
     const cat = point?.category || "";
@@ -2098,9 +2140,6 @@ async function bootstrap() {
 
   const saveStoreCustomSettings = async (facilityId, settings) => {
     customSettingsCache.set(facilityId, settings);
-    try {
-      localStorage.setItem(getStoreCustomKey(facilityId), JSON.stringify(settings));
-    } catch (_e) {}
 
     // 100% Direct Supabase PostgreSQL Upsert
     try {
@@ -2154,9 +2193,6 @@ async function bootstrap() {
             date: r.created_at
           }));
           commentsCache.set(facilityId, list);
-          try {
-            localStorage.setItem(getStoreCommentsKey(facilityId), JSON.stringify(list));
-          } catch (_e) {}
           return list;
         }
       }
@@ -2170,14 +2206,6 @@ async function bootstrap() {
     if (commentsCache.has(facilityId)) {
       return commentsCache.get(facilityId);
     }
-    try {
-      const raw = localStorage.getItem(getStoreCommentsKey(facilityId));
-      if (raw) {
-        const list = JSON.parse(raw);
-        commentsCache.set(facilityId, list);
-        return list;
-      }
-    } catch (_e) {}
     return [
       {
         author: "병장 김*우 (현역병)",
@@ -2196,9 +2224,6 @@ async function bootstrap() {
     const list = getStoreComments(facilityId);
     list.unshift(comment);
     commentsCache.set(facilityId, list);
-    try {
-      localStorage.setItem(getStoreCommentsKey(facilityId), JSON.stringify(list));
-    } catch (_e) {}
 
     // Direct Supabase REST Insert
     try {
@@ -2237,9 +2262,6 @@ async function bootstrap() {
             date: r.created_at
           }));
           qaCache.set(facilityId, list);
-          try {
-            localStorage.setItem(getStoreQaKey(facilityId), JSON.stringify(list));
-          } catch (_e) {}
           return list;
         }
       }
@@ -2253,14 +2275,6 @@ async function bootstrap() {
     if (qaCache.has(facilityId)) {
       return qaCache.get(facilityId);
     }
-    try {
-      const raw = localStorage.getItem(getStoreQaKey(facilityId));
-      if (raw) {
-        const list = JSON.parse(raw);
-        qaCache.set(facilityId, list);
-        return list;
-      }
-    } catch (_e) {}
     return [
       {
         q: "현역병 동반 시 가족도 함께 할인 적용되나요?",
@@ -2281,9 +2295,6 @@ async function bootstrap() {
     const list = getStoreQaList(facilityId);
     list.unshift(qaItem);
     qaCache.set(facilityId, list);
-    try {
-      localStorage.setItem(getStoreQaKey(facilityId), JSON.stringify(list));
-    } catch (_e) {}
 
     // Direct Supabase REST Insert
     try {
@@ -3912,12 +3923,18 @@ async function bootstrap() {
 
   const btnResetStoreCustom = document.getElementById("btnResetStoreCustom");
   if (btnResetStoreCustom) {
-    btnResetStoreCustom.addEventListener("click", () => {
+    btnResetStoreCustom.addEventListener("click", async () => {
       if (!currentCustomPoint) return;
       if (confirm("매장 페이지 설정을 기본 상태로 복원하시겠습니까?")) {
         const fid = getFacilityKey(currentCustomPoint);
+        customSettingsCache.delete(fid);
         try {
-          localStorage.removeItem(getStoreCustomKey(fid));
+          const { url, headers } = getSupabaseDirectConfig();
+          await fetch(`${url}/facility_custom_settings?facility_id=eq.${encodeURIComponent(fid)}`, {
+            method: "DELETE",
+            headers
+          });
+          console.log(`[Supabase Direct] Facility custom settings reset for ${fid}`);
         } catch (_e) {}
         openStoreCustomModal(currentCustomPoint);
         if (selectedDetailAnchor) openDetailInfo(currentCustomPoint, selectedDetailAnchor);
@@ -4208,7 +4225,13 @@ async function bootstrap() {
 const LS_AUTH_TOKEN_KEY = "mmamap_auth_token_v1";
 
 const MMAAuth = {
-  token: localStorage.getItem(LS_AUTH_TOKEN_KEY) || "",
+  token: (() => {
+    try {
+      return sessionStorage.getItem(LS_AUTH_TOKEN_KEY) || "";
+    } catch (_e) {
+      return "";
+    }
+  })(),
   user: null,
   favorites: new Set(),
   likes: new Set(),
@@ -4309,7 +4332,7 @@ const MMAAuth = {
       } else {
         this.token = "";
         this.user = null;
-        localStorage.removeItem(LS_AUTH_TOKEN_KEY);
+        try { sessionStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
       }
     } catch (_err) {}
     this.renderNav();
@@ -4825,7 +4848,7 @@ const MMAAuth = {
 
       this.token = data.token;
       this.user = data.user;
-      localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+      try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
       this.closeAuthModal();
       this.renderNav();
       addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
@@ -4852,7 +4875,7 @@ const MMAAuth = {
     this.user = null;
     this.favorites.clear();
     this.likes.clear();
-    localStorage.removeItem(LS_AUTH_TOKEN_KEY);
+    try { sessionStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
     this.renderNav();
     addDebugLog("[Auth] 로그아웃 완료", "info");
   },
@@ -6077,19 +6100,19 @@ const MMAAuth = {
 
       this.token = token;
       this.user = user;
-      localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+      try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
       this.renderNav();
       this.closeAuthModal();
 
       if (type === "admin") {
-        alert(`[👑 운영 관리자 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 최고 운영 관리자 (Admin)\n\n우측 상단 사람 아이콘을 클릭하여 [👑 관리자 운영 대시보드]를 열어 전체 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
+        alert(`[운영 관리자 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 최고 운영 관리자 (Admin)\n\n우측 상단 프로필 아이콘을 클릭하여 [관리자 통합 센터]를 열어 전체 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
       } else if (type === "merchant") {
-        alert(`[🏪 소상공인 점주 체험]\n\n계정: ${user.nickname} (${user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 사람 아이콘을 클릭하여 [우리 매장 QR 통계]를 바로 확인해 보세요!`);
+        alert(`[소상공인 점주 체험]\n\n계정: ${user.nickname} (${user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 프로필 아이콘을 클릭하여 [가맹점 상세페이지 관리]를 바로 확인해 보세요!`);
         if (typeof window.focusFacility === "function") {
           window.focusFacility("nara_3218");
         }
       } else {
-        alert(`[🪖 병역의무자 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 일반 회원 (병역이행자)\n\n매장 찜하기(⭐), 좋아요(❤️), 회원정보 수정을 자유롭게 테스트해 보세요!`);
+        alert(`[일반 회원(병역이행자) 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 일반 회원 (병역이행자)\n\n매장 찜하기, 좋아요, 회원정보 수정을 자유롭게 테스트해 보세요!`);
       }
     } catch (err) {
       console.error("[Simulator Error]", err);
@@ -6501,7 +6524,7 @@ const MMAAuth = {
           if (data.ok) {
             this.token = data.token;
             this.user = data.user;
-            localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+            try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
             this.closeAuthModal();
             this.renderNav();
             addDebugLog(`[Auth] 회원가입 완료: ${this.user.nickname} (${role})`, 'success');
