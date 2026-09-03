@@ -3079,7 +3079,9 @@ async function bootstrap() {
     selectedDetailAnchor = targetAnchor;
 
     detailInfoWindow.setContent(contentHtml);
-    detailInfoWindow.open(map, targetAnchor);
+    if (!detailInfoWindow.getMap()) {
+      detailInfoWindow.open(map, targetAnchor);
+    }
 
     const closeBtn = document.getElementById("closeDetailPanelBtn");
     if (closeBtn) closeBtn.onclick = closeDetailPanel;
@@ -3144,14 +3146,197 @@ async function bootstrap() {
       };
     }
 
+    // Helper for seamless in-place Comments Flyout update (no window reload or flicker)
+    const updateCommentsFlyoutDom = () => {
+      const flyout = document.getElementById("storeCommentsFlyout");
+      if (!flyout) return;
+      const cList = getStoreComments(facilityId);
+      const pageSize = 2;
+      const totalPages = Math.ceil(cList.length / pageSize) || 1;
+      if (currentDetailCommentPage > totalPages) currentDetailCommentPage = totalPages;
+      if (currentDetailCommentPage < 1) currentDetailCommentPage = 1;
+
+      const startIdx = (currentDetailCommentPage - 1) * pageSize;
+      const pageComments = cList.slice(startIdx, startIdx + pageSize);
+
+      const itemsHtml = pageComments
+        .map((c) => {
+          const cMeta = parseAuthorMeta(c.author);
+          const canDelete = canDeleteCommentItem(c, facilityId, point);
+          return `
+            <div class="storeCommentItem">
+              <div class="storeCommentMeta">
+                <span class="storeCommentAuthor">${escapeHtml(cMeta.displayName || "회원")}</span>
+                <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+                ${canDelete ? `<button type="button" class="commentItemDeleteBtn" data-comment-id="${escapeHtml(String(c.id))}" title="댓글 삭제">삭제</button>` : ""}
+              </div>
+              <div class="storeCommentText">${escapeHtml(c.text || "")}</div>
+            </div>
+          `;
+        })
+        .join("");
+
+      const listEl = flyout.querySelector("#storeCommentList");
+      if (listEl) {
+        listEl.innerHTML = itemsHtml || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 24px 6px;">첫 번째 응원 댓글을 남겨보세요!</div>';
+      }
+
+      const titleEl = flyout.querySelector(".storeSideFlyoutTitle");
+      if (titleEl) titleEl.textContent = `💬 방문 후기 & 응원 댓글 (${cList.length}개)`;
+
+      const chipEl = document.querySelector("#btnOpenCommentsFlyout .commentCountChip");
+      if (chipEl) chipEl.textContent = String(cList.length);
+
+      const prevBtn = flyout.querySelector("#btnCommentPrevPage");
+      const nextBtn = flyout.querySelector("#btnCommentNextPage");
+      const indicator = flyout.querySelector(".commentPageIndicator");
+      if (prevBtn) prevBtn.disabled = currentDetailCommentPage <= 1;
+      if (nextBtn) nextBtn.disabled = currentDetailCommentPage >= totalPages;
+      if (indicator) indicator.textContent = `${currentDetailCommentPage} / ${totalPages}`;
+
+      flyout.querySelectorAll(".commentItemDeleteBtn").forEach((btn) => {
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          const cid = btn.getAttribute("data-comment-id");
+          if (!cid) return;
+          if (!confirm("해당 댓글을 삭제하시겠습니까?")) return;
+          btn.disabled = true;
+          await deleteStoreComment(facilityId, cid);
+          updateCommentsFlyoutDom();
+        };
+      });
+    };
+
+    // Helper for seamless in-place QA Flyout update (no window reload or flicker)
+    const updateQaFlyoutDom = () => {
+      const flyout = document.getElementById("storeQaFlyout");
+      if (!flyout) return;
+      const qList = getStoreQaList(facilityId);
+      const itemsHtml = qList
+        .slice(0, 3)
+        .map((item) => {
+          const qMeta = parseQuestionMeta(item.q);
+          const aMeta = parseAuthorMeta(item.author);
+          const isSecret = qMeta.isSecret;
+          const canView = canViewSecretQaItem(item, facilityId, point);
+          const canDelete = canDeleteQaItem(item, facilityId, point);
+          const canReply = canReplyQaItem(item, facilityId, point);
+
+          let qDisplay = "";
+          if (!canView) {
+            qDisplay = `<span class="qaSecretMaskedText">🔒 비밀글입니다. (작성자와 해당 매장 점주만 열람 가능)</span>`;
+          } else {
+            qDisplay = `${isSecret ? '<span class="qaSecretBadge">🔒 비밀글</span> ' : ""}${escapeHtml(qMeta.text)}`;
+          }
+
+          let aHtml = "";
+          if (item.a) {
+            if (!canView) {
+              aHtml = `<div class="storeQaA"><span class="aTag">A</span> <span class="qaSecretMaskedText">🔒 비밀 답변입니다.</span></div>`;
+            } else {
+              aHtml = `
+                <div class="storeQaA">
+                  <span class="aTag">A</span>
+                  <div class="storeQaAText">
+                    <span class="storeQaMerchantTag">점주 답변</span>
+                    ${escapeHtml(item.a)}
+                  </div>
+                  ${canReply ? `<button type="button" class="qaAnswerEditBtn" data-qa-id="${escapeHtml(String(item.id))}" title="답변 수정">수정</button>` : ""}
+                </div>
+              `;
+            }
+          } else {
+            if (canReply) {
+              aHtml = `
+                <div class="qaReplyForm" id="qaReplyForm_${escapeHtml(String(item.id))}">
+                  <div class="qaReplyInputWrap">
+                    <input type="text" class="qaReplyInput" id="qaReplyInput_${escapeHtml(String(item.id))}" placeholder="점주 답변을 작성해주세요..." maxlength="150" />
+                    <button type="button" class="qaReplySubmitBtn" data-qa-id="${escapeHtml(String(item.id))}">답글 등록</button>
+                  </div>
+                </div>
+              `;
+            } else {
+              aHtml = `<div style="font-size:10.5px;color:#94a3b8;padding-left:18px;">답변 대기 중</div>`;
+            }
+          }
+
+          return `
+            <div class="storeQaItem">
+              <div class="storeQaMeta">
+                <span class="storeQaAuthor">${escapeHtml(canView ? (aMeta.displayName || "회원") : "익명")}</span>
+                <span class="storeQaDate">${escapeHtml(item.date || "")}</span>
+                ${canDelete ? `<button type="button" class="qaItemDeleteBtn" data-qa-id="${escapeHtml(String(item.id))}" title="문의 삭제">삭제</button>` : ""}
+              </div>
+              <div class="storeQaQ"><span class="qTag">Q</span> ${qDisplay}</div>
+              ${aHtml}
+            </div>
+          `;
+        })
+        .join("");
+
+      const listEl = flyout.querySelector("#storeQaList");
+      if (listEl) {
+        listEl.innerHTML = itemsHtml || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 24px 6px;">등록된 문의가 없습니다. 궁금한 점을 질문해보세요!</div>';
+      }
+
+      const titleEl = flyout.querySelector(".storeSideFlyoutTitle");
+      if (titleEl) titleEl.textContent = `❓ Q&A 혜택 이용 문의 (${qList.length}건)`;
+
+      const chipEl = document.querySelector("#btnOpenQaFlyout .commentCountChip");
+      if (chipEl) chipEl.textContent = String(qList.length);
+
+      flyout.querySelectorAll(".qaItemDeleteBtn").forEach((btn) => {
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          const qid = btn.getAttribute("data-qa-id");
+          if (!qid) return;
+          if (!confirm("해당 문의(Q&A)를 삭제하시겠습니까?")) return;
+          btn.disabled = true;
+          await deleteStoreQa(facilityId, qid);
+          updateQaFlyoutDom();
+        };
+      });
+
+      flyout.querySelectorAll(".qaReplySubmitBtn").forEach((btn) => {
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          const qid = btn.getAttribute("data-qa-id");
+          if (!qid) return;
+          const inp = document.getElementById(`qaReplyInput_${qid}`);
+          const replyText = inp?.value?.trim();
+          if (!replyText) {
+            alert("답변 내용을 입력해주세요.");
+            inp?.focus();
+            return;
+          }
+          btn.disabled = true;
+          await replyStoreQa(facilityId, qid, replyText);
+          updateQaFlyoutDom();
+        };
+      });
+
+      flyout.querySelectorAll(".qaAnswerEditBtn").forEach((btn) => {
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          const qid = btn.getAttribute("data-qa-id");
+          if (!qid) return;
+          const target = getStoreQaList(facilityId).find((q) => String(q.id) === String(qid));
+          const newAns = prompt("수정할 답변 내용을 입력하세요:", target?.a || "");
+          if (newAns === null) return;
+          btn.disabled = true;
+          await replyStoreQa(facilityId, qid, newAns.trim());
+          updateQaFlyoutDom();
+        };
+      });
+    };
+
     // Comment Pagination Buttons
     const btnCommentPrev = document.getElementById("btnCommentPrevPage");
     if (btnCommentPrev) {
       btnCommentPrev.onclick = () => {
         if (currentDetailCommentPage > 1) {
           currentDetailCommentPage--;
-          isCommentsFlyoutOpen = true;
-          openDetailInfo(point, targetAnchor);
+          updateCommentsFlyoutDom();
         }
       };
     }
@@ -3159,8 +3344,7 @@ async function bootstrap() {
     if (btnCommentNext) {
       btnCommentNext.onclick = () => {
         currentDetailCommentPage++;
-        isCommentsFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
+        updateCommentsFlyoutDom();
       };
     }
 
@@ -3200,13 +3384,14 @@ async function bootstrap() {
         const inp = document.getElementById("storeNewCommentInput");
         const text = inp?.value?.trim();
         if (!text) return;
+        inp.value = ""; // Clear immediately for snappy feel
         const author = `${userDisplayName} [uid:${currentUser.id || currentUser.phone || "u"}]`;
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
         commentSubmitBtn.disabled = true;
         await addStoreComment(facilityId, { author, text, date });
+        commentSubmitBtn.disabled = false;
         currentDetailCommentPage = 1;
-        isCommentsFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
+        updateCommentsFlyoutDom();
       };
     }
 
@@ -3222,7 +3407,10 @@ async function bootstrap() {
         const inp = document.getElementById("storeNewQaInput");
         const question = inp?.value?.trim();
         if (!question) return;
-        const isSecret = !!document.getElementById("storeQaSecretCheck")?.checked;
+        inp.value = ""; // Clear immediately for snappy feel
+        const secretCheck = document.getElementById("storeQaSecretCheck");
+        const isSecret = !!secretCheck?.checked;
+        if (secretCheck) secretCheck.checked = false;
         const prefix = isSecret
           ? `[SECRET:${currentUser.id || currentUser.phone || "u"}]`
           : `[PUBLIC:${currentUser.id || currentUser.phone || "u"}]`;
@@ -3231,75 +3419,14 @@ async function bootstrap() {
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
         qaSubmitBtn.disabled = true;
         await addStoreQa(facilityId, { q: qText, author, a: "", date });
-        alert(isSecret ? "🔒 비밀 문의가 등록되었습니다! 작성자와 해당 매장 점주만 열람할 수 있습니다." : "문의 질문이 등록되었습니다!");
-        isQaFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
+        qaSubmitBtn.disabled = false;
+        updateQaFlyoutDom();
       };
     }
 
-    // Comment Delete Buttons
-    document.querySelectorAll(".commentItemDeleteBtn").forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        const cid = btn.getAttribute("data-comment-id");
-        if (!cid) return;
-        if (!confirm("해당 댓글을 삭제하시겠습니까?")) return;
-        btn.disabled = true;
-        await deleteStoreComment(facilityId, cid);
-        isCommentsFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
-      };
-    });
-
-    // QA Delete Buttons
-    document.querySelectorAll(".qaItemDeleteBtn").forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        const qid = btn.getAttribute("data-qa-id");
-        if (!qid) return;
-        if (!confirm("해당 문의(Q&A)를 삭제하시겠습니까?")) return;
-        btn.disabled = true;
-        await deleteStoreQa(facilityId, qid);
-        isQaFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
-      };
-    });
-
-    // QA Reply Submit Buttons
-    document.querySelectorAll(".qaReplySubmitBtn").forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        const qid = btn.getAttribute("data-qa-id");
-        if (!qid) return;
-        const inp = document.getElementById(`qaReplyInput_${qid}`);
-        const replyText = inp?.value?.trim();
-        if (!replyText) {
-          alert("답변 내용을 입력해주세요.");
-          inp?.focus();
-          return;
-        }
-        btn.disabled = true;
-        await replyStoreQa(facilityId, qid, replyText);
-        isQaFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
-      };
-    });
-
-    // QA Answer Edit Buttons
-    document.querySelectorAll(".qaAnswerEditBtn").forEach((btn) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        const qid = btn.getAttribute("data-qa-id");
-        if (!qid) return;
-        const target = getStoreQaList(facilityId).find((q) => String(q.id) === String(qid));
-        const newAns = prompt("수정할 답변 내용을 입력하세요:", target?.a || "");
-        if (newAns === null) return;
-        btn.disabled = true;
-        await replyStoreQa(facilityId, qid, newAns.trim());
-        isQaFlyoutOpen = true;
-        openDetailInfo(point, targetAnchor);
-      };
-    });
+    // Bind initial delete and reply buttons inside flyouts
+    updateCommentsFlyoutDom();
+    updateQaFlyoutDom();
 
     const printBtn = document.getElementById("detailPrintBtn");
     if (printBtn) {
@@ -3346,27 +3473,29 @@ async function bootstrap() {
       };
     }
 
-    // Dynamic auto-centering verification: measure exact rendered DOM height and adjust if needed
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const panelEl = document.querySelector(".detailPanelInWindow");
-        if (!panelEl || !map) return;
-        const rect = panelEl.getBoundingClientRect();
-        const topSafety = (window.innerWidth <= 768 ? 65 : 75) + 15;
-        // If rendered popup is clipped at top (rect.top < topSafety)
-        if (rect.top < topSafety) {
-          const exactShiftY = calculateDynamicShiftY(panelEl, point);
-          const proj = map.getProjection?.();
-          if (proj?.fromCoordToOffset && proj?.fromOffsetToCoord) {
-            const curMarkerOffset = proj.fromCoordToOffset(targetAnchor);
-            const correctCenterOffset = new naver.maps.Point(curMarkerOffset.x, curMarkerOffset.y + exactShiftY);
-            const correctCenter = proj.fromOffsetToCoord(correctCenterOffset);
-            if (map.panTo) map.panTo(correctCenter);
-            else map.setCenter(correctCenter);
+    // Dynamic auto-centering verification: measure exact rendered DOM height and adjust if needed (only on initial open, not when flyout is open)
+    if (!isCommentsFlyoutOpen && !isQaFlyoutOpen) {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const panelEl = document.querySelector(".detailPanelInWindow");
+          if (!panelEl || !map) return;
+          const rect = panelEl.getBoundingClientRect();
+          const topSafety = (window.innerWidth <= 768 ? 65 : 75) + 15;
+          // If rendered popup is clipped at top (rect.top < topSafety)
+          if (rect.top < topSafety) {
+            const exactShiftY = calculateDynamicShiftY(panelEl, point);
+            const proj = map.getProjection?.();
+            if (proj?.fromCoordToOffset && proj?.fromOffsetToCoord) {
+              const curMarkerOffset = proj.fromCoordToOffset(targetAnchor);
+              const correctCenterOffset = new naver.maps.Point(curMarkerOffset.x, curMarkerOffset.y + exactShiftY);
+              const correctCenter = proj.fromOffsetToCoord(correctCenterOffset);
+              if (map.panTo) map.panTo(correctCenter);
+              else map.setCenter(correctCenter);
+            }
           }
-        }
-      }, 50);
-    });
+        }, 50);
+      });
+    }
   };
 
   const getMarkerIcon = (category) => {

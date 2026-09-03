@@ -7017,12 +7017,7 @@ button:active {
   flex-direction: column !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
-  animation: flyoutFadeIn 0.18s ease-out !important;
-}
-
-@keyframes flyoutFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  transition: none !important;
 }
 
 .storeSideFlyout.hidden {
