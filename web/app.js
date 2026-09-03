@@ -6741,64 +6741,6 @@ const MMAAuth = {
     }
   },
 
-  onMerchantStoreSearchInput(query) {
-    const resultsEl = document.getElementById("merchantStoreSearchResults");
-    if (!resultsEl) return;
-    const q = String(query || "").trim().toLowerCase();
-    if (!q) {
-      resultsEl.classList.add("hidden");
-      resultsEl.innerHTML = "";
-      return;
-    }
-    const points = Array.isArray(window.points) ? window.points : [];
-    const matched = points.filter(p => 
-      (p.title || p.name || "").toLowerCase().includes(q) ||
-      (p.address || "").toLowerCase().includes(q) ||
-      (p.subtitle || p.category || "").toLowerCase().includes(q)
-    ).slice(0, 15);
-
-    if (matched.length === 0) {
-      resultsEl.innerHTML = `<div style="padding: 10px; font-size: 12px; color: #94a3b8; text-align: center;">검색 결과가 없습니다.</div>`;
-      resultsEl.classList.remove("hidden");
-      return;
-    }
-
-    resultsEl.innerHTML = matched.map(p => {
-      const fid = p.facilityId || p.facility_id || p.id;
-      const name = this.escapeHtml(p.title || p.name || "");
-      const addr = this.escapeHtml(p.address || "");
-      const cat = this.escapeHtml(p.subtitle || p.category || "가맹점");
-      return `
-        <div style="padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
-             onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'"
-             onclick="window.MMAAuth.selectStoreForStats('${fid}')">
-          <div>
-            <strong style="font-size: 13px; color: #0f172a;">${name}</strong>
-            <span style="font-size: 11px; color: #64748b; margin-left: 6px;">(${cat})</span>
-            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${addr}</div>
-          </div>
-          <button type="button" style="font-size: 11.5px; font-weight: 600; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 4px 8px; cursor: pointer;">통계 보기</button>
-        </div>
-      `;
-    }).join("");
-    resultsEl.classList.remove("hidden");
-  },
-
-  selectStoreForStats(facilityId) {
-    const resultsEl = document.getElementById("merchantStoreSearchResults");
-    if (resultsEl) resultsEl.classList.add("hidden");
-    const searchInput = document.getElementById("merchantStoreSearchInput");
-    if (searchInput) searchInput.value = "";
-    this.openMerchantStatsModal(facilityId);
-  },
-
-  resetMerchantStatsToMyStore() {
-    const searchInput = document.getElementById("merchantStoreSearchInput");
-    if (searchInput) searchInput.value = "";
-    const fid = this.user?.merchantFacilityId || "nara_3218";
-    this.openMerchantStatsModal(fid);
-  },
-
   async openMerchantStatsModal(customFacilityId = "") {
     if (typeof closeIntroPopup === "function") closeIntroPopup(false);
     
