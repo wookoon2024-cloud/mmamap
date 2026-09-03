@@ -3450,9 +3450,15 @@ button:active {
   top: auto !important;
   transform: none !important;
   margin: 0 !important;
-  max-height: calc(100vh - 120px) !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.detailPanel.detailPanelInWindow::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .detailPanel.hidden {
@@ -6792,23 +6798,23 @@ button:active {
    Detail Popup Dynamic Feature Extensions
    ======================================================== */
 
-/* Store Photo Carousel / Banner (Slim 80px Height) */
+/* Store Photo Carousel / Banner (Slim 70px Height) */
 .storePhotoBanner,
 .storePhotoCarousel {
   position: relative !important;
   width: 100% !important;
-  height: 80px !important;
-  max-height: 80px !important;
+  height: 70px !important;
+  max-height: 70px !important;
   overflow: hidden !important;
   border-radius: 8px !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 6px !important;
   background: #0f172a !important;
 }
 
 .storePhotoBanner img {
   width: 100% !important;
   height: 100% !important;
-  max-height: 80px !important;
+  max-height: 70px !important;
   object-fit: cover !important;
   display: block !important;
 }
@@ -6824,7 +6830,7 @@ button:active {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  max-height: 80px !important;
+  max-height: 70px !important;
   object-fit: cover !important;
   opacity: 0 !important;
   transition: opacity 0.25s ease !important;
@@ -6841,13 +6847,13 @@ button:active {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.65);
   color: #ffffff;
   border: none;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -6866,13 +6872,13 @@ button:active {
 
 .carouselCounterBadge {
   position: absolute;
-  bottom: 6px;
-  right: 8px;
+  bottom: 5px;
+  right: 6px;
   background: rgba(0, 0, 0, 0.65);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 1px 6px;
   border-radius: 10px;
   z-index: 2;
 }
@@ -6883,20 +6889,20 @@ button:active {
   border: 1px solid #e2e8f0;
   border-left: 3.5px solid #64748b;
   border-radius: 6px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  font-size: 12px;
+  padding: 6px 10px;
+  margin-bottom: 5px;
+  font-size: 11.5px;
   color: #334155;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 /* Today's Promo Alert */
 .todayPromoBox {
   background: #fffbeb;
   border: 1.5px solid #fde68a;
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 5px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -6905,34 +6911,34 @@ button:active {
 .promoBadge {
   background: #f59e0b;
   color: #ffffff;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
   white-space: nowrap;
 }
 
 .promoText {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #92400e;
 }
 
 /* Operating Hours Row */
 .storeHoursRow {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #334155;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  padding: 5px 9px;
-  margin-bottom: 8px;
+  padding: 3px 8px;
+  margin-bottom: 5px;
 }
 
 /* SNS Link Row */
 .storeSnsRow {
-  font-size: 11.5px;
-  margin-bottom: 8px;
+  font-size: 11px;
+  margin-bottom: 5px;
 }
 
 .storeSnsLink {
@@ -6949,8 +6955,8 @@ button:active {
 .detailCommunityBtnRow {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid #e2e8f0;
 }
 
@@ -6962,8 +6968,8 @@ button:active {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #1e293b;
   cursor: pointer;
@@ -6990,30 +6996,33 @@ button:active {
 .commentCountChip {
   background: #e2e8f0;
   color: #475569;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 10px;
-  margin-left: 6px;
+  margin-left: 5px;
 }
 
-/* Side Popup Flyout for Comments & Q/A */
+/* Internal Popup Overlay for Comments & Q/A */
 .storeSideFlyout {
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 0;
-  width: 320px;
-  max-height: 100%;
-  min-height: 280px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-sizing: border-box;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #ffffff !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22) !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  animation: flyoutFadeIn 0.18s ease-out !important;
+}
+
+@keyframes flyoutFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .storeSideFlyout.hidden {
@@ -7269,20 +7278,7 @@ button:active {
   background: #334155;
 }
 
-/* Mobile responsive for side flyout */
-@media (max-width: 768px) {
-  .storeSideFlyout {
-    position: fixed !important;
-    left: 12px !important;
-    right: 12px !important;
-    bottom: 12px !important;
-    top: auto !important;
-    width: auto !important;
-    max-height: 65vh !important;
-    border-radius: 18px !important;
-    box-shadow: 0 -10px 36px rgba(15, 23, 42, 0.35) !important;
-    z-index: 10000 !important;
-  }
-}
+
+
 
 
