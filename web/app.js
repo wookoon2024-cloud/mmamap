@@ -646,15 +646,24 @@ async function bootstrap() {
       if (Array.isArray(actRows)) {
         actRows.forEach(r => {
           const fid = String(r.facility_id || "");
+          const cleanFid = fid.split("____")[0] || fid;
           if (r.action_type === "like") {
             likeCountsById[fid] = (likeCountsById[fid] || 0) + 1;
+            if (cleanFid && cleanFid !== fid) {
+              likeCountsById[cleanFid] = (likeCountsById[cleanFid] || 0) + 1;
+            }
             if (userToken && r.client_token === userToken) {
               likes.add(fid);
+              if (cleanFid) likes.add(cleanFid);
             }
           } else if (r.action_type === "favorite") {
             favoriteCountsById[fid] = (favoriteCountsById[fid] || 0) + 1;
+            if (cleanFid && cleanFid !== fid) {
+              favoriteCountsById[cleanFid] = (favoriteCountsById[cleanFid] || 0) + 1;
+            }
             if (userToken && r.client_token === userToken) {
               favorites.add(fid);
+              if (cleanFid) favorites.add(cleanFid);
             }
           }
         });
@@ -669,7 +678,11 @@ async function bootstrap() {
       if (Array.isArray(clickRows)) {
         clickRows.forEach(r => {
           const fid = String(r.facility_id || "");
+          const cleanFid = fid.split("____")[0] || fid;
           clickCountsById[fid] = (clickCountsById[fid] || 0) + 1;
+          if (cleanFid && cleanFid !== fid) {
+            clickCountsById[cleanFid] = (clickCountsById[cleanFid] || 0) + 1;
+          }
         });
       }
 
@@ -2274,7 +2287,9 @@ async function bootstrap() {
   const fetchStoreCustomSettingsFromSupabase = async (facilityId) => {
     try {
       const { url, headers } = getSupabaseDirectConfig();
-      const res = await fetch(`${url}/facility_custom_settings?facility_id=eq.${encodeURIComponent(facilityId)}`, { headers });
+      const fid = String(facilityId || "").trim();
+      const cleanFid = fid.split("____")[0] || fid;
+      const res = await fetch(`${url}/facility_custom_settings?facility_id=like.*${encodeURIComponent(cleanFid)}*&order=updated_at.desc&limit=1`, { headers });
       if (res.ok) {
         const rows = await res.json();
         if (Array.isArray(rows) && rows.length > 0) {
@@ -2293,7 +2308,10 @@ async function bootstrap() {
             snsEnabled: !!row.sns_enabled,
             snsUrl: row.sns_url || ""
           };
-          customSettingsCache.set(facilityId, settings);
+          customSettingsCache.set(fid, settings);
+          if (cleanFid && cleanFid !== fid) {
+            customSettingsCache.set(cleanFid, settings);
+          }
           return settings;
         }
       }
@@ -2304,8 +2322,13 @@ async function bootstrap() {
   };
 
   const getStoreCustomSettings = (facilityId, point = null) => {
-    if (customSettingsCache.has(facilityId)) {
-      return customSettingsCache.get(facilityId);
+    const fid = String(facilityId || "").trim();
+    const cleanFid = fid.split("____")[0] || fid;
+    if (customSettingsCache.has(fid)) {
+      return customSettingsCache.get(fid);
+    }
+    if (cleanFid && customSettingsCache.has(cleanFid)) {
+      return customSettingsCache.get(cleanFid);
     }
 
     const defaultSettings = {
@@ -2326,7 +2349,12 @@ async function bootstrap() {
   };
 
   const saveStoreCustomSettings = async (facilityId, settings) => {
-    customSettingsCache.set(facilityId, settings);
+    const fid = String(facilityId || "").trim();
+    const cleanFid = fid.split("____")[0] || fid;
+    customSettingsCache.set(fid, settings);
+    if (cleanFid && cleanFid !== fid) {
+      customSettingsCache.set(cleanFid, settings);
+    }
 
     // 100% Direct Supabase PostgreSQL Upsert
     try {
@@ -2336,8 +2364,9 @@ async function bootstrap() {
         "Prefer": "resolution=merge-duplicates,return=minimal"
       };
 
+      const nowIso = new Date().toISOString();
       const payload = {
-        facility_id: String(facilityId),
+        facility_id: fid,
         greeting_enabled: !!settings.greetingEnabled,
         greeting_text: settings.greetingText || "",
         photo_enabled: !!settings.photoEnabled,
@@ -2350,7 +2379,7 @@ async function bootstrap() {
         hours_text: settings.hoursText || "",
         sns_enabled: !!settings.snsEnabled,
         sns_url: settings.snsUrl || "",
-        updated_at: new Date().toISOString()
+        updated_at: nowIso
       };
 
       await fetch(`${url}/facility_custom_settings`, {
@@ -2358,7 +2387,14 @@ async function bootstrap() {
         headers: upsertHeaders,
         body: JSON.stringify(payload)
       });
-      console.log(`[Supabase Direct] Facility custom settings persisted for ${facilityId}`);
+      if (cleanFid && cleanFid !== fid) {
+        await fetch(`${url}/facility_custom_settings`, {
+          method: "POST",
+          headers: upsertHeaders,
+          body: JSON.stringify({ ...payload, facility_id: cleanFid })
+        });
+      }
+      console.log(`[Supabase Direct] Facility custom settings persisted for ${fid} & ${cleanFid}`);
     } catch (err) {
       console.error("[Supabase Direct Save Custom Settings Error]", err);
     }
@@ -2878,13 +2914,15 @@ async function bootstrap() {
     const qaList = getStoreQaList(facilityId);
 
     // Background Supabase Sync for cross-device realtime consistency
-    if (!customSettingsCache.has(facilityId)) {
-      fetchStoreCustomSettingsFromSupabase(facilityId).then((remote) => {
-        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor) {
+    fetchStoreCustomSettingsFromSupabase(facilityId).then((remote) => {
+      if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor) {
+        const curJson = JSON.stringify(custom || {});
+        const remJson = JSON.stringify(remote || {});
+        if (curJson !== remJson) {
           openDetailInfo(point, selectedDetailAnchor);
         }
-      });
-    }
+      }
+    });
     if (!commentsCache.has(facilityId)) {
       fetchStoreCommentsFromSupabase(facilityId).then((remote) => {
         if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor) {
@@ -3200,12 +3238,12 @@ async function bootstrap() {
           <button id="detailLikeBtn" class="detailEngagementBtn like ${isLiked ? "active" : ""}" type="button" aria-label="좋아요" title="${isLiked ? "좋아요 취소" : "좋아요 추천"}">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
             <span class="engBtnLabel">좋아요</span>
-            <span class="engBtnCount" id="detailLikeCount">${Number(likeCountsById[facilityId] || (isLiked ? 1 : 0))}</span>
+            <span class="engBtnCount" id="detailLikeCount">${Math.max(Number(likeCountsById[facilityId] || 0), (legacyKey ? Number(likeCountsById[legacyKey] || 0) : 0), isLiked ? 1 : 0)}</span>
           </button>
           <button id="detailFavBtn" class="detailEngagementBtn fav ${isFavorite ? "active" : ""}" type="button" aria-label="즐겨찾기" title="${isFavorite ? "즐겨찾기 해제" : "즐겨찾기 등록"}">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             <span class="engBtnLabel">즐겨찾기</span>
-            <span class="engBtnCount" id="detailFavCount">${Number(favoriteCountsById[facilityId] || (isFavorite ? 1 : 0))}</span>
+            <span class="engBtnCount" id="detailFavCount">${Math.max(Number(favoriteCountsById[facilityId] || 0), (legacyKey ? Number(favoriteCountsById[legacyKey] || 0) : 0), isFavorite ? 1 : 0)}</span>
           </button>
           ${bookingBtnHtml}
         </div>
