@@ -939,6 +939,9 @@ async function bootstrap() {
     }
     if (introPopupEl) introPopupEl.classList.add("hidden");
     if (introBackdropEl) introBackdropEl.classList.add("hidden");
+    if (typeof updateCurrentLocationMarker === "function") {
+      updateCurrentLocationMarker(36.3623, 127.3849, true);
+    }
   };
 
   const openIntroPopup = async () => {
@@ -4755,7 +4758,9 @@ async function bootstrap() {
   if (btnZoomOut) btnZoomOut.addEventListener("click", () => { closeDetailPanel(); map.setZoom(map.getZoom() - 1, true); updateZoomLabel(); });
   if (zoomLevelBtn) zoomLevelBtn.addEventListener("click", () => { closeDetailPanel(); map.setCenter(defaultCenter); map.setZoom(defaultZoom, true); updateZoomLabel(); });
   const updateCurrentLocationMarker = (lat, lng, panTo = false) => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 30) return;
+    // Force virtual location to Government Complex Daejeon (정부대전청사)
+    lat = DAEJEON_GOV_COMPLEX.lat;
+    lng = DAEJEON_GOV_COMPLEX.lng;
     currentUserLatLng = new naver.maps.LatLng(lat, lng);
 
     if (!currentLocationMarker) {
