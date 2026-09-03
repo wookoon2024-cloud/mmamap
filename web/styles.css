@@ -1458,8 +1458,10 @@ button:active {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 10050;
-  width: min(880px, calc(100vw - 28px));
-  max-height: min(90vh, 900px);
+  width: min(960px, calc(100vw - 28px));
+  height: min(88vh, 820px);
+  min-height: min(88vh, 820px);
+  max-height: min(88vh, 820px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -6790,6 +6792,79 @@ button:active {
 .merchantStatsTabPane.active {
   display: block;
   animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Period Filter Buttons */
+.periodBtnGroup {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.periodFilterBtn,
+.adminPeriodBtn {
+  background: transparent;
+  border: none;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.periodFilterBtn:hover,
+.adminPeriodBtn:hover {
+  color: #1e293b;
+}
+
+.periodFilterBtn.active,
+.adminPeriodBtn.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Pagination Row */
+.paginationRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.pageBtn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.pageBtn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Photo Upload & Thumbnails in Modal */

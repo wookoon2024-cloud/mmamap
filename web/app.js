@@ -2227,6 +2227,10 @@ async function bootstrap() {
   const closePrintModal = () => {
     const backdrop = document.getElementById("printModalBackdrop");
     if (backdrop) backdrop.classList.add("hidden");
+    if (window.MMAAuth && window.MMAAuth.returnToAdmin) {
+      window.MMAAuth.returnToAdmin = false;
+      window.MMAAuth.openAdminDashboardModal("", "facilities");
+    }
   };
 
   // ==========================================
@@ -5264,12 +5268,28 @@ const MMAAuth = {
     const roleTitle = isAdmin ? "관리자" : isMerchant ? "점주" : "회원";
 
     wrap.innerHTML = `
-      <div class="authUserBadge" onclick="window.MMAAuth.toggleProfileMenu()" title="내 메뉴 열기" style="cursor:pointer;">
+      <div class="authUserBadge" onclick="${isMerchant ? "window.MMAAuth.goToMyMerchantStore(event)" : "window.MMAAuth.toggleProfileMenu()"}" title="${isMerchant ? "클릭 시 내 매장(" + this.escapeHtml(this.user.merchantFacilityName || "의정부간호학원") + ") 위치로 이동" : "내 메뉴 열기"}" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
         <span>${roleIcon}</span>
-        <strong>${this.escapeHtml(this.user.nickname)}</strong>
-        <small style="color:${isAdmin ? '#a21caf' : '#64748b'};">${roleTitle}</small>
+        <strong style="${isMerchant ? "text-decoration: underline; text-underline-offset: 3px;" : ""}">${this.escapeHtml(this.user.nickname)}</strong>
+        <small style="color:${isAdmin ? '#a21caf' : (isMerchant ? '#2563eb' : '#64748b')}; font-weight:${isMerchant ? '700' : '500'};">${roleTitle}</small>
       </div>
     `;
+  },
+
+  goToMyMerchantStore(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const fid = this.user?.merchantFacilityId || "nara_3218";
+    if (typeof closeIntroPopup === "function") closeIntroPopup(false);
+    this.closeProfileMenu();
+    if (typeof window.focusFacility === "function") {
+      window.focusFacility(fid);
+    }
+    if (typeof showToast === "function") {
+      showToast(`🏪 <strong>${this.escapeHtml(this.user?.merchantFacilityName || "의정부간호학원")}</strong> 매장 위치로 이동했습니다.`);
+    }
   },
 
   renderProfileDropdown() {
@@ -6109,7 +6129,7 @@ const MMAAuth = {
     }
   },
 
-  async openAdminDashboardModal(adminKey = "") {
+  async openAdminDashboardModal(adminKey = "", targetTab = "") {
     if (!this.user || this.user.role !== "admin") {
       alert("운영 관리자 권한이 필요합니다. 관리자 계정으로 로그인해 주세요.");
       return;
@@ -6122,7 +6142,8 @@ const MMAAuth = {
     backdrop.classList.remove("hidden");
     modal.classList.remove("hidden");
 
-    this.switchAdminTab("analytics");
+    const tab = targetTab || this.currentAdminTab || "analytics";
+    this.switchAdminTab(tab);
 
     // Load real stats directly from Supabase
     try {
@@ -6134,37 +6155,17 @@ const MMAAuth = {
       console.error("[Admin Stats Load Error]", err);
     }
 
-    this.fetchAdminMembers(adminKey);
-  },
-
-  async refreshAdminStats() {
-    const btn = document.getElementById("adminRefreshStatsBtn");
-    if (btn) {
-      btn.textContent = "⏳ 갱신 중...";
-      btn.style.opacity = "0.7";
-    }
-    try {
-      const directStats = await this.fetchSupabaseDirectStats();
-      if (directStats) {
-        this.renderAdminStats(directStats);
-      }
-
-      if (this.currentAdminTab === "members") {
-        await this.fetchAdminMembers();
-      } else if (this.currentAdminTab === "facilities") {
-        await this.fetchAdminFacilities();
-      }
-    } catch (err) {
-      console.error("[Admin Stats Refresh Error]", err);
-    } finally {
-      if (btn) {
-        btn.textContent = "🔄 실시간 새로고침";
-        btn.style.opacity = "1";
-      }
+    if (tab === "members") {
+      this.fetchAdminMembers(adminKey);
+    } else if (tab === "facilities") {
+      this.fetchAdminFacilities();
     }
   },
 
-  closeAdminDashboardModal() {
+  closeAdminDashboardModal(resetReturn = true) {
+    if (resetReturn) {
+      this.returnToAdmin = false;
+    }
     const backdrop = document.getElementById("adminDashboardBackdrop");
     const modal = document.getElementById("adminDashboardModal");
     if (backdrop) backdrop.classList.add("hidden");
@@ -6337,8 +6338,8 @@ const MMAAuth = {
                 </strong>
                 ${sourceBadge}
               </div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(f.benefit || '')}">
-                ${this.escapeHtml(f.benefit || '혜택 정보 없음')}
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${this.escapeHtml(f.address || f.region || "")}
               </div>
             </td>
             <td style="text-align: center;">
@@ -6358,7 +6359,7 @@ const MMAAuth = {
             </td>
             <td style="text-align: center;">
               <div class="facActionBtns">
-                <button type="button" class="facActionBtn statsBtn" onclick="window.MMAAuth.openMerchantStatsModal('${this.escapeHtml(f.facilityId)}')" title="매장 실시간 상생 통계 보기" style="background:#f0fdf4; color:#166534; border: 1px solid #bbf7d0;">
+                <button type="button" class="facActionBtn statsBtn" onclick="window.MMAAuth.adminOpenFacilityStats('${this.escapeHtml(f.facilityId)}')" title="매장 실시간 상생 통계 보기" style="background:#f0fdf4; color:#166534; border: 1px solid #bbf7d0;">
                   통계 보기
                 </button>
                 <button type="button" class="facActionBtn mapBtn" onclick="window.MMAAuth.adminLocateFacility('${this.escapeHtml(f.facilityId)}')" title="지도 위치로 이동">
@@ -6375,8 +6376,15 @@ const MMAAuth = {
       .join("");
   },
 
+  adminOpenFacilityStats(facilityId) {
+    this.returnToAdmin = true;
+    this.closeAdminDashboardModal(false);
+    this.openMerchantStatsModal(facilityId);
+  },
+
   adminOpenFacilityPrintouts(facilityId) {
-    this.closeAdminDashboardModal();
+    this.returnToAdmin = true;
+    this.closeAdminDashboardModal(false);
     if (typeof window.openPrintModal === "function") {
       window.openPrintModal(facilityId);
     }
@@ -6558,28 +6566,17 @@ const MMAAuth = {
     if (totalUsers) totalUsers.innerHTML = `${stats.users.total || 0}<small>명</small>`;
     if (userDetail) userDetail.textContent = `일반 ${stats.users.general || 0} · 소상공인 ${stats.users.merchant || 0}`;
 
-    // 30-day Daily Chart
-    if (chartContainer && stats.daily) {
-      const maxPv = Math.max(...stats.daily.map((d) => d.pv), 10);
-      const todayStr = new Date().toISOString().slice(5, 10).replace("-", ".");
-      chartContainer.innerHTML = stats.daily
-        .map((d, idx) => {
-          const isToday = idx === stats.daily.length - 1 || d.date === todayStr;
-          const heightPercent = Math.max(8, Math.round((d.pv / maxPv) * 100));
-          return `
-            <div class="adminChartBarCol ${isToday ? 'today' : ''}">
-              <span class="adminChartBarVal">${d.pv > 0 ? d.pv : ''}</span>
-              <div class="adminChartBarPv" style="height: ${heightPercent}%;"></div>
-              <span class="adminChartBarLabel">${d.date}${isToday ? '<br><b style="color:#d97706;">오늘</b>' : ''}</span>
-            </div>
-          `;
-        })
-        .join("");
-
-      setTimeout(() => {
-        chartContainer.scrollLeft = chartContainer.scrollWidth;
-      }, 50);
+    // Daily Chart with period support
+    this.adminStatsRaw = stats;
+    this.adminPeriod = this.adminPeriod || "30d";
+    const numDays = this.adminPeriod === "7d" ? 7 : (this.adminPeriod === "180d" ? 180 : 30);
+    const pBtns = document.querySelectorAll(".adminPeriodBtn");
+    pBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === this.adminPeriod));
+    const titleEl = document.getElementById("adminChartTitle");
+    if (titleEl) {
+      titleEl.textContent = `최근 ${numDays === 30 ? "30일(1달)" : (numDays === 180 ? "6개월" : "7일")} 접속 추이 (페이지뷰 및 순 방문자)`;
     }
+    this.renderAdminDailyChart(stats.daily, numDays);
 
     // Devices
     if (devContainer && stats.devices) {
@@ -6619,16 +6616,60 @@ const MMAAuth = {
     }
   },
 
-  async fetchSupabaseStoreStats(facilityId) {
+  changeAdminPeriod(periodKey) {
+    this.adminPeriod = periodKey;
+    const btns = document.querySelectorAll(".adminPeriodBtn");
+    btns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === periodKey));
+
+    const numDays = periodKey === "7d" ? 7 : (periodKey === "180d" ? 180 : 30);
+    const titleEl = document.getElementById("adminChartTitle");
+    if (titleEl) {
+      titleEl.textContent = `최근 ${numDays === 30 ? "30일(1달)" : (numDays === 180 ? "6개월" : "7일")} 접속 추이 (페이지뷰 및 순 방문자)`;
+    }
+
+    if (this.adminStatsRaw && this.adminStatsRaw.daily) {
+      this.renderAdminDailyChart(this.adminStatsRaw.daily, numDays);
+    }
+  },
+
+  renderAdminDailyChart(dailyData = [], numDays = 30) {
+    const chartContainer = document.getElementById("adminDailyChartContainer");
+    if (!chartContainer || !Array.isArray(dailyData)) return;
+
+    const daysCount = Number(numDays) || 30;
+    const sliced = dailyData.slice(-daysCount);
+    const maxPv = Math.max(...sliced.map((d) => d.pv), 10);
+    const todayStr = new Date().toISOString().slice(5, 10).replace("-", ".");
+    chartContainer.innerHTML = sliced
+      .map((d, idx) => {
+        const isToday = idx === sliced.length - 1 || d.date === todayStr;
+        const heightPercent = Math.max(8, Math.round((d.pv / maxPv) * 100));
+        return `
+          <div class="adminChartBarCol ${isToday ? 'today' : ''}" style="${daysCount === 180 ? 'min-width: 24px;' : ''}">
+            <span class="adminChartBarVal">${d.pv > 0 ? d.pv : ''}</span>
+            <div class="adminChartBarPv" style="height: ${heightPercent}%;"></div>
+            <span class="adminChartBarLabel">${d.date}${isToday ? '<br><b style="color:#d97706;">오늘</b>' : ''}</span>
+          </div>
+        `;
+      })
+      .join("");
+
+    setTimeout(() => {
+      chartContainer.scrollLeft = chartContainer.scrollWidth;
+    }, 50);
+  },
+
+  async fetchSupabaseStoreStats(facilityId, periodDays = 7) {
     try {
       const url = this.getSupabaseUrl();
       const headers = this.getSupabaseHeaders();
       const fid = String(facilityId || "").trim();
+      const cleanFid = fid.split("____")[0] || fid;
 
       // Find store meta from window.points or fallback
       let store = null;
       if (Array.isArray(window.points)) {
-        store = window.points.find(p => (p.facilityId || p.facility_id || p.id) === fid);
+        store = window.points.find(p => (p.facilityId || p.facility_id || p.id) === fid || (p.facilityId || p.facility_id || p.id) === cleanFid);
       }
 
       const storeName = store ? (store.title || store.name) : (fid === this.user?.merchantFacilityId ? this.user.merchantFacilityName : fid);
@@ -6638,17 +6679,18 @@ const MMAAuth = {
 
       const startOfTodayMs = new Date().setHours(0, 0, 0, 0);
       const startOfMonthMs = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
-      const fourteenDaysAgoMs = startOfTodayMs - 13 * 86400000;
+      const numDays = Number(periodDays) || 7;
+      const periodAgoMs = startOfTodayMs - (numDays - 1) * 86400000;
 
       // 1. Direct page visits for this store from Supabase page_visits
-      const pvRes = await fetch(`${url}/page_visits?path=like.*${encodeURIComponent(fid)}*&select=id,visited_at,device_type`, { headers });
+      const pvRes = await fetch(`${url}/page_visits?path=like.*${encodeURIComponent(cleanFid)}*&select=id,visited_at,device_type`, { headers });
       const pvList = (await pvRes.json()) || [];
       const totalPv = Array.isArray(pvList) ? pvList.length : 0;
       const todayPv = Array.isArray(pvList) ? pvList.filter(p => (Number(p.visited_at) || 0) >= startOfTodayMs).length : 0;
       const monthPv = Array.isArray(pvList) ? pvList.filter(p => (Number(p.visited_at) || 0) >= startOfMonthMs).length : 0;
 
       // 2. QR scans from Supabase qr_scan_events
-      const qrRes = await fetch(`${url}/qr_scan_events?facility_id=eq.${encodeURIComponent(fid)}&select=event_id,created_at,source,is_indirect,parent_facility_id`, { headers });
+      const qrRes = await fetch(`${url}/qr_scan_events?facility_id=like.*${encodeURIComponent(cleanFid)}*&select=event_id,created_at,source,is_indirect,parent_facility_id`, { headers });
       const qrList = (await qrRes.json()) || [];
       const directQrList = Array.isArray(qrList) ? qrList.filter(q => Number(q.is_indirect) !== 1) : [];
       const indirectQrList = Array.isArray(qrList) ? qrList.filter(q => Number(q.is_indirect) === 1) : [];
@@ -6662,11 +6704,11 @@ const MMAAuth = {
       const monthIndirect = indirectQrList.filter(q => (Number(q.created_at) || 0) >= startOfMonthMs).length;
       const totalReach = totalDirectScans + totalIndirect;
 
-      // 3. Comments and QA count from Supabase
+      // 3. Comments and QA from Supabase
       let totalComments = 0;
       let storeComments = [];
       try {
-        const cRes = await fetch(`${url}/facility_comments?facility_id=like.*${encodeURIComponent(fid)}*&order=created_at.desc&limit=20`, { headers });
+        const cRes = await fetch(`${url}/facility_comments?facility_id=like.*${encodeURIComponent(cleanFid)}*&order=created_at.desc&limit=50`, { headers });
         const cRows = await cRes.json();
         if (Array.isArray(cRows)) {
           totalComments = cRows.length;
@@ -6674,11 +6716,28 @@ const MMAAuth = {
         }
       } catch (_e) {}
 
+      let totalQa = 0;
+      let storeQaList = [];
+      try {
+        const qRes = await fetch(`${url}/facility_qa?facility_id=like.*${encodeURIComponent(cleanFid)}*&order=id.desc&limit=50`, { headers });
+        const qRows = await qRes.json();
+        if (Array.isArray(qRows)) {
+          totalQa = qRows.length;
+          storeQaList = qRows.map(r => ({
+            id: r.id,
+            q: r.question,
+            author: r.author,
+            a: r.answer || "",
+            date: r.created_at
+          }));
+        }
+      } catch (_e) {}
+
       // 4. Likes & Favorites from Supabase
       let totalLikes = 0;
       let totalFavs = 0;
       try {
-        const actRes = await fetch(`${url}/facility_action_states?facility_id=like.*${encodeURIComponent(fid)}*&active=eq.1&select=action_type,facility_id`, { headers });
+        const actRes = await fetch(`${url}/facility_action_states?facility_id=like.*${encodeURIComponent(cleanFid)}*&active=eq.1&select=action_type,facility_id`, { headers });
         const acts = (await actRes.json()) || [];
         if (Array.isArray(acts)) {
           totalLikes = acts.filter(a => a.action_type === "like").length;
@@ -6689,7 +6748,7 @@ const MMAAuth = {
       // Cross-check in-memory sets and counts
       if (typeof likes !== "undefined") {
         for (const k of likes) {
-          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+          if (k === fid || k === cleanFid || k.startsWith(cleanFid + "_") || fid.startsWith(k + "_")) {
             totalLikes = Math.max(totalLikes, 1);
             break;
           }
@@ -6697,7 +6756,7 @@ const MMAAuth = {
       }
       if (typeof favorites !== "undefined") {
         for (const k of favorites) {
-          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+          if (k === fid || k === cleanFid || k.startsWith(cleanFid + "_") || fid.startsWith(k + "_")) {
             totalFavs = Math.max(totalFavs, 1);
             break;
           }
@@ -6705,22 +6764,22 @@ const MMAAuth = {
       }
       if (typeof likeCountsById !== "undefined") {
         for (const [k, v] of Object.entries(likeCountsById)) {
-          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+          if (k === fid || k === cleanFid || k.startsWith(cleanFid + "_") || fid.startsWith(k + "_")) {
             totalLikes = Math.max(totalLikes, Number(v) || 0);
           }
         }
       }
       if (typeof favoriteCountsById !== "undefined") {
         for (const [k, v] of Object.entries(favoriteCountsById)) {
-          if (k === fid || k.startsWith(fid + "_") || fid.startsWith(k + "_")) {
+          if (k === fid || k === cleanFid || k.startsWith(cleanFid + "_") || fid.startsWith(k + "_")) {
             totalFavs = Math.max(totalFavs, Number(v) || 0);
           }
         }
       }
 
-      // 5. 14-day Daily Chart
+      // 5. Daily Stacked Chart for selected periodDays
       const dailyMap = {};
-      for (let i = 13; i >= 0; i--) {
+      for (let i = numDays - 1; i >= 0; i--) {
         const d = new Date(startOfTodayMs - i * 86400000);
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
@@ -6731,7 +6790,7 @@ const MMAAuth = {
       if (Array.isArray(pvList)) {
         pvList.forEach(p => {
           const vTime = Number(p.visited_at) || 0;
-          if (vTime >= fourteenDaysAgoMs) {
+          if (vTime >= periodAgoMs) {
             const d = new Date(vTime);
             const key = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
             if (dailyMap[key]) {
@@ -6745,7 +6804,7 @@ const MMAAuth = {
       if (Array.isArray(qrList)) {
         qrList.forEach(q => {
           const cTime = Number(q.created_at) || 0;
-          if (cTime >= fourteenDaysAgoMs) {
+          if (cTime >= periodAgoMs) {
             const d = new Date(cTime);
             const key = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
             if (dailyMap[key]) {
@@ -6801,6 +6860,7 @@ const MMAAuth = {
         storeCategory,
         storeAddress,
         storePhone,
+        periodDays: numDays,
         stats: {
           totalScans: totalDirectScans,
           indirectExposures: totalIndirect,
@@ -6813,6 +6873,8 @@ const MMAAuth = {
           totalFavorites: totalFavs,
           totalComments,
           comments: storeComments,
+          totalQa,
+          qaList: storeQaList,
           daily,
           mutualPartners,
           sources
@@ -6830,6 +6892,7 @@ const MMAAuth = {
     // Allow merchant, admin, or any tester
     const targetFid = customFacilityId || this.currentStatsFacilityId || this.user?.merchantFacilityId || "nara_3218";
     this.currentStatsFacilityId = targetFid;
+    this.merchantStatsPeriod = this.merchantStatsPeriod || "7d";
 
     const backdrop = document.getElementById("merchantStatsBackdrop");
     const modal = document.getElementById("merchantStatsModal");
@@ -6839,10 +6902,12 @@ const MMAAuth = {
     backdrop.classList.remove("hidden");
     modal.classList.remove("hidden");
 
+    const numDays = this.merchantStatsPeriod === "30d" ? 30 : (this.merchantStatsPeriod === "180d" ? 180 : 7);
+
     // Fetch real stats directly from Supabase
-    const data = await this.fetchSupabaseStoreStats(targetFid);
+    const data = await this.fetchSupabaseStoreStats(targetFid, numDays);
     if (data) {
-      this.renderMerchantStats(data);
+      this.renderMerchantStats(data, numDays);
     }
   },
 
@@ -6851,22 +6916,38 @@ const MMAAuth = {
     const modal = document.getElementById("merchantStatsModal");
     if (backdrop) backdrop.classList.add("hidden");
     if (modal) modal.classList.add("hidden");
+
+    if (this.returnToAdmin) {
+      this.returnToAdmin = false;
+      this.openAdminDashboardModal("", "facilities");
+    }
   },
 
-  renderMerchantStats(data) {
+  async changeMerchantPeriod(periodKey) {
+    this.merchantStatsPeriod = periodKey;
+    const btns = document.querySelectorAll(".periodFilterBtn");
+    btns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === periodKey));
+
+    const numDays = periodKey === "7d" ? 7 : (periodKey === "180d" ? 180 : 30);
+    const titleEl = document.getElementById("merchantChartTitle");
+    if (titleEl) {
+      titleEl.textContent = `최근 ${numDays === 30 ? "1달" : (numDays === 180 ? "6개월" : "7일")} 직접 방문 & 이웃 팜플렛 노출 추이`;
+    }
+
+    const fid = this.currentStatsFacilityId || this.user?.merchantFacilityId || "nara_3218";
+    const data = await this.fetchSupabaseStoreStats(fid, numDays);
+    if (data) {
+      this.renderMerchantStats(data, numDays);
+    }
+  },
+
+  renderMerchantStats(data, periodDays = 7) {
     const storeTitle = document.getElementById("merchantStoreTitle");
     const storeCat = document.getElementById("merchantStoreCategory");
     const storeAddr = document.getElementById("merchantStoreAddress");
     const totalEl = document.getElementById("kpiTotalScans");
-    const likesEl = document.getElementById("kpiTotalLikes");
-    const favsEl = document.getElementById("kpiTotalFavorites");
-    const commentsEl = document.getElementById("kpiTotalComments");
     const indirectEl = document.getElementById("kpiIndirectExposures");
-    const reachEl = document.getElementById("kpiTotalReach");
     const directSub = document.getElementById("kpiDirectSub");
-    const likesSub = document.getElementById("kpiLikesSub");
-    const favsSub = document.getElementById("kpiFavsSub");
-    const commentsSub = document.getElementById("kpiCommentsSub");
     const indirectSub = document.getElementById("kpiIndirectSub");
     const chartContainer = document.getElementById("dailyChartContainer");
     const partnerList = document.getElementById("mutualPartnersList");
@@ -6881,21 +6962,23 @@ const MMAAuth = {
     const likesVal = Number(stats.totalLikes) || 0;
     const favsVal = Number(stats.totalFavorites) || 0;
     const commentsVal = Number(stats.totalComments) || 0;
+    const qaVal = Number(stats.totalQa) || 0;
     const indirectVal = Number(stats.indirectExposures) || 0;
-    const reachVal = Number(stats.totalMutualReach) || (totalScansVal + indirectVal);
 
+    // Tab 1 KPI Cards
     if (totalEl) totalEl.innerHTML = `${totalScansVal.toLocaleString()}<small>회</small>`;
-    if (likesEl) likesEl.innerHTML = `${likesVal.toLocaleString()}<small>개</small>`;
-    if (favsEl) favsEl.innerHTML = `${favsVal.toLocaleString()}<small>명</small>`;
-    if (commentsEl) commentsEl.innerHTML = `${commentsVal.toLocaleString()}<small>건</small>`;
     if (indirectEl) indirectEl.innerHTML = `${indirectVal.toLocaleString()}<small>회</small>`;
-    if (reachEl) reachEl.innerHTML = `${reachVal.toLocaleString()}<small>회</small>`;
-
     if (directSub) directSub.textContent = `오늘 ${(Number(stats.todayScans) || 0).toLocaleString()}회`;
-    if (likesSub) likesSub.textContent = `장병·회원 추천`;
-    if (favsSub) favsSub.textContent = `단골 등록자`;
-    if (commentsSub) commentsSub.textContent = commentsVal > 0 ? `소통 글 ${commentsVal}건` : `아직 등록된 후기 없음`;
-    if (indirectSub) indirectSub.textContent = `오늘 ${(Number(stats.todayIndirect) || 0).toLocaleString()}회`;
+    if (indirectSub) indirectSub.textContent = `상생 연계 노출 (오늘 ${(Number(stats.todayIndirect) || 0).toLocaleString()}회)`;
+
+    // Update Period Filter active button in Tab 1
+    const pBtns = document.querySelectorAll(".periodFilterBtn");
+    pBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === (this.merchantStatsPeriod || "7d")));
+
+    const titleEl = document.getElementById("merchantChartTitle");
+    if (titleEl) {
+      titleEl.textContent = `최근 ${periodDays === 30 ? "1달" : (periodDays === 180 ? "6개월" : "7일")} 직접 방문 & 이웃 팜플렛 노출 추이`;
+    }
 
     // Render Daily Stacked Chart (Direct vs Indirect)
     if (chartContainer && Array.isArray(stats.daily)) {
@@ -6906,7 +6989,7 @@ const MMAAuth = {
           const indirectPct = d.count > 0 ? Math.round(((d.indirectCount || 0) / d.count) * 100) : 0;
           const barHeightPct = d.count > 0 ? Math.max(12, Math.round((d.count / maxCount) * 100)) : 6;
           return `
-            <div class="chartBarCol">
+            <div class="chartBarCol" style="${periodDays === 180 ? 'min-width: 24px;' : ''}">
               <span class="chartBarValue">${d.count > 0 ? d.count : 0}</span>
               <div style="display: flex; flex-direction: column-reverse; width: 100%; max-width: 18px; height: ${barHeightPct}%;">
                 <div style="background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); height: ${directPct}%; border-radius: 0 0 3px 3px;"></div>
@@ -6923,7 +7006,29 @@ const MMAAuth = {
       }, 50);
     }
 
-    // Render Mutual Partners List
+    // Tab 2: 4 KPI Cards
+    const tabLikesEl = document.getElementById("mstatsTabLikesCount");
+    const tabFavsEl = document.getElementById("mstatsTabFavsCount");
+    const tabCommentsEl = document.getElementById("mstatsTabCommentsCount");
+    const tabQaEl = document.getElementById("mstatsTabQaCount");
+    const subCommentsEl = document.getElementById("mstatsSubCommentsCount");
+    const subQaEl = document.getElementById("mstatsSubQaCount");
+
+    if (tabLikesEl) tabLikesEl.textContent = likesVal.toLocaleString();
+    if (tabFavsEl) tabFavsEl.textContent = favsVal.toLocaleString();
+    if (tabCommentsEl) tabCommentsEl.textContent = commentsVal.toLocaleString();
+    if (tabQaEl) tabQaEl.textContent = qaVal.toLocaleString();
+    if (subCommentsEl) subCommentsEl.textContent = commentsVal.toLocaleString();
+    if (subQaEl) subQaEl.textContent = qaVal.toLocaleString();
+
+    // Cache comments and QA data for pagination
+    this.merchantCommentsData = stats.comments || [];
+    this.merchantQaData = stats.qaList || [];
+    this.renderMerchantCommentsList(1);
+    this.renderMerchantQaList(1);
+    this.switchCommSubTab(this.merchantCommSubTab || "comments");
+
+    // Render Mutual Partners List (Tab 3)
     if (partnerList) {
       const partners = stats.mutualPartners || [];
       if (partners.length === 0) {
@@ -6950,7 +7055,7 @@ const MMAAuth = {
       }
     }
 
-    // Render Source Breakdown
+    // Render Source Breakdown (Tab 3)
     if (sourceList) {
       const src = stats.sources || { poster: 0, table_stand: 0, door_hanger: 0, mobile_landing: 0 };
       sourceList.innerHTML = `
@@ -6972,35 +7077,151 @@ const MMAAuth = {
         </div>
       `;
     }
+  },
 
-    // Tab 2 Engagement & Comments rendering
-    const tabLikesEl = document.getElementById("mstatsTabLikesCount");
-    const tabFavsEl = document.getElementById("mstatsTabFavsCount");
-    if (tabLikesEl) tabLikesEl.textContent = likesVal.toLocaleString();
-    if (tabFavsEl) tabFavsEl.textContent = favsVal.toLocaleString();
+  switchCommSubTab(subTab) {
+    this.merchantCommSubTab = subTab;
+    const btnComments = document.getElementById("btnSubTabComments");
+    const btnQa = document.getElementById("btnSubTabQa");
+    const paneComments = document.getElementById("commSubPaneComments");
+    const paneQa = document.getElementById("commSubPaneQa");
 
-    const mCommentsEl = document.getElementById("mstatsCommentsList");
-    const mCommentsSub = document.getElementById("mstatsCommentsSub");
-    if (mCommentsSub) mCommentsSub.textContent = `실제 등록된 방문 후기 ${commentsVal}건`;
-    if (mCommentsEl) {
-      const comList = Array.isArray(stats.comments) ? stats.comments : [];
-      if (comList.length === 0) {
-        mCommentsEl.innerHTML = `
-          <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;">
-            아직 등록된 장병 응원 후기가 없습니다. 첫 후기를 기다리는 중입니다.
-          </div>
-        `;
-      } else {
-        mCommentsEl.innerHTML = comList.map(c => `
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <strong style="font-size: 13px; color: #1e293b;">${this.escapeHtml(c.author_name || c.author || "청년 장병")}</strong>
-              <span style="font-size: 11px; color: #94a3b8;">${this.escapeHtml(c.date || (c.created_at ? new Date(c.created_at).toLocaleDateString("ko-KR") : ""))}</span>
-            </div>
-            <div style="font-size: 13px; color: #334155; line-height: 1.5;">${this.escapeHtml(c.comment_text || c.text || "")}</div>
-          </div>
-        `).join("");
+    if (btnComments) btnComments.classList.toggle("active", subTab === "comments");
+    if (btnQa) btnQa.classList.toggle("active", subTab === "qa");
+    if (paneComments) paneComments.style.display = subTab === "comments" ? "block" : "none";
+    if (paneQa) paneQa.style.display = subTab === "qa" ? "block" : "none";
+  },
+
+  renderMerchantCommentsList(page = 1) {
+    this.merchantCommentsPage = page;
+    const container = document.getElementById("mstatsCommentsList");
+    const pagContainer = document.getElementById("mstatsCommentsPagination");
+    if (!container) return;
+
+    const list = this.merchantCommentsData || [];
+    const pageSize = 4;
+    const totalPages = Math.ceil(list.length / pageSize) || 1;
+    const curPage = Math.max(1, Math.min(page, totalPages));
+    const startIdx = (curPage - 1) * pageSize;
+    const pageItems = list.slice(startIdx, startIdx + pageSize);
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 13px;">
+          아직 등록된 장병 응원 후기가 없습니다. 첫 방문 후기를 기다리는 중입니다.
+        </div>
+      `;
+      if (pagContainer) pagContainer.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = pageItems.map(c => `
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <strong style="font-size: 13px; color: #1e293b;">${this.escapeHtml(c.author_name || c.author || "청년 장병")}</strong>
+          <span style="font-size: 11px; color: #94a3b8;">${this.escapeHtml(c.date || (c.created_at ? new Date(c.created_at).toLocaleDateString("ko-KR") : ""))}</span>
+        </div>
+        <div style="font-size: 13px; color: #334155; line-height: 1.5;">${this.escapeHtml(c.comment_text || c.text || "")}</div>
+      </div>
+    `).join("");
+
+    if (pagContainer) {
+      let html = "";
+      html += `<button type="button" class="pageBtn" ${curPage <= 1 ? "disabled" : ""} onclick="window.MMAAuth.renderMerchantCommentsList(${curPage - 1})">이전</button>`;
+      for (let p = 1; p <= totalPages; p++) {
+        html += `<button type="button" class="pageBtn ${p === curPage ? "active" : ""}" onclick="window.MMAAuth.renderMerchantCommentsList(${p})">${p}</button>`;
       }
+      html += `<button type="button" class="pageBtn" ${curPage >= totalPages ? "disabled" : ""} onclick="window.MMAAuth.renderMerchantCommentsList(${curPage + 1})">다음</button>`;
+      pagContainer.innerHTML = html;
+    }
+  },
+
+  renderMerchantQaList(page = 1) {
+    this.merchantQaPage = page;
+    const container = document.getElementById("mstatsQaList");
+    const pagContainer = document.getElementById("mstatsQaPagination");
+    if (!container) return;
+
+    const list = this.merchantQaData || [];
+    const pageSize = 4;
+    const totalPages = Math.ceil(list.length / pageSize) || 1;
+    const curPage = Math.max(1, Math.min(page, totalPages));
+    const startIdx = (curPage - 1) * pageSize;
+    const pageItems = list.slice(startIdx, startIdx + pageSize);
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 13px;">
+          등록된 1:1 Q&A 문의가 없습니다.
+        </div>
+      `;
+      if (pagContainer) pagContainer.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = pageItems.map(q => {
+      const qMeta = typeof parseQuestionMeta === "function" ? parseQuestionMeta(q.q) : { isSecret: false, text: q.q };
+      const answerHtml = q.a ? `
+        <div style="margin-top: 8px; padding: 8px 12px; background: #eff6ff; border-radius: 6px; font-size: 12.5px; color: #1e40af; border-left: 3px solid #3b82f6;">
+          <div style="font-weight: 700; font-size: 11px; margin-bottom: 2px;">점주 답변</div>
+          <div>${this.escapeHtml(q.a)}</div>
+        </div>
+      ` : `
+        <div style="margin-top: 8px; display: flex; gap: 6px;">
+          <input type="text" id="mReplyInput_${q.id}" placeholder="점주 답변을 작성해 주세요..." style="flex:1; font-size: 12px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;" />
+          <button type="button" onclick="window.MMAAuth.submitMerchantQaReply(${q.id})" style="padding: 6px 12px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">답변 등록</button>
+        </div>
+      `;
+
+      return `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 700; color: #334155;">${this.escapeHtml(q.author || "문의 고객")}</span>
+              ${qMeta.isSecret ? '<span style="font-size: 10px; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; padding: 1px 5px; border-radius: 4px;">비공개</span>' : ''}
+            </div>
+            <span style="font-size: 11px; color: #94a3b8;">${this.escapeHtml(q.date ? new Date(q.date).toLocaleDateString("ko-KR") : "")}</span>
+          </div>
+          <div style="font-size: 13px; color: #1e293b; font-weight: 600;">Q. ${this.escapeHtml(qMeta.text || q.q || "")}</div>
+          ${answerHtml}
+        </div>
+      `;
+    }).join("");
+
+    if (pagContainer) {
+      let html = "";
+      html += `<button type="button" class="pageBtn" ${curPage <= 1 ? "disabled" : ""} onclick="window.MMAAuth.renderMerchantQaList(${curPage - 1})">이전</button>`;
+      for (let p = 1; p <= totalPages; p++) {
+        html += `<button type="button" class="pageBtn ${p === curPage ? "active" : ""}" onclick="window.MMAAuth.renderMerchantQaList(${p})">${p}</button>`;
+      }
+      html += `<button type="button" class="pageBtn" ${curPage >= totalPages ? "disabled" : ""} onclick="window.MMAAuth.renderMerchantQaList(${curPage + 1})">다음</button>`;
+      pagContainer.innerHTML = html;
+    }
+  },
+
+  async submitMerchantQaReply(qaId) {
+    const input = document.getElementById(`mReplyInput_${qaId}`);
+    if (!input || !input.value.trim()) {
+      alert("답변 내용을 입력해 주세요.");
+      return;
+    }
+    const answerText = input.value.trim();
+    try {
+      const { url, headers } = getSupabaseDirectConfig();
+      await fetch(`${url}/facility_qa?id=eq.${qaId}`, {
+        method: "PATCH",
+        headers: { ...headers, "Prefer": "return=representation" },
+        body: JSON.stringify({ answer: answerText })
+      });
+      alert("답변이 성공적으로 등록되었습니다.");
+      if (Array.isArray(this.merchantQaData)) {
+        const item = this.merchantQaData.find(q => q.id == qaId);
+        if (item) item.a = answerText;
+      }
+      this.renderMerchantQaList(this.merchantQaPage);
+    } catch (err) {
+      console.error("Submit QA Reply Error:", err);
+      alert("답변 등록에 실패했습니다.");
     }
   },
 

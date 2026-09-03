@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=57.0" />
+    <link rel="stylesheet" href="./styles.css?v=58.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -271,44 +271,34 @@
       <div class="merchantStatsBody">
         <!-- 탭 1: 방문 & 상생 통계 -->
         <div id="tab-mstats-overview" class="merchantStatsTabPane active">
-          <!-- Quick KPI Cards (Extended with Likes, Favorites, Comments) -->
-          <div class="statsKpiGrid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+          <!-- Period Filter Row -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-size: 13px; font-weight: 700; color: #334155;">조회 기간</div>
+            <div class="periodBtnGroup">
+              <button type="button" class="periodFilterBtn active" data-period="7d" onclick="window.MMAAuth.changeMerchantPeriod('7d')">7일</button>
+              <button type="button" class="periodFilterBtn" data-period="30d" onclick="window.MMAAuth.changeMerchantPeriod('30d')">1달</button>
+              <button type="button" class="periodFilterBtn" data-period="180d" onclick="window.MMAAuth.changeMerchantPeriod('180d')">6개월</button>
+            </div>
+          </div>
+
+          <!-- Quick KPI Cards (Only 2 cards: Direct Scans & Indirect Exposures) -->
+          <div class="statsKpiGrid" style="grid-template-columns: repeat(2, 1fr); gap: 14px;">
             <div class="kpiCard">
               <span class="kpiLabel">직접 QR 방문</span>
               <strong id="kpiTotalScans" class="kpiValue">0<small>회</small></strong>
               <span id="kpiDirectSub" class="kpiSub">오늘 0회</span>
             </div>
-            <div class="kpiCard" style="border-color: #fecdd3; background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);">
-              <span class="kpiLabel" style="color: #e11d48;">좋아요 추천</span>
-              <strong id="kpiTotalLikes" class="kpiValue" style="color: #e11d48;">0<small>개</small></strong>
-              <span id="kpiLikesSub" class="kpiSub" style="color: #e11d48;">장병·회원 추천</span>
-            </div>
-            <div class="kpiCard" style="border-color: #fef08a; background: linear-gradient(180deg, #fefce8 0%, #ffffff 100%);">
-              <span class="kpiLabel" style="color: #ca8a04;">즐겨찾기(찜)</span>
-              <strong id="kpiTotalFavorites" class="kpiValue" style="color: #ca8a04;">0<small>명</small></strong>
-              <span id="kpiFavsSub" class="kpiSub" style="color: #ca8a04;">단골 등록자</span>
-            </div>
-            <div class="kpiCard" style="border-color: #c7d2fe; background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%);">
-              <span class="kpiLabel" style="color: #4f46e5;">응원 댓글/후기</span>
-              <strong id="kpiTotalComments" class="kpiValue" style="color: #4f46e5;">0<small>건</small></strong>
-              <span id="kpiCommentsSub" class="kpiSub" style="color: #4f46e5;">방문 소통 글</span>
-            </div>
             <div class="kpiCard highlight" style="border-color: #a7f3d0; background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);">
               <span class="kpiLabel" style="color: #059669;">이웃 팜플렛 노출</span>
-              <strong id="kpiIndirectExposures" class="kpiValue" style="color: #059669;">0<small>회</small></strong>
-              <span id="kpiIndirectSub" class="kpiSub" style="color: #059669;">상생 연계 노출</span>
-            </div>
-            <div class="kpiCard" style="border-color: #fed7aa; background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);">
-              <span class="kpiLabel" style="color: #d97706;">총 상생 파급효과</span>
-              <strong id="kpiTotalReach" class="kpiValue" style="color: #d97706;">0<small>회</small></strong>
-              <span class="kpiSub">직접 + 간접 종합</span>
+              <strong id="kpiIndirectExposures" class="kpiValue">0<small>회</small></strong>
+              <span id="kpiIndirectSub" class="kpiSub">상생 연계 노출</span>
             </div>
           </div>
 
-          <!-- 14-day Daily Chart -->
+          <!-- Daily Chart -->
           <div class="statsCard" style="margin-top: 14px;">
             <div class="statsCardHead">
-              <h4>최근 14일 직접 방문 & 이웃 팜플렛 노출 추이</h4>
+              <h4 id="merchantChartTitle">최근 7일 직접 방문 & 이웃 팜플렛 노출 추이</h4>
               <span class="statsCardSub">청년 장병 방문 & 상생 파급 효과</span>
             </div>
             <div id="dailyChartContainer" class="dailyChartContainer"></div>
@@ -321,32 +311,50 @@
 
         <!-- 탭 2: 단골 & 응원 소통 -->
         <div id="tab-mstats-community" class="merchantStatsTabPane">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
-            <div class="statsCard" style="margin-bottom: 0; background: #fff1f2; border-color: #fecdd3;">
-              <div>
-                <h4 style="color: #9f1239; margin: 0; font-size: 14px;">장병·회원 좋아요 추천</h4>
-                <div style="font-size: 22px; font-weight: 800; color: #e11d48; margin-top: 4px;"><span id="mstatsTabLikesCount">0</span>개</div>
-              </div>
-              <p style="font-size: 11.5px; color: #be123c; margin: 8px 0 0 0;">지도 팝업에서 회원이 하트를 눌러 우리 가게를 추천한 실측 수치입니다.</p>
+          <!-- 4 KPI Cards: 좋아요, 즐겨찾기, 댓글/후기, Q&A -->
+          <div class="statsKpiGrid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;">
+            <div class="kpiCard" style="border-color: #fecdd3; background: #fff1f2;">
+              <span class="kpiLabel" style="color: #9f1239;">좋아요 추천</span>
+              <strong id="mstatsTabLikesCount" class="kpiValue" style="color: #e11d48;">0<small>개</small></strong>
+              <span class="kpiSub" style="color: #be123c;">장병·회원 추천</span>
             </div>
-            <div class="statsCard" style="margin-bottom: 0; background: #fefce8; border-color: #fef08a;">
-              <div>
-                <h4 style="color: #854d0e; margin: 0; font-size: 14px;">단골 회원 즐겨찾기(찜)</h4>
-                <div style="font-size: 22px; font-weight: 800; color: #ca8a04; margin-top: 4px;"><span id="mstatsTabFavsCount">0</span>명</div>
-              </div>
-              <p style="font-size: 11.5px; color: #a16207; margin: 8px 0 0 0;">회원이 즐겨찾기 목록에 저장하여 재방문 의사를 밝힌 실측 수치입니다.</p>
+            <div class="kpiCard" style="border-color: #fef08a; background: #fefce8;">
+              <span class="kpiLabel" style="color: #854d0e;">즐겨찾기(찜)</span>
+              <strong id="mstatsTabFavsCount" class="kpiValue" style="color: #ca8a04;">0<small>명</small></strong>
+              <span class="kpiSub" style="color: #a16207;">단골 등록자</span>
+            </div>
+            <div class="kpiCard" style="border-color: #c7d2fe; background: #eef2ff;">
+              <span class="kpiLabel" style="color: #3730a3;">응원 댓글/후기</span>
+              <strong id="mstatsTabCommentsCount" class="kpiValue" style="color: #4f46e5;">0<small>건</small></strong>
+              <span class="kpiSub" style="color: #4338ca;">방문 소통 글</span>
+            </div>
+            <div class="kpiCard" style="border-color: #fed7aa; background: #fff7ed;">
+              <span class="kpiLabel" style="color: #9a3412;">1:1 이용 Q&A</span>
+              <strong id="mstatsTabQaCount" class="kpiValue" style="color: #ea580c;">0<small>건</small></strong>
+              <span class="kpiSub" style="color: #c2410c;">문의 및 점주 답변</span>
             </div>
           </div>
 
-          <!-- Comments List in Modal -->
-          <div class="statsCard">
-            <div class="statsCardHead">
-              <h4>우리 매장에 달린 최근 장병 후기 & 응원글</h4>
-              <span id="mstatsCommentsSub" class="statsCardSub">실제 등록된 방문 후기</span>
-            </div>
-            <div id="mstatsCommentsList" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-              <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 12.5px;">등록된 응원글을 불러오는 중입니다...</div>
-            </div>
+          <!-- Sub-tabs: 후기/댓글 vs 1:1 Q&A -->
+          <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+            <button type="button" id="btnSubTabComments" class="adminTabBtn active" onclick="window.MMAAuth.switchCommSubTab('comments')">
+              방문 후기 & 댓글 (<span id="mstatsSubCommentsCount">0</span>)
+            </button>
+            <button type="button" id="btnSubTabQa" class="adminTabBtn" onclick="window.MMAAuth.switchCommSubTab('qa')">
+              1:1 이용 Q&A 문의 (<span id="mstatsSubQaCount">0</span>)
+            </button>
+          </div>
+
+          <!-- Sub-Pane A: Comments / Reviews with pagination -->
+          <div id="commSubPaneComments">
+            <div id="mstatsCommentsList" style="display: flex; flex-direction: column; gap: 8px; min-height: 180px;"></div>
+            <div id="mstatsCommentsPagination" class="paginationRow"></div>
+          </div>
+
+          <!-- Sub-Pane B: Q&A with pagination -->
+          <div id="commSubPaneQa" style="display: none;">
+            <div id="mstatsQaList" style="display: flex; flex-direction: column; gap: 8px; min-height: 180px;"></div>
+            <div id="mstatsQaPagination" class="paginationRow"></div>
           </div>
         </div>
 
@@ -573,7 +581,7 @@
       <div class="adminDashboardHead">
         <div>
           <span class="adminBadge">관리자 모드</span>
-          <h3 id="adminDashboardTitle" class="adminDashboardTitle">군필지도 통합 관리자 센터</h3>
+          <h3 id="adminDashboardTitle" class="adminDashboardTitle">관리자 센터</h3>
         </div>
         <button id="adminDashboardCloseBtn" class="introCloseBtn" type="button" aria-label="닫기">×</button>
       </div>
@@ -625,11 +633,18 @@
             </div>
           </div>
 
-          <!-- 30-day Chart -->
+          <!-- Period Filter & Chart -->
           <div class="adminStatsCard">
-            <div class="adminStatsCardHead">
-              <h4>최근 30일 접속 추이 (페이지뷰 및 순 방문자)</h4>
-              <span class="adminStatsCardSub">실시간 집계 데이터</span>
+            <div class="adminStatsCardHead" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h4 id="adminChartTitle">최근 30일 접속 추이 (페이지뷰 및 순 방문자)</h4>
+                <span class="adminStatsCardSub">실시간 집계 데이터</span>
+              </div>
+              <div class="periodBtnGroup">
+                <button type="button" class="adminPeriodBtn" data-period="7d" onclick="window.MMAAuth.changeAdminPeriod('7d')">7일</button>
+                <button type="button" class="adminPeriodBtn active" data-period="30d" onclick="window.MMAAuth.changeAdminPeriod('30d')">1달</button>
+                <button type="button" class="adminPeriodBtn" data-period="180d" onclick="window.MMAAuth.changeAdminPeriod('180d')">6개월</button>
+              </div>
             </div>
             <div id="adminDailyChartContainer" class="adminDailyChartContainer"></div>
           </div>
@@ -1062,10 +1077,10 @@
       </div>
     </aside>
 
-    <div class="versionBadge">v21.8</div>
+    <div class="versionBadge">v21.9</div>
 
     <script src="./config.js?v=13.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=150.0"></script>
+    <script src="./app.js?v=151.0"></script>
   </body>
 </html>
