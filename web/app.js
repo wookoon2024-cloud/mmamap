@@ -2863,6 +2863,8 @@ async function bootstrap() {
       window.MMAAuth?.logPageVisit?.(`/facility/${encodeURIComponent(fid)}`);
     } catch (_e) {}
     const address = normalizeTextBlock(point.address || "주소 정보 없음");
+    const phone = normalizeTextBlock(point.phone || "전화번호 정보 없음");
+    const rawCategory = toCategoryLabel(point.category);
     const rawBenefit = String(point.benefit || "").trim();
     const benefit = formatBenefitText(rawBenefit || "혜택 정보 없음");
     const rawBenefitPlain = rawBenefit.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
