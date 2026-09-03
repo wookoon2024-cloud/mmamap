@@ -3530,14 +3530,20 @@ button:active {
 
 .detailCloseBtn {
   border: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   background: #edf2f9;
   color: #5f7394;
   cursor: pointer;
-  font-size: 22px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
   line-height: 1;
+  box-sizing: border-box !important;
+  flex-shrink: 0;
   transition: background-color 140ms ease, color 140ms ease;
 }
 
@@ -3565,6 +3571,7 @@ button:active {
 
 .detailFavRow {
   margin-top: 10px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -3588,20 +3595,20 @@ button:active {
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   user-select: none;
 }
 
 .detailEngagementBtn:hover {
-  transform: translateY(-1px);
+  transform: none !important;
   border-color: #94a3b8;
   background: #f8fafc;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .detailEngagementBtn:active {
-  transform: scale(0.95);
+  transform: none !important;
 }
 
 .detailEngagementBtn svg {
@@ -5962,7 +5969,8 @@ button:active {
 
 /* Close Button SVG Styling */
 .detailCloseBtn svg {
-  display: block;
+  display: block !important;
+  margin: 0 !important;
   stroke: #64748b;
   transition: stroke 0.2s;
 }
@@ -7385,11 +7393,12 @@ button:active {
   border: 1px solid #e2e8f0;
   border-left: 3.5px solid #64748b;
   border-radius: 6px;
-  padding: 6px 10px;
-  margin-bottom: 5px;
+  padding: 7px 11px;
+  margin-top: 2px;
+  margin-bottom: 7px;
   font-size: 11.5px;
   color: #334155;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 /* Today's Promo Alert */
@@ -7433,8 +7442,13 @@ button:active {
 
 /* SNS Link Row */
 .storeSnsRow {
-  font-size: 11px;
-  margin-bottom: 5px;
+  font-size: 11.5px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+  padding-left: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .storeSnsLink {
