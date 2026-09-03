@@ -3450,6 +3450,9 @@ button:active {
   top: auto !important;
   transform: none !important;
   margin: 0 !important;
+  max-height: calc(100vh - 120px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
 }
 
 .detailPanel.hidden {
@@ -6789,15 +6792,15 @@ button:active {
    Detail Popup Dynamic Feature Extensions
    ======================================================== */
 
-/* Store Photo Carousel / Banner (Compact 120px Height) */
+/* Store Photo Carousel / Banner (Slim 80px Height) */
 .storePhotoBanner,
 .storePhotoCarousel {
   position: relative !important;
   width: 100% !important;
-  height: 120px !important;
-  max-height: 120px !important;
+  height: 80px !important;
+  max-height: 80px !important;
   overflow: hidden !important;
-  border-radius: 10px !important;
+  border-radius: 8px !important;
   margin-bottom: 8px !important;
   background: #0f172a !important;
 }
@@ -6805,7 +6808,7 @@ button:active {
 .storePhotoBanner img {
   width: 100% !important;
   height: 100% !important;
-  max-height: 120px !important;
+  max-height: 80px !important;
   object-fit: cover !important;
   display: block !important;
 }
@@ -6821,7 +6824,7 @@ button:active {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  max-height: 120px !important;
+  max-height: 80px !important;
   object-fit: cover !important;
   opacity: 0 !important;
   transition: opacity 0.25s ease !important;

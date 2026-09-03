@@ -1728,9 +1728,52 @@ async function bootstrap() {
 
   let pendingDetailPoint = null;
 
+  const calculateDynamicShiftY = (panelEl = null, point = null) => {
+    const isMobile = window.innerWidth <= 768;
+    const viewH = window.innerHeight;
+    const topSafety = isMobile ? 65 : 75; // Top navigation bar safety padding
+    const bottomSafety = isMobile ? 80 : 35;
+
+    let actualH = 0;
+    if (panelEl && typeof panelEl.offsetHeight === "number" && panelEl.offsetHeight > 50) {
+      actualH = panelEl.offsetHeight;
+    } else if (point) {
+      const fid = getFacilityKey(point);
+      const custom = getStoreCustomSettings(fid, point);
+      actualH = 260; // Base card height
+      if (custom.photoEnabled && ((Array.isArray(custom.photoUrls) && custom.photoUrls.length > 0) || custom.photoUrl)) actualH += 88;
+      if (custom.greetingEnabled && custom.greetingText) actualH += 48;
+      if (custom.promoEnabled && custom.promoText) actualH += 40;
+      if (custom.hoursEnabled && custom.hoursText) actualH += 30;
+      if (custom.snsEnabled && custom.snsUrl) actualH += 30;
+      if (custom.commentsEnabled || custom.qaEnabled) actualH += 46;
+      const ben = String(point.benefit || "");
+      if (ben.length > 120) actualH += 60;
+      else if (ben.length > 60) actualH += 30;
+    }
+    if (!actualH) actualH = 460;
+
+    actualH = Math.min(actualH, viewH - 120);
+
+    const idealPopupCenterY = Math.round((topSafety + (viewH - bottomSafety)) / 2);
+    let desiredPopupTop = idealPopupCenterY - Math.round(actualH / 2);
+
+    // Guaranteed top margin: never allow popup top closer than topSafety + 15 to the top
+    if (desiredPopupTop < topSafety + 15) {
+      desiredPopupTop = topSafety + 15;
+    }
+
+    const desiredPopupBottom = desiredPopupTop + actualH;
+    const desiredMarkerScreenY = desiredPopupBottom + 36;
+
+    const shiftY = -(desiredMarkerScreenY - Math.round(viewH / 2));
+    return shiftY;
+  };
+
   const openDetailAfterMapMove = (point, latLng, targetMarker = null) => {
     pendingDetailPoint = point;
     selectedDetailAnchor = new naver.maps.LatLng(point.lat, point.lng);
+    selectedFacilityId = getFacilityKey(point);
     hideDetailPanelOnly();
 
     let opened = false;
@@ -1754,10 +1797,9 @@ async function bootstrap() {
     if (projection && projection.fromCoordToOffset && projection.fromOffsetToCoord) {
       const markerOffset = projection.fromCoordToOffset(latLng);
       // Place popup balloon in the exact center of the full screen (assuming no sidebar):
-      // - shiftX = 0 (exact horizontal center of the viewport)
-      // - shiftY = -230 (lowers marker down to bottom area so the popup balloon sits dead-center in the viewport)
+      // Dynamic shift calculated from content height and screen size
       const shiftX = 0;
-      const shiftY = isMobile ? -180 : -230;
+      const shiftY = calculateDynamicShiftY(null, point);
       const desiredMapCenterOffset = new naver.maps.Point(markerOffset.x + shiftX, markerOffset.y + shiftY);
       targetCenter = projection.fromOffsetToCoord(desiredMapCenterOffset);
     }
@@ -2201,18 +2243,7 @@ async function bootstrap() {
     if (commentsCache.has(facilityId)) {
       return commentsCache.get(facilityId);
     }
-    return [
-      {
-        author: "병장 김*우 (현역병)",
-        text: "휴가 나와서 방문했는데 사장님이 너무 친절하시고 장병 우대 혜택도 바로 적용해주셔서 감동이었습니다! 👍",
-        date: "2026.08.28",
-      },
-      {
-        author: "이*석 (병역명문가)",
-        text: "명문가증 보여드리니 가족처럼 반갑게 맞아주셨어요. 앞으로 단골하겠습니다.",
-        date: "2026.08.15",
-      },
-    ];
+    return [];
   };
 
   const addStoreComment = async (facilityId, comment) => {
@@ -2270,20 +2301,7 @@ async function bootstrap() {
     if (qaCache.has(facilityId)) {
       return qaCache.get(facilityId);
     }
-    return [
-      {
-        q: "현역병 동반 시 가족도 함께 할인 적용되나요?",
-        author: "김*진",
-        a: "네! 현역병 본인 및 직계 가족 동반 시 동일 우대 혜택 적용해 드립니다.",
-        date: "2026.08.20",
-      },
-      {
-        q: "모범예비군증 지참 필수인가요?",
-        author: "박*호",
-        a: "모바일 앱 화면 또는 실물 신분증/확인서 지참해 주시면 즉시 확인됩니다.",
-        date: "2026.08.12",
-      },
-    ];
+    return [];
   };
 
   const addStoreQa = async (facilityId, qaItem) => {
@@ -2969,6 +2987,28 @@ async function bootstrap() {
         }
       };
     }
+
+    // Dynamic auto-centering verification: measure exact rendered DOM height and adjust if needed
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const panelEl = document.querySelector(".detailPanelInWindow");
+        if (!panelEl || !map) return;
+        const rect = panelEl.getBoundingClientRect();
+        const topSafety = (window.innerWidth <= 768 ? 65 : 75) + 15;
+        // If rendered popup is clipped at top (rect.top < topSafety)
+        if (rect.top < topSafety) {
+          const exactShiftY = calculateDynamicShiftY(panelEl, point);
+          const proj = map.getProjection?.();
+          if (proj?.fromCoordToOffset && proj?.fromOffsetToCoord) {
+            const curMarkerOffset = proj.fromCoordToOffset(targetAnchor);
+            const correctCenterOffset = new naver.maps.Point(curMarkerOffset.x, curMarkerOffset.y + exactShiftY);
+            const correctCenter = proj.fromOffsetToCoord(correctCenterOffset);
+            if (map.panTo) map.panTo(correctCenter);
+            else map.setCenter(correctCenter);
+          }
+        }
+      }, 50);
+    });
   };
 
   const getMarkerIcon = (category) => {
@@ -3061,12 +3101,16 @@ async function bootstrap() {
     renderRankPanel();
 
     const targetZoom = Math.max(map.getZoom(), 16);
-    map.setZoom(targetZoom, false);
-    updateZoomLabel();
+    if (map.getZoom() !== targetZoom) {
+      map.setZoom(targetZoom, false);
+      updateZoomLabel();
+    }
 
     const pos = new naver.maps.LatLng(target.lat, target.lng);
-    openDetailAfterMapMove(target, pos);
     renderVisibleMarkers();
+    setTimeout(() => {
+      openDetailAfterMapMove(target, pos);
+    }, 120);
   };
   window.focusFacility = focusFacility;
 
@@ -5799,7 +5843,7 @@ const MMAAuth = {
     const sourceList = document.getElementById("sourceBreakdownList");
 
     const fid = this.user?.merchantFacilityId || "default";
-    const commentsCount = typeof getStoreComments === "function" ? getStoreComments(fid).length : 2;
+    const commentsCount = typeof getStoreComments === "function" ? getStoreComments(fid).length : 0;
 
     const stats = data.stats || {};
     if (storeTitle) storeTitle.textContent = data.storeName || this.user.merchantFacilityName;
