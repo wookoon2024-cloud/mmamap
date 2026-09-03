@@ -4088,27 +4088,44 @@ async function bootstrap() {
     return String(point?.region || "").trim() === region;
   };
 
+  const REGION_CENTERS = {
+    "서울": { lat: 37.5665, lng: 126.9780 },
+    "경기": { lat: 37.2636, lng: 127.0286 },
+    "경인": { lat: 37.4563, lng: 126.7052 },
+    "경기북부": { lat: 37.7381, lng: 127.0337 },
+    "인천": { lat: 37.4563, lng: 126.7052 },
+    "대전": { lat: 36.3504, lng: 127.3845 },
+    "대전.충남": { lat: 36.3504, lng: 127.3845 },
+    "대구": { lat: 35.8714, lng: 128.6014 },
+    "대구.경북": { lat: 35.8714, lng: 128.6014 },
+    "부산": { lat: 35.1796, lng: 129.0756 },
+    "부산.울산": { lat: 35.1796, lng: 129.0756 },
+    "울산": { lat: 35.5384, lng: 129.3114 },
+    "광주": { lat: 35.1595, lng: 126.8526 },
+    "광주.전남": { lat: 35.1595, lng: 126.8526 },
+    "세종": { lat: 36.4800, lng: 127.2890 },
+    "강원": { lat: 37.8854, lng: 127.7298 },
+    "강원영동": { lat: 37.7519, lng: 128.8761 },
+    "충북": { lat: 36.6357, lng: 127.4917 },
+    "충남": { lat: 36.6588, lng: 126.6728 },
+    "전북": { lat: 35.8242, lng: 127.1480 },
+    "전남": { lat: 34.8161, lng: 126.4629 },
+    "경북": { lat: 36.5760, lng: 128.5056 },
+    "경남": { lat: 35.2383, lng: 128.6924 },
+    "제주": { lat: 33.4996, lng: 126.5312 }
+  };
+
   const moveMapToRegion = (region) => {
-    const targets = points.filter((p) => pointMatchRegion(p, region) && isValidKoreaCoord(Number(p.lat), Number(p.lng)));
-    if (!targets.length) return;
-    if (targets.length === 1) {
-      map.panTo(new naver.maps.LatLng(targets[0].lat, targets[0].lng));
-      map.setZoom(Math.max(map.getZoom(), 16), true);
+    const centerCoord = REGION_CENTERS[region];
+    if (centerCoord) {
+      map.panTo(new naver.maps.LatLng(centerCoord.lat, centerCoord.lng));
       return;
     }
-    let minLat = targets[0].lat;
-    let maxLat = targets[0].lat;
-    let minLng = targets[0].lng;
-    let maxLng = targets[0].lng;
-    targets.forEach((p) => {
-      if (p.lat < minLat) minLat = p.lat;
-      if (p.lat > maxLat) maxLat = p.lat;
-      if (p.lng < minLng) minLng = p.lng;
-      if (p.lng > maxLng) maxLng = p.lng;
-    });
-    const sw = new naver.maps.LatLng(minLat, minLng);
-    const ne = new naver.maps.LatLng(maxLat, maxLng);
-    map.fitBounds(new naver.maps.LatLngBounds(sw, ne));
+    const targets = points.filter((p) => pointMatchRegion(p, region) && isValidKoreaCoord(Number(p.lat), Number(p.lng)));
+    if (!targets.length) return;
+    const avgLat = targets.reduce((sum, p) => sum + p.lat, 0) / targets.length;
+    const avgLng = targets.reduce((sum, p) => sum + p.lng, 0) / targets.length;
+    map.panTo(new naver.maps.LatLng(avgLat, avgLng));
   };
 
   const focusFacility = (facilityId) => {
@@ -5319,21 +5336,8 @@ async function bootstrap() {
       selectedRegion = matchedFilter;
       if (regionSelectEl) regionSelectEl.value = matchedFilter;
 
-      if (areaStores.length >= 2) {
-        let minLat = areaStores[0].lat, maxLat = areaStores[0].lat;
-        let minLng = areaStores[0].lng, maxLng = areaStores[0].lng;
-        areaStores.forEach((p) => {
-          if (p.lat < minLat) minLat = p.lat;
-          if (p.lat > maxLat) maxLat = p.lat;
-          if (p.lng < minLng) minLng = p.lng;
-          if (p.lng > maxLng) maxLng = p.lng;
-        });
-        const sw = new naver.maps.LatLng(minLat, minLng);
-        const ne = new naver.maps.LatLng(maxLat, maxLng);
-        map.fitBounds(new naver.maps.LatLngBounds(sw, ne));
-      } else {
-        moveMapToRegion(matchedFilter);
-      }
+      // Move center smoothly to region center without shrinking/enlarging zoom level
+      moveMapToRegion(matchedFilter);
 
       renderVisibleMarkers();
       if (typeof renderRankPanel === "function") renderRankPanel();
@@ -5356,18 +5360,10 @@ async function bootstrap() {
         selectedRegion = "";
         if (regionSelectEl) regionSelectEl.value = "";
 
-        // Fit bounds of matching area stores
-        let minLat = areaStores[0].lat, maxLat = areaStores[0].lat;
-        let minLng = areaStores[0].lng, maxLng = areaStores[0].lng;
-        areaStores.forEach((p) => {
-          if (p.lat < minLat) minLat = p.lat;
-          if (p.lat > maxLat) maxLat = p.lat;
-          if (p.lng < minLng) minLng = p.lng;
-          if (p.lng > maxLng) maxLng = p.lng;
-        });
-        const sw = new naver.maps.LatLng(minLat, minLng);
-        const ne = new naver.maps.LatLng(maxLat, maxLng);
-        map.fitBounds(new naver.maps.LatLngBounds(sw, ne));
+        // Pan to average center of matching area stores without changing zoom level
+        const avgLat = areaStores.reduce((sum, p) => sum + p.lat, 0) / areaStores.length;
+        const avgLng = areaStores.reduce((sum, p) => sum + p.lng, 0) / areaStores.length;
+        map.panTo(new naver.maps.LatLng(avgLat, avgLng));
         renderVisibleMarkers();
         if (typeof showToast === "function") {
           showToast(`📍 <strong>${query}</strong> 지역 검색 결과로 이동했습니다. (${areaStores.length}개 가맹점)`);
@@ -5394,9 +5390,7 @@ async function bootstrap() {
       if (regionSelectEl) regionSelectEl.value = "";
       const avgLat = titleMatches.reduce((sum, p) => sum + p.lat, 0) / titleMatches.length;
       const avgLng = titleMatches.reduce((sum, p) => sum + p.lng, 0) / titleMatches.length;
-      map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
-      map.setZoom(14, false);
-      updateZoomLabel();
+      map.panTo(new naver.maps.LatLng(avgLat, avgLng));
       renderVisibleMarkers();
       if (typeof showToast === "function") {
         showToast(`🔍 <strong>${escapeHtml(query)}</strong> 검색 결과 (${titleMatches.length}개 매장)`);
@@ -5436,9 +5430,7 @@ async function bootstrap() {
       if (regionSelectEl) regionSelectEl.value = "";
       const avgLat = generalMatches.reduce((sum, p) => sum + p.lat, 0) / generalMatches.length;
       const avgLng = generalMatches.reduce((sum, p) => sum + p.lng, 0) / generalMatches.length;
-      map.setCenter(new naver.maps.LatLng(avgLat, avgLng));
-      map.setZoom(14, false);
-      updateZoomLabel();
+      map.panTo(new naver.maps.LatLng(avgLat, avgLng));
       renderVisibleMarkers();
       return;
     }
@@ -5450,9 +5442,7 @@ async function bootstrap() {
           if (selectedFacilityId) hideDetailPanelOnly();
           const address = response.v2.addresses[0];
           const pos = new naver.maps.LatLng(address.y, address.x);
-          map.setCenter(pos);
-          map.setZoom(14, false);
-          updateZoomLabel();
+          map.panTo(pos);
           renderVisibleMarkers();
           setTimeout(() => renderVisibleMarkers(), 120);
         } else {
