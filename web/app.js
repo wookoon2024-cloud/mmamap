@@ -4874,6 +4874,17 @@ const MMAAuth = {
         const headers = this.getSupabaseHeaders();
         headers["Prefer"] = "return=minimal";
 
+        let visitorId = "";
+        try {
+          visitorId = localStorage.getItem("mma_visitor_uid") || "";
+          if (!visitorId) {
+            visitorId = "vis_" + Math.random().toString(36).substring(2, 11) + "_" + Date.now().toString(36);
+            localStorage.setItem("mma_visitor_uid", visitorId);
+          }
+        } catch (_e) {
+          visitorId = "vis_" + Math.random().toString(36).substring(2, 9);
+        }
+
         const payload = {
           id: "pv_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9),
           visited_at: Date.now(),
@@ -4881,6 +4892,7 @@ const MMAAuth = {
           referrer: (document.referrer || "").substring(0, 500),
           device_type: deviceType,
           user_role: this.user ? this.user.role : "anonymous",
+          ip_hash: this.user ? String(this.user.id) : visitorId,
           user_agent_short: navigator.userAgent.substring(0, 200)
         };
 
@@ -4898,6 +4910,7 @@ const MMAAuth = {
       this.renderNav();
       return;
     }
+    let authenticated = false;
     try {
       const res = await fetch("/api/auth/me", {
         headers: { Authorization: `Bearer ${this.token}` },
@@ -4907,13 +4920,51 @@ const MMAAuth = {
         this.user = data.user;
         this.favorites = new Set(data.favorites || []);
         this.likes = new Set(data.likes || []);
-        addDebugLog(`[Auth] 로그인 세션 활성화: ${this.user.nickname} (${this.user.role})`, 'success');
-      } else {
-        this.token = "";
-        this.user = null;
-        try { sessionStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
+        authenticated = true;
       }
     } catch (_err) {}
+
+    // Direct Supabase fallback for Vercel / static hosting
+    if (!authenticated && this.token) {
+      try {
+        const cachedRaw = sessionStorage.getItem("mmamap_user_cache_v1");
+        const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
+        const targetId = cached?.id;
+        if (targetId) {
+          const url = this.getSupabaseUrl();
+          const headers = this.getSupabaseHeaders();
+          const sRes = await fetch(`${url}/users?id=eq.${encodeURIComponent(targetId)}&limit=1`, { headers });
+          if (sRes.ok) {
+            const rows = await sRes.json();
+            if (Array.isArray(rows) && rows[0]) {
+              const r = rows[0];
+              this.user = {
+                id: r.id,
+                email: r.email,
+                nickname: r.nickname,
+                role: r.role,
+                emailVerified: r.email_verified === 1 || r.email_verified === true,
+                merchantFacilityId: r.merchant_facility_id || "",
+                merchantFacilityName: r.merchant_facility_name || "",
+                merchantPhone: r.merchant_phone || "",
+                created_at: r.created_at
+              };
+              sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user));
+              authenticated = true;
+            }
+          }
+        }
+      } catch (_se) {}
+    }
+
+    if (authenticated && this.user) {
+      addDebugLog(`[Auth] 로그인 세션 활성화: ${this.user.nickname} (${this.user.role})`, "success");
+    } else {
+      this.token = "";
+      this.user = null;
+      try { sessionStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
+      try { sessionStorage.removeItem("mmamap_user_cache_v1"); } catch (_e) {}
+    }
     this.renderNav();
   },
 
@@ -5484,39 +5535,49 @@ const MMAAuth = {
       const url = this.getSupabaseUrl();
       const headers = this.getSupabaseHeaders();
 
-      // 1. Page visits count
+      // 1. Page visits total count
       const pvRes = await fetch(`${url}/page_visits?select=count`, { headers });
       const pvData = await pvRes.json();
-      const totalPv = (pvData && pvData[0] && pvData[0].count) || 1612;
+      const totalPv = (pvData && pvData[0] && typeof pvData[0].count === "number") ? pvData[0].count : 0;
 
       // 2. QR scan events count
       const qrRes = await fetch(`${url}/qr_scan_events?select=count`, { headers });
       const qrData = await qrRes.json();
-      const totalQrs = (qrData && qrData[0] && qrData[0].count) || 885;
+      const totalQrs = (qrData && qrData[0] && typeof qrData[0].count === "number") ? qrData[0].count : 0;
 
-      // 3. Users list
+      // 3. Real Users list from Supabase
       const userRes = await fetch(`${url}/users?select=*&order=created_at.desc`, { headers });
       const users = (await userRes.json()) || [];
-      const totalUsers = Array.isArray(users) ? users.length : 6;
-      const generalCount = Array.isArray(users) ? users.filter(u => u.role === 'general').length : 3;
-      const merchantCount = Array.isArray(users) ? users.filter(u => u.role === 'merchant').length : 2;
-      const adminCount = Array.isArray(users) ? users.filter(u => u.role === 'admin').length : 1;
+      const totalUsers = Array.isArray(users) ? users.length : 0;
+      const generalCount = Array.isArray(users) ? users.filter(u => u.role === 'general').length : 0;
+      const merchantCount = Array.isArray(users) ? users.filter(u => u.role === 'merchant').length : 0;
+      const adminCount = Array.isArray(users) ? users.filter(u => u.role === 'admin').length : 0;
 
-      // 4. Recent 10 logs
+      // 4. Recent 10 logs for table
       const logRes = await fetch(`${url}/page_visits?select=*&order=visited_at.desc&limit=10`, { headers });
       const recentLogs = (await logRes.json()) || [];
 
-      // 5. Recent 300 logs for device / path stats & today/month
-      const now = Date.now();
+      // 5. Recent 1000 real logs for device / path stats, today/month & 30-day chart
       const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+      const startOfTodayMs = startOfToday.getTime();
       const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+      const startOfMonthMs = startOfMonth.getTime();
 
-      const recentAllRes = await fetch(`${url}/page_visits?select=visited_at,device_type,path,referrer,user_role&order=visited_at.desc&limit=300`, { headers });
+      const recentAllRes = await fetch(`${url}/page_visits?select=id,visited_at,device_type,path,referrer,user_role,ip_hash&order=visited_at.desc&limit=1000`, { headers });
       const recentList = (await recentAllRes.json()) || [];
 
-      const todayPv = Array.isArray(recentList) ? (recentList.filter(r => r.visited_at >= startOfToday.getTime()).length || 42) : 42;
-      const monthPv = Array.isArray(recentList) ? (recentList.filter(r => r.visited_at >= startOfMonth.getTime()).length || 680) : 680;
+      // Real today and month counts & real unique visitors (UV)
+      const todayRows = Array.isArray(recentList) ? recentList.filter(r => (Number(r.visited_at) || 0) >= startOfTodayMs) : [];
+      const todayPv = todayRows.length;
+      const todayUv = new Set(todayRows.map(r => r.ip_hash || r.id || r.visited_at)).size;
 
+      const monthRows = Array.isArray(recentList) ? recentList.filter(r => (Number(r.visited_at) || 0) >= startOfMonthMs) : [];
+      const monthPv = monthRows.length;
+      const monthUv = new Set(monthRows.map(r => r.ip_hash || r.id || r.visited_at)).size;
+
+      const totalUv = Array.isArray(recentList) ? new Set(recentList.map(r => r.ip_hash || r.id || r.visited_at)).size : 0;
+
+      // Real Device breakdown
       const devices = { mobile: 0, desktop: 0, tablet: 0 };
       const pathCounts = {};
       if (Array.isArray(recentList)) {
@@ -5530,9 +5591,9 @@ const MMAAuth = {
 
       const totalDev = (Array.isArray(recentList) && recentList.length) || 1;
       const deviceShare = {
-        mobile: Math.round(((devices.mobile || 0) / totalDev) * 100) || 45,
-        desktop: Math.round(((devices.desktop || 0) / totalDev) * 100) || 50,
-        tablet: Math.round(((devices.tablet || 0) / totalDev) * 100) || 5
+        mobile: Math.round(((devices.mobile || 0) / totalDev) * 100),
+        desktop: Math.round(((devices.desktop || 0) / totalDev) * 100),
+        tablet: Math.round(((devices.tablet || 0) / totalDev) * 100)
       };
 
       const topPaths = Object.entries(pathCounts)
@@ -5540,19 +5601,42 @@ const MMAAuth = {
         .sort((a,b) => b.count - a.count)
         .slice(0, 10);
 
-      // 6. 30-day chart data
-      const daily = [];
+      // 6. Real 30-day chart data (no fake sine formulas)
+      const dayMap = {};
       for (let i = 29; i >= 0; i--) {
-        const d = new Date(now - i * 86400000);
+        const d = new Date(startOfTodayMs - i * 86400000);
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
-        const dateStr = `${m}.${day}`;
-        const dayPv = Math.round(35 + Math.sin(i * 0.4) * 15 + (i === 0 ? todayPv : 0));
-        const dayUv = Math.round(18 + Math.sin(i * 0.4) * 8);
+        const dateKey = `${m}.${day}`;
+        dayMap[dateKey] = { date: dateKey, pv: 0, uvSet: new Set() };
+      }
+
+      if (Array.isArray(recentList)) {
+        recentList.forEach(r => {
+          const vTime = Number(r.visited_at) || 0;
+          if (!vTime) return;
+          const d = new Date(vTime);
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const dateKey = `${m}.${day}`;
+          if (dayMap[dateKey]) {
+            dayMap[dateKey].pv++;
+            dayMap[dateKey].uvSet.add(r.ip_hash || r.id || String(vTime));
+          }
+        });
+      }
+
+      const daily = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(startOfTodayMs - i * 86400000);
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const dateKey = `${m}.${day}`;
+        const entry = dayMap[dateKey];
         daily.push({
-          date: dateStr,
-          pv: dayPv,
-          uv: dayUv
+          date: dateKey,
+          pv: entry ? entry.pv : 0,
+          uv: entry ? entry.uvSet.size : 0
         });
       }
 
@@ -5573,9 +5657,9 @@ const MMAAuth = {
       }) : [];
 
       const devicesObj = {
-        desktop: devices.desktop || Math.round(totalDev * 0.5),
-        mobile: devices.mobile || Math.round(totalDev * 0.45),
-        tablet: devices.tablet || Math.round(totalDev * 0.05)
+        desktop: devices.desktop || 0,
+        mobile: devices.mobile || 0,
+        tablet: devices.tablet || 0
       };
 
       const usersObj = {
@@ -5587,14 +5671,15 @@ const MMAAuth = {
 
       return {
         totalPageviews: totalPv,
-        totalUniqueVisitors: Math.round(totalPv * 0.58),
+        totalUniqueVisitors: totalUv,
         todayPageviews: todayPv,
-        todayUniqueVisitors: Math.round(todayPv * 0.6),
+        todayUniqueVisitors: todayUv,
         monthPageviews: monthPv,
-        monthUniqueVisitors: Math.round(monthPv * 0.55),
+        monthUniqueVisitors: monthUv,
         totalQrScans: totalQrs,
         users: usersObj,
         devices: devicesObj,
+        deviceShare,
         daily,
         topPaths: topPaths.length > 0 ? topPaths : [{ path: "/", count: totalPv }],
         recentVisits
@@ -5753,27 +5838,14 @@ const MMAAuth = {
 
     this.switchAdminTab("analytics");
 
+    // Load real stats directly from Supabase
     try {
-      const url = adminKey ? `/api/admin/stats?admin_key=${encodeURIComponent(adminKey)}` : "/api/admin/stats";
-      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-      const res = await fetch(url, { headers, signal: controller.signal });
-      clearTimeout(timeoutId);
-      const data = await res.json();
-      if (data.ok && data.stats) {
-        this.renderAdminStats(data.stats);
-      } else {
-        throw new Error("API stats failed, switching to direct Supabase");
-      }
-    } catch (_err) {
-      // Direct Supabase Fallback
       const directStats = await this.fetchSupabaseDirectStats();
       if (directStats) {
         this.renderAdminStats(directStats);
       }
+    } catch (err) {
+      console.error("[Admin Stats Load Error]", err);
     }
 
     this.fetchAdminMembers(adminKey);
@@ -5786,35 +5858,18 @@ const MMAAuth = {
       btn.style.opacity = "0.7";
     }
     try {
-      const key = this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
-      const url = key ? `/api/admin/stats?admin_key=${encodeURIComponent(key)}` : "/api/admin/stats";
-      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
-
-      let statsRendered = false;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch(url, { headers, signal: controller.signal });
-        clearTimeout(timeoutId);
-        const data = await res.json();
-        if (data.ok && data.stats) {
-          this.renderAdminStats(data.stats);
-          statsRendered = true;
-        }
-      } catch (_e) {}
-
-      if (!statsRendered) {
-        const directStats = await this.fetchSupabaseDirectStats();
-        if (directStats) this.renderAdminStats(directStats);
+      const directStats = await this.fetchSupabaseDirectStats();
+      if (directStats) {
+        this.renderAdminStats(directStats);
       }
 
       if (this.currentAdminTab === "members") {
-        await this.fetchAdminMembers(key);
+        await this.fetchAdminMembers();
       } else if (this.currentAdminTab === "facilities") {
-        await this.fetchAdminFacilities(key);
+        await this.fetchAdminFacilities();
       }
     } catch (err) {
-      console.error(err);
+      console.error("[Admin Stats Refresh Error]", err);
     } finally {
       if (btn) {
         btn.textContent = "🔄 실시간 새로고침";
@@ -6044,20 +6099,18 @@ const MMAAuth = {
       const url = key ? `/api/admin/users?admin_key=${encodeURIComponent(key)}` : "/api/admin/users";
       const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
 
-      let users = null;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch(url, { headers, signal: controller.signal });
-        clearTimeout(timeoutId);
-        const data = await res.json();
-        if (data && data.ok && Array.isArray(data.users)) {
-          users = data.users;
-        }
-      } catch (_e) {}
-
-      if (!users) {
-        users = await this.fetchSupabaseDirectMembers();
+      let users = await this.fetchSupabaseDirectMembers();
+      if (!Array.isArray(users) || users.length === 0) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const res = await fetch(url, { headers, signal: controller.signal });
+          clearTimeout(timeoutId);
+          const data = await res.json();
+          if (data && data.ok && Array.isArray(data.users)) {
+            users = data.users;
+          }
+        } catch (_e) {}
       }
 
       if (Array.isArray(users)) {
@@ -6615,86 +6668,114 @@ const MMAAuth = {
     const clickedBtn = document.querySelector(`.simBtn.${type}`);
     const origHtml = clickedBtn ? clickedBtn.innerHTML : "";
     if (clickedBtn) {
-      clickedBtn.innerHTML = `<span style="font-size: 13px; font-weight: 800; color: #2563eb; padding: 6px 0; display: block;">⏳ 로그인 세션 생성 중...</span>`;
+      clickedBtn.innerHTML = `<span style="font-size: 13px; font-weight: 800; color: #2563eb; padding: 6px 0; display: block;">⏳ DB 계정 조회 및 세션 연결 중...</span>`;
     }
 
-    const demoUsers = {
-      admin: {
-        id: "admin-demo-uuid",
-        email: "admin_demo@mmamap.org",
-        nickname: "총괄관리자_마스터",
-        role: "admin",
-        emailVerified: true,
-        merchantFacilityId: "",
-        merchantFacilityName: "",
-        merchantPhone: "",
-      },
-      merchant: {
-        id: "merchant-demo-uuid",
-        email: "merchant_demo@mmamap.org",
-        nickname: "의정부간호학원_원장",
-        role: "merchant",
-        emailVerified: true,
-        merchantFacilityId: "nara_3218",
-        merchantFacilityName: "의정부간호학원",
-        merchantPhone: "031-845-0381",
-      },
-      soldier: {
-        id: "soldier-demo-uuid",
-        email: "soldier_demo@mmamap.org",
-        nickname: "청년장병_민우",
-        role: "general",
-        emailVerified: true,
-        merchantFacilityId: "",
-        merchantFacilityName: "",
-        merchantPhone: "",
-      },
+    const emailMap = {
+      admin: "admin_demo@mmamap.org",
+      merchant: "merchant_demo@mmamap.org",
+      soldier: "soldier_demo@mmamap.org"
     };
+    const targetEmail = emailMap[type] || emailMap.soldier;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const url = this.getSupabaseUrl();
+      const headers = this.getSupabaseHeaders();
 
-      let res = null;
+      // 1. Fetch the actual user record directly from Supabase users database
+      let dbUser = null;
       try {
-        res = await fetch("/api/auth/simulator_login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type }),
-          signal: controller.signal,
-        });
-      } catch (_err) {
-        // Fallback on timeout or network error
-      } finally {
-        clearTimeout(timeoutId);
+        const res = await fetch(`${url}/users?email=eq.${encodeURIComponent(targetEmail)}&limit=1`, { headers });
+        if (res.ok) {
+          const rows = await res.json();
+          if (Array.isArray(rows) && rows[0]) {
+            dbUser = rows[0];
+          }
+        }
+      } catch (_err) {}
+
+      // Fallback: If not found in Supabase, ensure it exists by upserting real record
+      if (!dbUser) {
+        const defaultRecords = {
+          admin: {
+            id: "8dd65367-f8da-44ac-b2ec-bab43e7651aa",
+            email: "admin_demo@mmamap.org",
+            nickname: "총괄관리자_정훈",
+            role: "admin",
+            email_verified: 1,
+            merchant_facility_id: "",
+            merchant_facility_name: "",
+            merchant_phone: "",
+            created_at: 1788237289220
+          },
+          merchant: {
+            id: "31242a4e-fed4-468b-b79f-ca14dbc09fa9",
+            email: "merchant_demo@mmamap.org",
+            nickname: "의정부간호학원_원장",
+            role: "merchant",
+            email_verified: 1,
+            merchant_facility_id: "nara_3218",
+            merchant_facility_name: "의정부간호학원",
+            merchant_phone: "031-845-0381",
+            created_at: 1788237062150
+          },
+          soldier: {
+            id: "16c71ac4-72d1-4943-8a2f-83fa9362c81d",
+            email: "soldier_demo@mmamap.org",
+            nickname: "청년장병_민우",
+            role: "general",
+            email_verified: 1,
+            merchant_facility_id: "",
+            merchant_facility_name: "",
+            merchant_phone: "",
+            created_at: 1788237062098
+          }
+        };
+        dbUser = defaultRecords[type] || defaultRecords.soldier;
+        try {
+          await fetch(`${url}/users`, {
+            method: "POST",
+            headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
+            body: JSON.stringify(dbUser)
+          });
+        } catch (_err) {}
       }
 
-      let data = null;
-      if (res && res.ok) {
-        data = await res.json().catch(() => null);
-      }
+      const user = {
+        id: dbUser.id,
+        email: dbUser.email,
+        nickname: dbUser.nickname,
+        role: dbUser.role,
+        emailVerified: dbUser.email_verified === 1 || dbUser.email_verified === true,
+        merchantFacilityId: dbUser.merchant_facility_id || "",
+        merchantFacilityName: dbUser.merchant_facility_name || "",
+        merchantPhone: dbUser.merchant_phone || "",
+        created_at: dbUser.created_at
+      };
 
-      const user = (data && data.user) ? data.user : (demoUsers[type] || demoUsers.soldier);
-      const token = (data && data.token) ? data.token : `demo-token-${type}-${Date.now()}`;
-
+      const token = `sb_sim_${user.id}_${Date.now()}`;
       this.token = token;
       this.user = user;
-      try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
+      try {
+        sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+        sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user));
+      } catch (_e) {}
+
       this.renderNav();
       this.closeAuthModal();
 
       if (type === "admin") {
-        alert(`[운영 관리자 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 최고 운영 관리자 (Admin)\n\n우측 상단 프로필 아이콘을 클릭하여 [관리자 통합 센터]를 열어 전체 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
+        alert(`[운영 관리자 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n권한: 최고 운영 관리자 (admin)\n\n우측 상단 프로필 아이콘을 클릭하여 [관리자 통합 센터]에서 실제 회원 현황 및 실시간 접속 통계를 확인해 보세요!`);
       } else if (type === "merchant") {
-        alert(`[소상공인 점주 체험]\n\n계정: ${user.nickname} (${user.email})\n매장: 의정부간호학원 (인증완료)\n\n지도에서 의정부간호학원 위치로 이동합니다.\n우측 상단 프로필 아이콘을 클릭하여 [가맹점 상세페이지 관리]를 바로 확인해 보세요!`);
+        alert(`[소상공인 점주 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n담당 매장: 의정부간호학원 (${user.merchantFacilityId})\n\n지도에서 의정부간호학원 위치로 이동합니다.\n점주 답변 작성 및 매장 관리를 확인해 보세요!`);
         if (typeof window.focusFacility === "function") {
           window.focusFacility("nara_3218");
         }
       } else {
-        alert(`[일반 회원(병역이행자) 체험]\n\n계정: ${user.nickname} (${user.email})\n권한: 일반 회원 (병역이행자)\n\n매장 찜하기, 좋아요, 회원정보 수정을 자유롭게 테스트해 보세요!`);
+        alert(`[병역의무자 DB 계정 연결 완료]\n\n계정: ${user.nickname} (${user.email})\nDB UID: ${user.id}\n권한: 일반 회원 (general)\n\n후기 작성, 비밀 Q&A 등록 및 본인 글 삭제 권한이 실제 DB 계정 기준으로 정상 연동됩니다.`);
       }
     } catch (err) {
-      console.error("[Simulator Error]", err);
+      console.error("[Simulator DB Login Error]", err);
     } finally {
       btns.forEach((b) => {
         b.style.pointerEvents = "auto";
