@@ -2217,15 +2217,13 @@ async function bootstrap() {
     }
   };
 
-  const getStoreCommentsKey = (facilityId) => `mma_store_comments_${facilityId}`;
-
   const fetchStoreCommentsFromSupabase = async (facilityId) => {
     try {
       const { url, headers } = getSupabaseDirectConfig();
       const res = await fetch(`${url}/facility_comments?facility_id=eq.${encodeURIComponent(facilityId)}&order=id.desc`, { headers });
       if (res.ok) {
         const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
+        if (Array.isArray(rows)) {
           const list = rows.map((r) => ({
             id: r.id,
             author: r.author,
@@ -2377,15 +2375,13 @@ async function bootstrap() {
     return list;
   };
 
-  const getStoreQaKey = (facilityId) => `mma_store_qa_${facilityId}`;
-
   const fetchStoreQaFromSupabase = async (facilityId) => {
     try {
       const { url, headers } = getSupabaseDirectConfig();
       const res = await fetch(`${url}/facility_qa?facility_id=eq.${encodeURIComponent(facilityId)}&order=id.desc`, { headers });
       if (res.ok) {
         const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
+        if (Array.isArray(rows)) {
           const list = rows.map((r) => ({
             id: r.id,
             q: r.question,
@@ -2743,15 +2739,23 @@ async function bootstrap() {
     }
     if (!commentsCache.has(facilityId)) {
       fetchStoreCommentsFromSupabase(facilityId).then((remote) => {
-        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor && isCommentsFlyoutOpen) {
-          openDetailInfo(point, selectedDetailAnchor);
+        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor) {
+          const chip = document.querySelector("#btnOpenCommentsFlyout .commentCountChip");
+          if (chip) chip.textContent = String(remote.length);
+          if (isCommentsFlyoutOpen && typeof updateCommentsFlyoutDom === "function") {
+            updateCommentsFlyoutDom();
+          }
         }
       });
     }
     if (!qaCache.has(facilityId)) {
       fetchStoreQaFromSupabase(facilityId).then((remote) => {
-        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor && isQaFlyoutOpen) {
-          openDetailInfo(point, selectedDetailAnchor);
+        if (remote && currentDetailFacilityId === facilityId && selectedDetailAnchor) {
+          const chip = document.querySelector("#btnOpenQaFlyout .commentCountChip");
+          if (chip) chip.textContent = String(remote.length);
+          if (isQaFlyoutOpen && typeof updateQaFlyoutDom === "function") {
+            updateQaFlyoutDom();
+          }
         }
       });
     }
@@ -3092,6 +3096,11 @@ async function bootstrap() {
       btnOpenComments.onclick = () => {
         isCommentsFlyoutOpen = !isCommentsFlyoutOpen;
         isQaFlyoutOpen = false;
+        if (isCommentsFlyoutOpen) {
+          fetchStoreCommentsFromSupabase(facilityId).then(() => {
+            if (isCommentsFlyoutOpen) updateCommentsFlyoutDom();
+          });
+        }
         openDetailInfo(point, targetAnchor);
       };
     }
@@ -3109,6 +3118,11 @@ async function bootstrap() {
       btnOpenQa.onclick = () => {
         isQaFlyoutOpen = !isQaFlyoutOpen;
         isCommentsFlyoutOpen = false;
+        if (isQaFlyoutOpen) {
+          fetchStoreQaFromSupabase(facilityId).then(() => {
+            if (isQaFlyoutOpen) updateQaFlyoutDom();
+          });
+        }
         openDetailInfo(point, targetAnchor);
       };
     }
