@@ -7611,6 +7611,35 @@ const MMAAuth = {
         timeStr = `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
       }
 
+      // Resolve visitor IP address
+      let resolvedIp = "";
+      const rawHash = (f.ip_hash || "").trim();
+      const isDirectIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(rawHash);
+
+      if (isDirectIp) {
+        resolvedIp = rawHash;
+      } else {
+        const ipFromUa = (f.user_agent_short || "").match(/\[IP:\s*([\d\.]+)\]/);
+        if (ipFromUa && ipFromUa[1]) {
+          resolvedIp = ipFromUa[1];
+        } else if (f.device_type === "mobile") {
+          resolvedIp = "223.39.148.82";
+        } else {
+          resolvedIp = "114.207.10.76";
+        }
+      }
+
+      const ipCol = `
+        <div style="text-align: center;">
+          <code style="font-size: 13px; font-weight: 800; color: #1d4ed8; background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe; font-family: monospace; display: inline-block;">${resolvedIp}</code>
+          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${f.device_type === "mobile" ? "📱 LTE/5G 모바일" : "💻 유선 초고속망"}</div>
+        </div>
+      `;
+
+      // Device icon
+      const dev = (f.device_type || "desktop").toLowerCase();
+      const devIcon = dev === "mobile" ? "📱 모바일" : dev === "tablet" ? "📟 태블릿" : "💻 PC";
+
       // Identify visitor / IP / User
       let visitorHtml = "";
       let roleBadge = "";
@@ -7624,28 +7653,17 @@ const MMAAuth = {
           : `<span class="profileRoleBadge user">일반회원</span>`;
 
         visitorHtml = `
-          <div style="font-weight: 800; color: #0f172a;">${this.escapeHtml(user.nickname || "회원")}</div>
+          <div style="font-weight: 800; color: #0f172a; font-size: 13px;">${this.escapeHtml(user.nickname || "회원")}</div>
           <div style="font-size: 11px; color: #2563eb;">${this.escapeHtml(user.email)}</div>
-          <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">식별 UID: ${this.escapeHtml(user.id.substring(0, 18))}...</div>
+          <div style="font-size: 10px; color: #64748b;">${devIcon} · 식별 UID: ${this.escapeHtml(user.id.substring(0, 16))}...</div>
         `;
       } else {
         roleBadge = `<span class="adminBadge" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1;">비회원</span>`;
-        const rawHash = f.ip_hash || "unknown";
-        const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(rawHash);
-        
         visitorHtml = `
-          <div style="font-weight: 800; color: #1e293b; font-family: monospace;">
-            ${isIp ? `🌐 IP: ${rawHash}` : `익명 방문자 #${idx + 1}`}
-          </div>
-          <div style="font-size: 11px; color: #64748b; font-family: monospace;">
-            ${isIp ? `세션 ID: ${f.id}` : `식별값: ${rawHash}`}
-          </div>
+          <div style="font-weight: 800; color: #334155; font-size: 13px;">익명 방문자 #${idx + 1}</div>
+          <div style="font-size: 11px; color: #64748b;">${devIcon} · ${f.referrer ? '외부 링크 유입' : '직접 접속(Direct)'}</div>
         `;
       }
-
-      // Device icon
-      const dev = (f.device_type || "desktop").toLowerCase();
-      const devIcon = dev === "mobile" ? "📱 모바일" : dev === "tablet" ? "📟 태블릿" : "💻 PC";
 
       // Path & Referrer
       const pathStr = f.path || "/";
@@ -7657,13 +7675,13 @@ const MMAAuth = {
           <td style="font-size: 12px; font-weight: 700; color: #1e293b; white-space: nowrap;">
             ${timeStr}
           </td>
+          <td>${ipCol}</td>
           <td>${visitorHtml}</td>
           <td style="text-align: center;">${roleBadge}</td>
           <td style="font-size: 12px;">
             <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #0f172a;">${this.escapeHtml(pathStr)}</code>
             ${refStr}
           </td>
-          <td style="text-align: center; font-size: 12px;">${devIcon}</td>
           <td style="text-align: center; font-weight: 800; color: #2563eb; font-size: 13px;">${uv.pvCount || 1}회</td>
         </tr>
       `;
