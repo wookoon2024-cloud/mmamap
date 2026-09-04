@@ -6317,13 +6317,37 @@ button:active {
     display: none !important;
   }
 
-  /* 7. Map Tools Position */
+  /* 7. Map Tools Position - On mobile, show ONLY '내위치' button */
   .mapTools {
-    right: 8px !important;
-    bottom: 58px !important;
+    right: 12px !important;
+    bottom: 60px !important;
     top: auto !important;
     transform: none !important;
     z-index: 50 !important;
+  }
+
+  .mapTools .toolBtn.zoom,
+  .mapTools .toolBtn.level,
+  #btnZoomOut,
+  #btnZoomIn,
+  #btnZoomLevel {
+    display: none !important;
+  }
+
+  .mapTools .toolBtn.locate,
+  #btnLocate {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1.5px solid #e2e8f0 !important;
   }
 
   /* 8. Simulator on Mobile - Attach to LEFT side to prevent overlapping with zoom controls */
