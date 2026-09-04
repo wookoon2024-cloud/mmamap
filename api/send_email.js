@@ -7,18 +7,37 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
+  if (req.method === "GET") {
+    return res.status(200).json({ ok: true, service: "resend_mailer", status: "online" });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
   try {
     let body = req.body;
-    if (typeof body === "string") {
+    if (!body || (typeof body === "object" && Object.keys(body).length === 0)) {
+      body = await new Promise((resolve) => {
+        let buf = "";
+        req.on("data", (chunk) => { buf += chunk; });
+        req.on("end", () => {
+          try {
+            resolve(JSON.parse(buf));
+          } catch (_e) {
+            resolve({});
+          }
+        });
+        req.on("error", () => resolve({}));
+      });
+    } else if (typeof body === "string") {
       try {
         body = JSON.parse(body);
       } catch (_e) {}
     }
-    const { to, code } = body || {};
+
+    const to = String(body.to || body.email || "").trim();
+    const code = String(body.code || "").trim();
 
     if (!to || !code) {
       return res.status(400).json({ ok: false, error: "이메일(to)과 인증번호(code)가 필요합니다." });
