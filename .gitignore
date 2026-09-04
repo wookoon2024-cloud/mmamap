@@ -18,3 +18,4 @@ env/
 .env
 .env.*
 scripts/build_default_template.py
+scratch/
