@@ -6120,7 +6120,32 @@ const MMAAuth = {
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   },
 
+  _emailTimer: null,
+  startEmailCooldownTimer(sec = 60) {
+    const btn = document.getElementById("btnSendEmailCode");
+    if (!btn) return;
+    if (this._emailTimer) clearInterval(this._emailTimer);
+    let remaining = sec;
+    btn.disabled = true;
+    btn.textContent = `재발송 (${remaining}초)`;
+    this._emailTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(this._emailTimer);
+        this._emailTimer = null;
+        btn.disabled = false;
+        btn.textContent = "인증번호 재발송";
+      } else {
+        btn.textContent = `재발송 (${remaining}초)`;
+      }
+    }, 1000);
+  },
+
   resetAuthForms() {
+    if (this._emailTimer) {
+      clearInterval(this._emailTimer);
+      this._emailTimer = null;
+    }
     this.selectedMerchantStore = null;
     this.isEmailVerified = false;
     this.isMerchantVerified = false;
@@ -8229,9 +8254,14 @@ const MMAAuth = {
               emailStatus.className = "authHelpText success";
             }
             this.isEmailVerified = false;
+            this.startEmailCooldownTimer(60);
             addDebugLog(`[Auth] Supabase 이메일 OTP 발송 성공: ${email}`, "info");
           } else {
-            const errMsg = data.msg || data.error_description || data.error || "인증번호 발송에 실패했습니다.";
+            let errMsg = data.msg || data.error_description || data.error || "인증번호 발송에 실패했습니다.";
+            if (errMsg.includes("rate limit") || res.status === 429) {
+              errMsg = "보안을 위해 60초 후에 재발송할 수 있습니다. 이미 발송된 첫 번째 인증메일(스팸함 포함)을 확인해 주세요!";
+              this.startEmailCooldownTimer(60);
+            }
             if (emailStatus) {
               emailStatus.textContent = errMsg;
               emailStatus.className = "authHelpText error";
@@ -8243,8 +8273,10 @@ const MMAAuth = {
             emailStatus.className = "authHelpText error";
           }
         } finally {
-          btnSendEmail.disabled = false;
-          btnSendEmail.textContent = "인증번호 재발송";
+          if (!this._emailTimer) {
+            btnSendEmail.disabled = false;
+            btnSendEmail.textContent = "인증번호 재발송";
+          }
         }
       };
     }
