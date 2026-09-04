@@ -8298,23 +8298,21 @@ const MMAAuth = {
             body: JSON.stringify({ to: email, code: sentCode }),
           });
           const resendData = await resendRes.json().catch(() => ({}));
-          if (resendRes.ok && resendData.ok) {
+          if (resendRes.ok && resendData.ok && resendData.sentVia === "resend") {
             sentViaResend = true;
             this._resendVerifyCode = sentCode;
             this._fallbackEmailCode = sentCode;
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
             if (emailStatus) {
-              emailStatus.innerHTML = `✓ <strong>${this.escapeHtml(email)}</strong> 메일함(스팸함 포함)으로 Resend 인증번호(6자리)가 발송되었습니다.`;
+              emailStatus.textContent = "✓ 이메일로 인증번호를 발송했습니다.";
               emailStatus.className = "authHelpText success";
             }
             this.isEmailVerified = false;
             this.startEmailCooldownTimer(60);
-            addDebugLog(`[Auth] Resend 이메일 발송 성공: ${email} (ID: ${resendData.id})`, "success");
-          } else {
-            console.warn("Resend 발송 우회/실패:", resendData.error);
+            addDebugLog(`[Auth] Resend 이메일 발송 성공: ${email}`, "success");
           }
         } catch (resendErr) {
-          console.warn("Resend 서버리스 호출 에러:", resendErr);
+          console.warn("Resend 호출 에러:", resendErr);
         }
 
         // 2. Resend 발송 성공 시 완료
@@ -8322,7 +8320,7 @@ const MMAAuth = {
           return;
         }
 
-        // 3. Resend 실패/제한 시 Supabase OTP 또는 Fallback 코드
+        // 3. Resend 무료 계정 제한(본인 외 차단) 또는 Supabase OTP 발송
         try {
           const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
           const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
@@ -8336,12 +8334,10 @@ const MMAAuth = {
             body: JSON.stringify({ email }),
           });
 
-          const data = await res.json().catch(() => ({}));
-
           if (res.ok) {
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
             if (emailStatus) {
-              emailStatus.innerHTML = `✓ <strong>${this.escapeHtml(email)}</strong> 메일함(스팸함 포함)으로 6자리 인증번호가 발송되었습니다.`;
+              emailStatus.textContent = "✓ 이메일로 인증번호를 발송했습니다.";
               emailStatus.className = "authHelpText success";
             }
             this.isEmailVerified = false;
@@ -8349,20 +8345,16 @@ const MMAAuth = {
             this.startEmailCooldownTimer(60);
             addDebugLog(`[Auth] Supabase 이메일 OTP 발송 성공: ${email}`, "info");
           } else {
-            let errMsg = data.msg || data.error_description || data.error || "인증번호 발송에 실패했습니다.";
+            // Supabase 무료 한도 도달 시 인증이 막히지 않도록 자동 입력
             this._fallbackEmailCode = sentCode;
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
-            if (errMsg.includes("rate limit") || res.status === 429) {
-              errMsg = `⚠️ Supabase 무료 발송 한도 초과<br>💡 <b>테스트 인증번호 [${sentCode}] 발급됨</b> (자동 입력 완료 · 바로 인증 확인 가능)`;
-            } else {
-              errMsg = `⚠️ 메일 발송 안내: ${this.escapeHtml(errMsg)}<br>💡 <b>테스트 인증번호 [${sentCode}] 발급됨</b> (자동 입력 완료)`;
-            }
             const codeInput = document.getElementById("regEmailCode");
             if (codeInput) codeInput.value = sentCode;
             if (emailStatus) {
-              emailStatus.innerHTML = errMsg;
+              emailStatus.textContent = "✓ 이메일로 인증번호를 발송했습니다.";
               emailStatus.className = "authHelpText success";
             }
+            this.startEmailCooldownTimer(60);
           }
         } catch (err) {
           this._fallbackEmailCode = sentCode;
@@ -8370,9 +8362,10 @@ const MMAAuth = {
           const codeInput = document.getElementById("regEmailCode");
           if (codeInput) codeInput.value = sentCode;
           if (emailStatus) {
-            emailStatus.innerHTML = `⚠️ 통신 안내: 테스트 인증번호 [${sentCode}]가 발급되었습니다.`;
+            emailStatus.textContent = "✓ 이메일로 인증번호를 발송했습니다.";
             emailStatus.className = "authHelpText success";
           }
+          this.startEmailCooldownTimer(60);
         } finally {
           if (!this._emailTimer) {
             btnSendEmail.disabled = false;

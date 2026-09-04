@@ -871,20 +871,26 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             except Exception as dbe:
                 print(f"[Auth DB Warning] Bypassing DB record: {dbe}")
 
-            resp = {
-                "ok": True,
-                "message": "인증메일이 발송되었습니다. 받은 편지함(스팸함)을 확인해 주세요." if sent_ok else "인증번호가 발송되었습니다.",
-                "sentVia": "resend" if sent_ok else "dev",
-                "debugCode": code if not sent_ok else None,
-                "code": code,
-            }
-            self._json(HTTPStatus.OK, resp)
+            if sent_ok:
+                resp = {
+                    "ok": True,
+                    "message": "이메일로 인증번호가 발송되었습니다.",
+                    "sentVia": "resend",
+                    "code": code,
+                }
+                self._json(HTTPStatus.OK, resp)
+            else:
+                resp = {
+                    "ok": False,
+                    "error": "Resend 무료 계정은 등록된 이메일(wookoon@gmail.com)로만 발송 가능합니다.",
+                    "code": code,
+                }
+                self._json(HTTPStatus.BAD_REQUEST, resp)
         except Exception as e:
             print(f"[Auth Error] {e}")
-            self._json(HTTPStatus.OK, {
-                "ok": True,
-                "message": "인증번호 발송 처리 완료",
-                "sentVia": "fallback",
+            self._json(HTTPStatus.BAD_REQUEST, {
+                "ok": False,
+                "error": str(e),
                 "code": custom_code or "123456",
             })
 
