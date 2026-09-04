@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=63.0" />
+    <link rel="stylesheet" href="./styles.css?v=63.1" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -616,20 +616,20 @@
               <strong id="adminTotalPv" class="adminKpiValue">0<small>PV</small></strong>
               <span id="adminTotalUv" class="adminKpiSub">순 방문자 0 UV</span>
             </div>
-            <div class="adminKpiCard">
-              <span class="adminKpiLabel">금일 방문자 (PV / UV)</span>
+            <div class="adminKpiCard clickable" id="adminTodayCard" onclick="window.MMAAuth.openTodayUvDetailModal()" title="클릭하여 금일 순 방문자 최초 방문 내역 확인" style="cursor: pointer;">
+              <span class="adminKpiLabel">금일 방문자 (PV / UV) 🔍</span>
               <strong id="adminTodayPv" class="adminKpiValue">0<small>PV</small></strong>
-              <span id="adminTodayUv" class="adminKpiSub">순 방문자 0 UV</span>
+              <span id="adminTodayUv" class="adminKpiSub" style="color: #2563eb; font-weight: 700; text-decoration: underline;">순 방문자 0 UV (클릭 시 상세)</span>
             </div>
             <div class="adminKpiCard">
               <span class="adminKpiLabel">당월 누적 방문자</span>
               <strong id="adminMonthPv" class="adminKpiValue">0<small>PV</small></strong>
               <span id="adminMonthUv" class="adminKpiSub">순 방문자 0 UV</span>
             </div>
-            <div class="adminKpiCard userCard">
-              <span class="adminKpiLabel">등록 회원 현황</span>
+            <div class="adminKpiCard userCard clickable" id="adminTotalUsersCard" onclick="window.MMAAuth.switchAdminTab('members')" title="클릭하여 회원 관리 탭으로 이동" style="cursor: pointer;">
+              <span class="adminKpiLabel">등록 회원 현황 👥</span>
               <strong id="adminTotalUsers" class="adminKpiValue">0<small>명</small></strong>
-              <span id="adminUserDetail" class="adminKpiSub">일반 0 · 소상공인 0</span>
+              <span id="adminUserDetail" class="adminKpiSub" style="text-decoration: underline;">일반 0 · 소상공인 0 (클릭 시 상세)</span>
             </div>
           </div>
 
@@ -864,6 +864,47 @@
       </div>
     </section>
 
+    <!-- Admin UV Detail Modal (금일 순 방문자 최초 방문내역) -->
+    <div id="adminUvDetailBackdrop" class="adminDashboardBackdrop hidden" style="z-index: 10060;" aria-hidden="true" onclick="window.MMAAuth.closeTodayUvDetailModal()"></div>
+    <section id="adminUvDetailModal" class="adminDashboardModal hidden" style="z-index: 10065; width: min(920px, calc(100vw - 24px)); height: auto; min-height: auto; max-height: min(88vh, 680px);" role="dialog" aria-modal="true" aria-labelledby="adminUvDetailTitle">
+      <div class="adminDashboardHead">
+        <div>
+          <span class="adminBadge" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;">고유 방문자 분석 (UV)</span>
+          <h3 id="adminUvDetailTitle" class="adminDashboardTitle" style="margin-top: 4px;">금일 순 방문자 (<span id="adminUvModalCount" style="color: #2563eb;">0</span>명) 최초 접속 내역</h3>
+        </div>
+        <button id="adminUvDetailCloseBtn" class="introCloseBtn" type="button" aria-label="닫기" onclick="window.MMAAuth.closeTodayUvDetailModal()">×</button>
+      </div>
+      <div class="adminDashboardBody" style="padding: 16px 20px 24px; overflow-y: auto;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; color: #475569; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            💡 오늘(00시 이후) 접속한 <strong>순 방문자(UV)</strong>들의 <strong>최초 접속 시각, IP / 식별자, 최초 유입 페이지 및 당일 누적 페이지뷰</strong>입니다.
+          </div>
+          <button type="button" class="adminRefreshBtn" onclick="window.MMAAuth.refreshTodayUvDetails()" style="padding: 4px 12px; font-size: 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-weight: 700;">🔄 새로고침</button>
+        </div>
+
+        <div class="adminRecentTableWrap" style="max-height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <table class="adminRecentTable">
+            <thead>
+              <tr style="background: #f8fafc;">
+                <th style="width: 45px; text-align: center;">No</th>
+                <th style="width: 165px;">최초 접속 시각</th>
+                <th>방문자 식별 (IP / 회원 정보)</th>
+                <th style="width: 100px; text-align: center;">회원 구분</th>
+                <th>최초 접속 경로</th>
+                <th style="width: 85px; text-align: center;">접속 기기</th>
+                <th style="width: 80px; text-align: center;">금일 활동</th>
+              </tr>
+            </thead>
+            <tbody id="adminUvDetailTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 24px; color: #94a3b8;">방문자 데이터를 분석하는 중입니다...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- 회원정보 수정 모달 (Edit Profile Modal) -->
     <div id="editProfileBackdrop" class="authModalBackdrop hidden"></div>
     <section id="editProfileModal" class="authModal editProfileModal hidden" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
@@ -1081,10 +1122,10 @@
     </aside>
     <button type="button" id="simRestoreBtn" class="simRestoreBtn hidden" title="계정 체험 시뮬레이터 열기">🎮</button>
 
-    <div class="versionBadge">v25.9</div>
+    <div class="versionBadge">v26.0</div>
 
     <script src="./config.js?v=13.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=165.6"></script>
+    <script src="./app.js?v=166.0"></script>
   </body>
 </html>

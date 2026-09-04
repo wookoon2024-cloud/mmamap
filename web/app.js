@@ -5782,12 +5782,39 @@ const MMAAuth = {
     this.logPageVisit();
   },
 
+  async getClientPublicIp() {
+    if (this._cachedPublicIp) return this._cachedPublicIp;
+    try {
+      const stored = sessionStorage.getItem("mma_client_ip");
+      if (stored) {
+        this._cachedPublicIp = stored;
+        return stored;
+      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const res = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (data && data.ip) {
+        this._cachedPublicIp = data.ip;
+        sessionStorage.setItem("mma_client_ip", data.ip);
+        return data.ip;
+      }
+    } catch (_e) {}
+    return "";
+  },
+
   async logPageVisit(customPath = "") {
     try {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/i.test(navigator.userAgent);
       const deviceType = isTablet ? "tablet" : isMobile ? "mobile" : "desktop";
       const targetPath = customPath || (window.location.pathname + window.location.search) || "/";
+
+      let clientIp = "";
+      try {
+        clientIp = await this.getClientPublicIp();
+      } catch (_e) {}
 
       // 1. Try local server endpoint first (only if not on static host like Vercel)
       let logged = false;
@@ -5804,6 +5831,7 @@ const MMAAuth = {
               referrer: document.referrer || "",
               device_type: deviceType,
               user_role: this.user ? this.user.role : "guest",
+              client_ip: clientIp || "",
             }),
           });
           clearTimeout(timeoutId);
@@ -5828,6 +5856,7 @@ const MMAAuth = {
           visitorId = "vis_" + Math.random().toString(36).substring(2, 9);
         }
 
+        const effectiveIpHash = clientIp || (this.user ? String(this.user.id) : visitorId);
         const payload = {
           id: "pv_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9),
           visited_at: Date.now(),
@@ -5835,8 +5864,8 @@ const MMAAuth = {
           referrer: (document.referrer || "").substring(0, 500),
           device_type: deviceType,
           user_role: this.user ? this.user.role : "anonymous",
-          ip_hash: this.user ? String(this.user.id) : visitorId,
-          user_agent_short: navigator.userAgent.substring(0, 200)
+          ip_hash: effectiveIpHash,
+          user_agent_short: (clientIp ? `[IP: ${clientIp}] ` : "") + navigator.userAgent.substring(0, 160)
         };
 
         await fetch(`${url}/page_visits`, {
@@ -6616,6 +6645,35 @@ const MMAAuth = {
       const merchantCount = Array.isArray(users) ? users.filter(u => u.role === 'merchant').length : 0;
       const adminCount = Array.isArray(users) ? users.filter(u => u.role === 'admin').length : 0;
 
+      // Synchronize this.adminMembers so Member Management is NEVER 0!
+      if (Array.isArray(users) && users.length > 0) {
+        this.adminMembers = users.map(u => ({
+          id: u.id,
+          email: u.email,
+          nickname: u.nickname,
+          role: u.role,
+          merchantFacilityId: u.merchant_facility_id || "",
+          merchantFacilityName: u.merchant_facility_name || "",
+          merchantPhone: u.merchant_phone || "",
+          createdAt: u.created_at
+        }));
+
+        const elMemBadge = document.getElementById("adminMemberBadgeCount");
+        if (elMemBadge) elMemBadge.textContent = `${totalUsers}명`;
+        const elMemTotal = document.getElementById("adminMemTotalCount");
+        if (elMemTotal) elMemTotal.innerHTML = `${totalUsers}<small>명</small>`;
+        const elMemGen = document.getElementById("adminMemGeneralCount");
+        if (elMemGen) elMemGen.innerHTML = `${generalCount}<small>명</small>`;
+        const elMemMer = document.getElementById("adminMemMerchantCount");
+        if (elMemMer) elMemMer.innerHTML = `${merchantCount}<small>명</small>`;
+        const elMemAdm = document.getElementById("adminMemAdminCount");
+        if (elMemAdm) elMemAdm.innerHTML = `${adminCount}<small>명</small>`;
+        const elMemListCount = document.getElementById("adminMemberListCount");
+        if (elMemListCount) elMemListCount.textContent = totalUsers;
+
+        this.renderAdminMembersTable();
+      }
+
       // 4. Recent 10 logs for table
       const logRes = await fetch(`${url}/page_visits?select=*&order=visited_at.desc&limit=10`, { headers });
       const recentLogs = (await logRes.json()) || [];
@@ -6641,7 +6699,43 @@ const MMAAuth = {
       // Real today and month counts & real unique visitors (UV)
       const todayRows = Array.isArray(recentList) ? recentList.filter(r => (Number(r.visited_at) || 0) >= startOfTodayMs) : [];
       const todayPv = todayRows.length;
-      const todayUv = new Set(todayRows.map(getVisitorKey)).size;
+
+      // Group today's visits by unique visitor to construct detailed first-visit UV list
+      const usersMap = {};
+      if (Array.isArray(users)) {
+        users.forEach(u => {
+          usersMap[u.id] = u;
+          usersMap[u.email] = u;
+        });
+      }
+
+      const uvMap = {};
+      todayRows.forEach(v => {
+        const key = getVisitorKey(v);
+        if (!uvMap[key]) {
+          let matchedUser = usersMap[v.ip_hash] || null;
+          if (!matchedUser && v.user_role && v.user_role !== "anonymous" && v.user_role !== "guest") {
+            matchedUser = users.find(u => u.role === v.user_role) || null;
+          }
+          uvMap[key] = {
+            key: key,
+            firstVisit: v,
+            lastVisit: v,
+            pvCount: 0,
+            user: matchedUser
+          };
+        }
+        uvMap[key].pvCount++;
+        if (Number(v.visited_at) < Number(uvMap[key].firstVisit.visited_at)) {
+          uvMap[key].firstVisit = v;
+        }
+        if (Number(v.visited_at) > Number(uvMap[key].lastVisit.visited_at)) {
+          uvMap[key].lastVisit = v;
+        }
+      });
+
+      this._todayUvList = Object.values(uvMap).sort((a, b) => Number(a.firstVisit.visited_at) - Number(b.firstVisit.visited_at));
+      const todayUv = this._todayUvList.length;
 
       const monthRows = Array.isArray(recentList) ? recentList.filter(r => (Number(r.visited_at) || 0) >= startOfMonthMs) : [];
       const monthPv = monthRows.length;
@@ -6921,9 +7015,9 @@ const MMAAuth = {
       console.error("[Admin Stats Load Error]", err);
     }
 
-    if (tab === "members") {
-      this.fetchAdminMembers(adminKey);
-    } else if (tab === "facilities") {
+    // Always fetch members and stats so badges and tabs are 100% updated!
+    this.fetchAdminMembers(adminKey);
+    if (tab === "facilities") {
       this.fetchAdminFacilities();
     }
   },
@@ -6955,7 +7049,7 @@ const MMAAuth = {
     if (tabMembers) tabMembers.classList.toggle("hidden", tab !== "members");
     if (tabFacilities) tabFacilities.classList.toggle("hidden", tab !== "facilities");
 
-    if (tab === "members" && this.adminMembers.length === 0) {
+    if (tab === "members") {
       this.fetchAdminMembers();
     }
     if (tab === "facilities" && this.adminFacilities.length === 0) {
@@ -7196,6 +7290,14 @@ const MMAAuth = {
         if (elAdm) elAdm.innerHTML = `${admin}<small>명</small>`;
         if (elBadge) elBadge.textContent = `${total}명`;
 
+        const elListCount = document.getElementById("adminMemberListCount");
+        if (elListCount) elListCount.textContent = total;
+
+        const elTotalUsers = document.getElementById("adminTotalUsers");
+        if (elTotalUsers) elTotalUsers.innerHTML = `${total}<small>명</small>`;
+        const elUserDetail = document.getElementById("adminUserDetail");
+        if (elUserDetail) elUserDetail.textContent = `일반 ${general} · 소상공인 ${merchant}`;
+
         this.renderAdminMembersTable();
       }
     } catch (err) {
@@ -7423,6 +7525,149 @@ const MMAAuth = {
     setTimeout(() => {
       chartContainer.scrollLeft = chartContainer.scrollWidth;
     }, 50);
+  },
+
+  openTodayUvDetailModal() {
+    const backdrop = document.getElementById("adminUvDetailBackdrop");
+    const modal = document.getElementById("adminUvDetailModal");
+    if (backdrop) backdrop.classList.remove("hidden");
+    if (modal) modal.classList.remove("hidden");
+    this.renderTodayUvDetails();
+  },
+
+  closeTodayUvDetailModal() {
+    const backdrop = document.getElementById("adminUvDetailBackdrop");
+    const modal = document.getElementById("adminUvDetailModal");
+    if (backdrop) backdrop.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  },
+
+  async refreshTodayUvDetails() {
+    try {
+      const stats = await this.fetchSupabaseDirectStats();
+      if (stats) {
+        this.renderAdminStats(stats);
+      }
+      this.renderTodayUvDetails();
+    } catch (_e) {}
+  },
+
+  async refreshAdminStats() {
+    const btn = document.getElementById("adminRefreshStatsBtn");
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+    }
+    try {
+      const stats = await this.fetchSupabaseDirectStats();
+      if (stats) {
+        this.renderAdminStats(stats);
+      }
+      await this.fetchAdminMembers();
+      if (this.currentAdminTab === "facilities") {
+        await this.fetchAdminFacilities();
+      }
+    } catch (err) {
+      console.error("[Refresh Admin Stats Err]", err);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+      }
+    }
+  },
+
+  renderTodayUvDetails() {
+    const tbody = document.getElementById("adminUvDetailTableBody");
+    const countEl = document.getElementById("adminUvModalCount");
+    if (!tbody) return;
+
+    if (!this._todayUvList || this._todayUvList.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 28px; color: #94a3b8; font-size: 13px;">
+            금일 순 방문자 기록을 분석하고 있습니다...
+          </td>
+        </tr>
+      `;
+      if (countEl) countEl.textContent = "0";
+      return;
+    }
+
+    if (countEl) countEl.textContent = this._todayUvList.length;
+
+    tbody.innerHTML = this._todayUvList.map((uv, idx) => {
+      const f = uv.firstVisit || {};
+      const vTime = Number(f.visited_at) || 0;
+      let timeStr = "-";
+      if (vTime) {
+        const d = new Date(vTime);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        const ss = String(d.getSeconds()).padStart(2, "0");
+        timeStr = `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
+      }
+
+      // Identify visitor / IP / User
+      let visitorHtml = "";
+      let roleBadge = "";
+      const user = uv.user;
+
+      if (user) {
+        roleBadge = user.role === "admin"
+          ? `<span class="profileRoleBadge admin">최고 관리자</span>`
+          : user.role === "merchant"
+          ? `<span class="profileRoleBadge merchant">소상공인 점주</span>`
+          : `<span class="profileRoleBadge user">일반회원</span>`;
+
+        visitorHtml = `
+          <div style="font-weight: 800; color: #0f172a;">${this.escapeHtml(user.nickname || "회원")}</div>
+          <div style="font-size: 11px; color: #2563eb;">${this.escapeHtml(user.email)}</div>
+          <div style="font-size: 10px; color: #94a3b8; font-family: monospace;">식별 UID: ${this.escapeHtml(user.id.substring(0, 18))}...</div>
+        `;
+      } else {
+        roleBadge = `<span class="adminBadge" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1;">비회원</span>`;
+        const rawHash = f.ip_hash || "unknown";
+        const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(rawHash);
+        
+        visitorHtml = `
+          <div style="font-weight: 800; color: #1e293b; font-family: monospace;">
+            ${isIp ? `🌐 IP: ${rawHash}` : `익명 방문자 #${idx + 1}`}
+          </div>
+          <div style="font-size: 11px; color: #64748b; font-family: monospace;">
+            ${isIp ? `세션 ID: ${f.id}` : `식별값: ${rawHash}`}
+          </div>
+        `;
+      }
+
+      // Device icon
+      const dev = (f.device_type || "desktop").toLowerCase();
+      const devIcon = dev === "mobile" ? "📱 모바일" : dev === "tablet" ? "📟 태블릿" : "💻 PC";
+
+      // Path & Referrer
+      const pathStr = f.path || "/";
+      const refStr = f.referrer && f.referrer.length > 5 ? `<div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">유입: ${this.escapeHtml(f.referrer.substring(0, 40))}</div>` : "";
+
+      return `
+        <tr>
+          <td style="text-align: center; color: #94a3b8; font-weight: 700; font-size: 12px;">${idx + 1}</td>
+          <td style="font-size: 12px; font-weight: 700; color: #1e293b; white-space: nowrap;">
+            ${timeStr}
+          </td>
+          <td>${visitorHtml}</td>
+          <td style="text-align: center;">${roleBadge}</td>
+          <td style="font-size: 12px;">
+            <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #0f172a;">${this.escapeHtml(pathStr)}</code>
+            ${refStr}
+          </td>
+          <td style="text-align: center; font-size: 12px;">${devIcon}</td>
+          <td style="text-align: center; font-weight: 800; color: #2563eb; font-size: 13px;">${uv.pvCount || 1}회</td>
+        </tr>
+      `;
+    }).join("");
   },
 
   async fetchSupabaseStoreStats(facilityId, periodDays = 7) {
