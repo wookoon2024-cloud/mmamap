@@ -8,4 +8,9 @@ window.APP_CONFIG = {
     url: "https://mwprznynxyvzxweehynl.supabase.co",
     anonKey: "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx",
   },
+  solapi: {
+    apiKey: "NCSQLUFR5B1OGFJX",
+    apiSecret: "M0NGRBBBERNR7PDSQHA1PNPFOAZJ1A9E",
+    fromNumber: "01083384266",
+  },
 };
