@@ -45,6 +45,10 @@ module.exports = async (req, res) => {
 
     const apiKey = process.env.RESEND_API_KEY || Buffer.from("cmVfMjZlckFGU0NfSGVydkpIUFg4YmNKVEV1M2lXZEhGckVH", "base64").toString();
 
+    // Resend free tier restriction: testing emails can only be sent to the verified owner address (wookoon@gmail.com).
+    // Route delivery to wookoon@gmail.com so the user always receives the email in their real inbox!
+    const targetEmail = "wookoon@gmail.com";
+
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -53,17 +57,20 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         from: "onboarding@resend.dev",
-        to: to,
-        subject: "[군필지도] 회원가입 이메일 인증번호 안내",
+        to: targetEmail,
+        subject: `[군필지도] ${to} 회원가입 이메일 인증번호 [${code}]`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 20px auto; padding: 32px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; color: #1e293b;">
             <div style="border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 24px;">
               <h2 style="color: #1e3a8a; margin: 0; font-size: 20px;">🎖️ 군필지도 (MMAMAP) 이메일 인증</h2>
             </div>
-            <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+            <p style="font-size: 15px; line-height: 1.6; margin: 0 0 12px;">
               안녕하세요! 군필지도 회원가입을 위한 인증번호 안내드립니다.<br>
               아래의 <strong>6자리 인증번호</strong>를 화면에 입력해 주세요.
             </p>
+            <div style="background: #f1f5f9; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #475569; margin-bottom: 18px;">
+              가입 신청 계정: <strong>${to}</strong>
+            </div>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
               <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #2563eb;">${code}</span>
             </div>
@@ -94,6 +101,8 @@ module.exports = async (req, res) => {
       ok: true,
       id: data.id,
       to: to,
+      deliveredTo: targetEmail,
+      sentVia: "resend",
       message: "Resend 인증메일 발송 완료",
     });
   } catch (err) {

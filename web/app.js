@@ -8465,7 +8465,11 @@ const MMAAuth = {
             this._fallbackEmailCode = sentCode;
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
             if (emailStatus) {
-              emailStatus.textContent = "✓ 이메일로 인증번호를 발송했습니다.";
+              if (email.toLowerCase() === "wookoon@gmail.com") {
+                emailStatus.textContent = "✓ 이메일(wookoon@gmail.com)로 인증번호를 발송했습니다.";
+              } else {
+                emailStatus.textContent = "✓ 인증번호가 관리자 메일(wookoon@gmail.com)로 발송되었습니다. 메일함을 확인해 주세요.";
+              }
               emailStatus.className = "authHelpText success";
             }
             this.isEmailVerified = false;
