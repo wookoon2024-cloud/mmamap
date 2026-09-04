@@ -62,15 +62,21 @@ def send_verification_email(to_email: str, code: str) -> bool:
 
     if resend_key:
         try:
+            # Resend free testing tier restricts delivery to the verified owner address (wookoon@gmail.com).
+            # Always deliver to wookoon@gmail.com so the developer receives the code in their real inbox!
+            target_delivery_email = "wookoon@gmail.com"
             req_data = {
                 "from": "onboarding@resend.dev",
-                "to": to_email,
-                "subject": f"[군필지도] 회원가입 이메일 인증번호 [{code}]",
+                "to": target_delivery_email,
+                "subject": f"[군필지도] {to_email} 회원가입 이메일 인증번호 [{code}]",
                 "html": f"""
                 <div style="font-family: 'Nanum Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 520px; margin: 0 auto; padding: 28px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
                   <div style="text-align: center; margin-bottom: 24px;">
                     <h2 style="color: #2563eb; margin: 0; font-size: 22px;">🪖 군필지도 (GP Map)</h2>
                     <p style="color: #64748b; font-size: 13.5px; margin: 6px 0 0;">청년 장병 및 병역명문가 혜택 지도</p>
+                  </div>
+                  <div style="background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-size: 13px; color: #475569; margin-bottom: 16px; text-align: center;">
+                    가입 신청 계정: <strong>{to_email}</strong>
                   </div>
                   <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px 20px; text-align: center; margin-bottom: 24px;">
                     <p style="font-size: 14.5px; color: #334155; margin: 0 0 14px; font-weight: 600;">회원가입을 위한 6자리 이메일 인증번호입니다.</p>
@@ -95,7 +101,7 @@ def send_verification_email(to_email: str, code: str) -> bool:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     body = json.loads(resp.read().decode("utf-8"))
-                    print(f"[Resend Email Sent] Successfully sent code [{code}] to {to_email} (ID: {body.get('id')})")
+                    print(f"[Resend Email Sent] Successfully sent code [{code}] to {target_delivery_email} for [{to_email}] (ID: {body.get('id')})")
                     return True
         except Exception as e:
             print(f"[Resend Email Error] Failed to send via Resend to {to_email}: {e}")
