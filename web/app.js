@@ -6146,12 +6146,18 @@ const MMAAuth = {
     const btnSendEmail = document.getElementById("btnSendEmailCode");
     const btnVerifyEmail = document.getElementById("btnVerifyEmailCode");
 
-    if (regEmail) regEmail.value = "";
+    if (regEmail) {
+      regEmail.value = "";
+      regEmail.readOnly = false;
+    }
     if (regEmailStatus) {
       regEmailStatus.textContent = "";
       regEmailStatus.className = "authHelpText";
     }
-    if (regEmailCode) regEmailCode.value = "";
+    if (regEmailCode) {
+      regEmailCode.value = "";
+      regEmailCode.readOnly = false;
+    }
     if (regEmailCodeWrap) regEmailCodeWrap.classList.add("hidden");
     if (regEmailCodeStatus) {
       regEmailCodeStatus.textContent = "";
@@ -8196,62 +8202,46 @@ const MMAAuth = {
           return;
         }
         btnSendEmail.disabled = true;
-        btnSendEmail.textContent = "발송 요청 중...";
+        btnSendEmail.textContent = "발송 중...";
         if (emailStatus) {
-          emailStatus.textContent = "서버 연결 중입니다. 잠시만 기다려 주세요...";
+          emailStatus.textContent = "인증 메일을 발송하고 있습니다. 잠시만 기다려 주세요...";
           emailStatus.className = "authHelpText";
         }
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 20000);
+          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
 
-          const res = await fetch("/api/auth/send_email_code", {
+          const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "apikey": supabaseKey,
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({ email }),
-            signal: controller.signal,
           });
-          clearTimeout(timeoutId);
 
-          const data = await res.json();
-          if (data.ok) {
+          const data = await res.json().catch(() => ({}));
+
+          if (res.ok) {
             if (emailCodeWrap) emailCodeWrap.classList.remove("hidden");
-            if (data.sentVia === "smtp") {
-              if (emailStatus) {
-                emailStatus.textContent = "✓ 메일함(스팸함 포함)으로 6자리 인증번호가 발송되었습니다.";
-                emailStatus.className = "authHelpText success";
-              }
-            } else if (data.debugCode) {
-              if (emailStatus) {
-                emailStatus.innerHTML = `💡 <b>테스트 인증번호 [${data.debugCode}] 발급됨</b> (자동 입력 완료)`;
-                emailStatus.className = "authHelpText success";
-              }
-              const codeInput = document.getElementById("regEmailCode");
-              if (codeInput) codeInput.value = data.debugCode;
-              this.isEmailVerified = true;
-              addDebugLog(`[Auth] 테스트 이메일 인증번호 자동 입력: ${data.debugCode}`, 'info');
-            } else {
-              if (emailStatus) {
-                emailStatus.textContent = data.message || "인증번호가 발송되었습니다.";
-                emailStatus.className = "authHelpText success";
-              }
-            }
-          } else {
             if (emailStatus) {
-              emailStatus.textContent = data.error || "인증번호 발송 실패";
+              emailStatus.innerHTML = `✓ <strong>${this.escapeHtml(email)}</strong> 메일함(스팸함 포함)으로 6자리 인증번호가 발송되었습니다.`;
+              emailStatus.className = "authHelpText success";
+            }
+            this.isEmailVerified = false;
+            addDebugLog(`[Auth] Supabase 이메일 OTP 발송 성공: ${email}`, "info");
+          } else {
+            const errMsg = data.msg || data.error_description || data.error || "인증번호 발송에 실패했습니다.";
+            if (emailStatus) {
+              emailStatus.textContent = errMsg;
               emailStatus.className = "authHelpText error";
             }
           }
         } catch (err) {
           if (emailStatus) {
-            if (err.name === "AbortError") {
-              emailStatus.textContent = "백엔드 서버가 활성화(Wake-up) 중입니다. 잠시 후 재발송을 눌러주세요.";
-            } else {
-              emailStatus.textContent = "서버 연결 중입니다. 바로 회원가입을 진행하실 수 있습니다.";
-            }
-            emailStatus.className = "authHelpText success";
+            emailStatus.textContent = "인증 메일 발송 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+            emailStatus.className = "authHelpText error";
           }
-          this.isEmailVerified = true;
         } finally {
           btnSendEmail.disabled = false;
           btnSendEmail.textContent = "인증번호 재발송";
@@ -8259,7 +8249,7 @@ const MMAAuth = {
       };
     }
 
-    // Verify Email Code
+    // Verify Email Code via Supabase Auth
     const btnVerifyEmail = document.getElementById("btnVerifyEmailCode");
     const emailCodeStatus = document.getElementById("regEmailCodeStatus");
     if (btnVerifyEmail) {
@@ -8267,25 +8257,65 @@ const MMAAuth = {
         const email = (document.getElementById("regEmail")?.value || "").trim();
         const code = (document.getElementById("regEmailCode")?.value || "").trim();
         if (!code) {
-          alert("인증번호를 입력해 주세요.");
+          alert("인증번호 6자리를 입력해 주세요.");
           return;
         }
-        this.isEmailVerified = true;
-        if (emailCodeStatus) {
-          emailCodeStatus.textContent = "✓ 이메일 인증이 완료되었습니다.";
-          emailCodeStatus.className = "authHelpText success";
-        }
-        btnVerifyEmail.classList.add("success");
-        btnVerifyEmail.textContent = "인증 완료";
         btnVerifyEmail.disabled = true;
+        btnVerifyEmail.textContent = "확인 중...";
 
         try {
-          await fetch("/api/auth/verify_email_code", {
+          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+
+          const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, code }),
+            headers: {
+              "apikey": supabaseKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              type: "email",
+              email: email,
+              token: code,
+            }),
           });
-        } catch (_e) {}
+
+          const data = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            this.isEmailVerified = true;
+            if (emailCodeStatus) {
+              emailCodeStatus.textContent = "✓ 이메일 인증이 성공적으로 완료되었습니다.";
+              emailCodeStatus.className = "authHelpText success";
+            }
+            btnVerifyEmail.classList.add("success");
+            btnVerifyEmail.textContent = "인증 완료";
+            btnVerifyEmail.disabled = true;
+
+            const regEmailInput = document.getElementById("regEmail");
+            if (regEmailInput) regEmailInput.readOnly = true;
+            const regEmailCodeInput = document.getElementById("regEmailCode");
+            if (regEmailCodeInput) regEmailCodeInput.readOnly = true;
+
+            addDebugLog(`[Auth] Supabase 이메일 OTP 인증 완료: ${email}`, "success");
+          } else {
+            this.isEmailVerified = false;
+            const errMsg = data.msg || data.error_description || "인증번호가 일치하지 않거나 만료되었습니다.";
+            if (emailCodeStatus) {
+              emailCodeStatus.textContent = `❌ ${errMsg}`;
+              emailCodeStatus.className = "authHelpText error";
+            }
+            btnVerifyEmail.disabled = false;
+            btnVerifyEmail.textContent = "인증 확인";
+          }
+        } catch (err) {
+          if (emailCodeStatus) {
+            emailCodeStatus.textContent = "인증 확인 중 통신 오류가 발생했습니다.";
+            emailCodeStatus.className = "authHelpText error";
+          }
+          btnVerifyEmail.disabled = false;
+          btnVerifyEmail.textContent = "인증 확인";
+        }
       };
     }
 
@@ -8455,6 +8485,12 @@ const MMAAuth = {
           alert("올바른 이메일 주소를 입력해 주세요.");
           return;
         }
+        if (!this.isEmailVerified) {
+          alert("이메일 인증(인증번호 확인)을 완료해 주세요.");
+          const emailInput = document.getElementById("regEmail");
+          if (emailInput) emailInput.focus();
+          return;
+        }
         if (!nick || nick.length < 2) {
           alert("활동 닉네임을 2자 이상 입력해 주세요.");
           return;
@@ -8480,33 +8516,108 @@ const MMAAuth = {
         btnRegister.textContent = "가입 처리 중...";
 
         try {
-          const res = await fetch("/api/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              password: pw,
-              nickname: nick,
-              role,
-              facility_id: role === "merchant" && this.selectedMerchantStore ? this.selectedMerchantStore.facilityId : "",
-              terms_agreed: true,
-              privacy_agreed: true,
-            }),
-          });
-          const data = await res.json();
-          if (data.ok) {
-            this.token = data.token;
-            this.user = data.user;
-            try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
+          let user = null;
+          let token = "";
+
+          if (!IS_STATIC_HOST) {
+            const res = await fetch("/api/auth/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                password: pw,
+                nickname: nick,
+                role,
+                facility_id: role === "merchant" && this.selectedMerchantStore ? this.selectedMerchantStore.facilityId : "",
+                terms_agreed: true,
+                privacy_agreed: true,
+              }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+              token = data.token;
+              user = data.user;
+            } else {
+              if (regError) {
+                regError.textContent = data.error || "가입 처리에 실패했습니다.";
+                regError.classList.remove("hidden");
+              }
+              return;
+            }
+          } else {
+            // Direct Supabase Registration for static hosting
+            const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+            const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+            const headers = {
+              "apikey": supabaseKey,
+              "Authorization": `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+              "Prefer": "return=representation"
+            };
+
+            const checkRes = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`, { headers });
+            const existing = await checkRes.json().catch(() => []);
+            if (Array.isArray(existing) && existing.length > 0) {
+              if (regError) {
+                regError.textContent = "이미 등록된 이메일 주소입니다.";
+                regError.classList.remove("hidden");
+              }
+              return;
+            }
+
+            const newId = (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") ? crypto.randomUUID() : "usr_" + Date.now();
+            const insertRes = await fetch(`${supabaseUrl}/rest/v1/users`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                id: newId,
+                email,
+                password_hash: "plain:" + pw,
+                nickname: nick,
+                role,
+                email_verified: 1,
+                merchant_facility_id: role === "merchant" && this.selectedMerchantStore ? this.selectedMerchantStore.facilityId : "",
+                merchant_facility_name: role === "merchant" && this.selectedMerchantStore ? this.selectedMerchantStore.title : "",
+                merchant_phone: role === "merchant" && this.selectedMerchantStore ? (this.selectedMerchantStore.phone || "") : "",
+                created_at: Date.now()
+              })
+            });
+
+            const inserted = await insertRes.json().catch(() => []);
+            if (!insertRes.ok || !Array.isArray(inserted) || !inserted[0]) {
+              if (regError) {
+                regError.textContent = "회원 등록 처리 중 오류가 발생했습니다.";
+                regError.classList.remove("hidden");
+              }
+              return;
+            }
+
+            const dbUser = inserted[0];
+            user = {
+              id: dbUser.id,
+              email: dbUser.email,
+              nickname: dbUser.nickname,
+              role: dbUser.role,
+              emailVerified: true,
+              merchantFacilityId: dbUser.merchant_facility_id || "",
+              merchantFacilityName: dbUser.merchant_facility_name || "",
+              merchantPhone: dbUser.merchant_phone || "",
+              created_at: dbUser.created_at
+            };
+            token = `sb_usr_${user.id}_${Date.now()}`;
+          }
+
+          if (user && token) {
+            this.token = token;
+            this.user = user;
+            try {
+              sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token);
+              sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user));
+            } catch (_e) {}
             this.closeAuthModal();
             this.renderNav();
             addDebugLog(`[Auth] 회원가입 완료: ${this.user.nickname} (${role})`, 'success');
             alert(`축하합니다! 회원가입이 완료되었습니다.\n환영합니다, ${this.user.nickname}님!`);
-          } else {
-            if (regError) {
-              regError.textContent = data.error || "가입 처리에 실패했습니다.";
-              regError.classList.remove("hidden");
-            }
           }
         } catch (_err) {
           if (regError) {
