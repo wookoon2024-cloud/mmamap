@@ -4323,7 +4323,10 @@ async function bootstrap() {
         <span class="rankNo">${idx + 1}</span>
         <span class="rankName">${escapeHtml(row.point.title || "Place")}</span>
       `;
-      btn.addEventListener("click", () => focusFacility(row.id));
+      btn.addEventListener("click", () => {
+        if (rankPanelEl) rankPanelEl.classList.add("collapsed");
+        focusFacility(row.id);
+      });
       rankListEl.appendChild(btn);
     });
   }
@@ -5027,7 +5030,20 @@ async function bootstrap() {
     });
   });
 
-  if (rankHeadEl && rankPanelEl) rankHeadEl.addEventListener("click", () => rankPanelEl.classList.toggle("collapsed"));
+  if (rankHeadEl && rankPanelEl) {
+    rankHeadEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      rankPanelEl.classList.toggle("collapsed");
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (rankPanelEl && !rankPanelEl.classList.contains("collapsed")) {
+      if (!rankPanelEl.contains(e.target)) {
+        rankPanelEl.classList.add("collapsed");
+      }
+    }
+  });
 
   buildLegend();
   buildAudienceLegend();
