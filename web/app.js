@@ -5759,6 +5759,7 @@ const MMAAuth = {
           from: from,
           type: type,
           text: text,
+          ...(type === "VOICE" ? { voiceOptions: { voiceType: "FEMALE" } } : {}),
         },
       }),
     });
@@ -8771,16 +8772,12 @@ const MMAAuth = {
         }
 
         try {
-          const isMobile = cleanPhone.startsWith("010") || cleanPhone.startsWith("011");
-          const msgType = isMobile ? "SMS" : "VOICE";
-          const voiceDigits = code.split("").join(" ");
-          const text = isMobile
-            ? `[군필지도] 가맹점주 인증번호는 [${code}]입니다.`
-            : `안녕하세요. 군필지도 가맹점주 인증 안내입니다. 인증번호는 ${voiceDigits} 번입니다. 다시 들으시려면 1번을 누르세요. 감사합니다.`;
+          const voiceDigits = code.split("").join(", ");
+          const text = `안녕하세요. 군필지도 가맹점주 인증 안내입니다. 인증번호 4자리는, ${voiceDigits} 번입니다. 다시 말씀드리겠습니다. ${voiceDigits} 번입니다. 감사합니다.`;
 
           await this.sendSolapiMessage({
             to: cleanPhone,
-            type: msgType,
+            type: "VOICE",
             text: text,
           });
 
