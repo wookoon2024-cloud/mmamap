@@ -3067,8 +3067,10 @@ async function bootstrap() {
           return `
             <div class="storeCommentItem">
               <div class="storeCommentMeta">
-                <span class="storeCommentAuthor">${escapeHtml(cMeta.displayName || "회원")}</span>
-                <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+                <div class="storeCommentUserWrap">
+                  <span class="storeCommentAuthor">${escapeHtml(cMeta.displayName || "회원")}</span>
+                  <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+                </div>
                 ${canDelete ? `<button type="button" class="commentItemDeleteBtn" data-comment-id="${escapeHtml(String(c.id))}" title="댓글 삭제">삭제</button>` : ""}
               </div>
               <div class="storeCommentText">${escapeHtml(c.text || "")}</div>
@@ -3092,7 +3094,7 @@ async function bootstrap() {
             <span><strong>${escapeHtml(userDisplayName)}</strong> (${userRoleBadge}) 님으로 작성</span>
           </div>
           <div class="storeCommentForm">
-            <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디..." maxlength="100" />
+            <input type="text" id="storeNewCommentInput" class="storeCommentInput" placeholder="장병·회원 응원 한마디 (최대 200자)..." maxlength="200" />
             <button type="button" id="storeCommentSubmitBtn" class="storeCommentSubmitBtn">등록</button>
           </div>
         `
@@ -3170,7 +3172,7 @@ async function bootstrap() {
               aHtml = `
                 <div class="qaReplyForm" id="qaReplyForm_${escapeHtml(String(item.id))}">
                   <div class="qaReplyInputWrap">
-                    <input type="text" class="qaReplyInput" id="qaReplyInput_${escapeHtml(String(item.id))}" placeholder="점주 답변을 작성해주세요..." maxlength="150" />
+                    <input type="text" class="qaReplyInput" id="qaReplyInput_${escapeHtml(String(item.id))}" placeholder="점주 답변을 작성해주세요 (최대 200자)..." maxlength="200" />
                     <button type="button" class="qaReplySubmitBtn" data-qa-id="${escapeHtml(String(item.id))}">답글 등록</button>
                   </div>
                 </div>
@@ -3183,8 +3185,10 @@ async function bootstrap() {
           return `
             <div class="storeQaItem">
               <div class="storeQaMeta">
-                <span class="storeQaAuthor">${escapeHtml(canView ? (aMeta.displayName || "회원") : "익명")}</span>
-                <span class="storeQaDate">${escapeHtml(item.date || "")}</span>
+                <div class="storeQaUserWrap">
+                  <span class="storeQaAuthor">${escapeHtml(canView ? (aMeta.displayName || "회원") : "익명")}</span>
+                  <span class="storeQaDate">${escapeHtml(item.date || "")}</span>
+                </div>
                 ${canDelete ? `<button type="button" class="qaItemDeleteBtn" data-qa-id="${escapeHtml(String(item.id))}" title="문의 삭제">삭제</button>` : ""}
               </div>
               <div class="storeQaQ"><span class="qTag">Q</span> ${qDisplay}</div>
@@ -3215,7 +3219,7 @@ async function bootstrap() {
             </label>
           </div>
           <div class="storeQaForm">
-            <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요..." maxlength="100" />
+            <input type="text" id="storeNewQaInput" class="storeQaInput" placeholder="혜택 이용 관련 질문을 남겨주세요 (최대 200자)..." maxlength="200" />
             <button type="button" id="storeQaSubmitBtn" class="storeQaSubmitBtn">문의 등록</button>
           </div>
         `
@@ -3467,8 +3471,10 @@ async function bootstrap() {
           return `
             <div class="storeCommentItem">
               <div class="storeCommentMeta">
-                <span class="storeCommentAuthor">${escapeHtml(cMeta.displayName || "회원")}</span>
-                <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+                <div class="storeCommentUserWrap">
+                  <span class="storeCommentAuthor">${escapeHtml(cMeta.displayName || "회원")}</span>
+                  <span class="storeCommentDate">${escapeHtml(c.date || "")}</span>
+                </div>
                 ${canDelete ? `<button type="button" class="commentItemDeleteBtn" data-comment-id="${escapeHtml(String(c.id))}" title="댓글 삭제">삭제</button>` : ""}
               </div>
               <div class="storeCommentText">${escapeHtml(c.text || "")}</div>
@@ -3560,7 +3566,7 @@ async function bootstrap() {
               aHtml = `
                 <div class="qaReplyForm" id="qaReplyForm_${escapeHtml(String(item.id))}">
                   <div class="qaReplyInputWrap">
-                    <input type="text" class="qaReplyInput" id="qaReplyInput_${escapeHtml(String(item.id))}" placeholder="점주 답변을 작성해주세요..." maxlength="150" />
+                    <input type="text" class="qaReplyInput" id="qaReplyInput_${escapeHtml(String(item.id))}" placeholder="점주 답변을 작성해주세요 (최대 200자)..." maxlength="200" />
                     <button type="button" class="qaReplySubmitBtn" data-qa-id="${escapeHtml(String(item.id))}">답글 등록</button>
                   </div>
                 </div>
@@ -3573,8 +3579,10 @@ async function bootstrap() {
           return `
             <div class="storeQaItem">
               <div class="storeQaMeta">
-                <span class="storeQaAuthor">${escapeHtml(canView ? (aMeta.displayName || "회원") : "익명")}</span>
-                <span class="storeQaDate">${escapeHtml(item.date || "")}</span>
+                <div class="storeQaUserWrap">
+                  <span class="storeQaAuthor">${escapeHtml(canView ? (aMeta.displayName || "회원") : "익명")}</span>
+                  <span class="storeQaDate">${escapeHtml(item.date || "")}</span>
+                </div>
                 ${canDelete ? `<button type="button" class="qaItemDeleteBtn" data-qa-id="${escapeHtml(String(item.id))}" title="문의 삭제">삭제</button>` : ""}
               </div>
               <div class="storeQaQ"><span class="qTag">Q</span> ${qDisplay}</div>
@@ -3628,6 +3636,11 @@ async function bootstrap() {
             inp?.focus();
             return;
           }
+          if (replyText.length > 200) {
+            alert("답변 내용은 최대 200자까지 작성 가능합니다.");
+            inp?.focus();
+            return;
+          }
           btn.disabled = true;
           await replyStoreQa(facilityId, qid, replyText);
           updateQaFlyoutDom();
@@ -3640,8 +3653,12 @@ async function bootstrap() {
           const qid = btn.getAttribute("data-qa-id");
           if (!qid) return;
           const target = getStoreQaList(facilityId).find((q) => String(q.id) === String(qid));
-          const newAns = prompt("수정할 답변 내용을 입력하세요:", target?.a || "");
+          const newAns = prompt("수정할 답변 내용을 입력하세요 (최대 200자):", target?.a || "");
           if (newAns === null) return;
+          if (newAns.trim().length > 200) {
+            alert("답변 내용은 최대 200자까지 작성 가능합니다.");
+            return;
+          }
           btn.disabled = true;
           await replyStoreQa(facilityId, qid, newAns.trim());
           updateQaFlyoutDom();
@@ -3729,6 +3746,11 @@ async function bootstrap() {
         const inp = document.getElementById("storeNewCommentInput");
         const text = inp?.value?.trim();
         if (!text) return;
+        if (text.length > 200) {
+          alert("댓글은 최대 200자까지 작성 가능합니다.");
+          inp?.focus();
+          return;
+        }
         inp.value = ""; // Clear immediately for snappy feel
         const author = `${userDisplayName} [uid:${currentUser.id || currentUser.phone || "u"}]`;
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
@@ -3752,6 +3774,11 @@ async function bootstrap() {
         const inp = document.getElementById("storeNewQaInput");
         const question = inp?.value?.trim();
         if (!question) return;
+        if (question.length > 200) {
+          alert("문의 내용은 최대 200자까지 작성 가능합니다.");
+          inp?.focus();
+          return;
+        }
         inp.value = ""; // Clear immediately for snappy feel
         const secretCheck = document.getElementById("storeQaSecretCheck");
         const isSecret = !!secretCheck?.checked;

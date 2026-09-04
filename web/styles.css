@@ -7723,18 +7723,38 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2px;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.storeCommentUserWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .storeCommentAuthor {
   font-weight: 800;
   color: #0f172a;
-  font-size: 11px;
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 .storeCommentDate {
   font-size: 10px;
   color: #94a3b8;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.storeCommentDate:not(:empty)::before {
+  content: "·";
+  margin-right: 6px;
+  color: #cbd5e1;
+  font-weight: 700;
 }
 
 .storeCommentText {
@@ -8005,19 +8025,39 @@ button:active {
 .storeQaMeta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 3px;
+}
+
+.storeQaUserWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .storeQaAuthor {
   font-weight: 800;
   color: #0f172a;
-  font-size: 11px;
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 .storeQaDate {
   font-size: 10px;
   color: #94a3b8;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.storeQaDate:not(:empty)::before {
+  content: "·";
+  margin-right: 6px;
+  color: #cbd5e1;
+  font-weight: 700;
 }
 
 /* Secret QA Badges & Masking */
