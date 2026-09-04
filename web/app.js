@@ -5789,7 +5789,7 @@ const MMAAuth = {
     const roleTitle = isAdmin ? "관리자" : "";
 
     wrap.innerHTML = `
-      <div class="authUserBadge" onclick="${isMerchant ? "window.MMAAuth.goToMyMerchantStore(event)" : "window.MMAAuth.toggleProfileMenu()"}" title="${isMerchant ? "클릭 시 내 매장(" + this.escapeHtml(this.user.merchantFacilityName || "대전을지대학교병원") + ") 위치로 이동" : "내 메뉴 열기"}" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+      <div class="authUserBadge" onclick="window.MMAAuth.toggleProfileMenu()" title="내 메뉴 열기" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
         <span>${roleIcon}</span>
         <strong style="${isMerchant ? "text-decoration: underline; text-underline-offset: 3px;" : ""}">${this.escapeHtml(this.user.nickname)}</strong>
         ${roleTitle ? `<small style="color:#a21caf; font-weight:700;">${roleTitle}</small>` : ""}
@@ -5909,7 +5909,15 @@ const MMAAuth = {
                  <span class="pItemArrow">›</span>
                </button>`
             : isMerchant && this.user.merchantFacilityId
-            ? `<button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openStoreCustomModalFromMenu(); window.MMAAuth.closeProfileMenu();">
+            ? `<button type="button" class="profileDropdownItem" onclick="window.MMAAuth.goToMyMerchantStore(); window.MMAAuth.closeProfileMenu();">
+                 <span class="pItemIcon">📍</span>
+                 <div class="pItemText">
+                   <strong>내 매장 바로가기</strong>
+                   <small>${this.escapeHtml(this.user.merchantFacilityName || "대전을지대학교병원")}</small>
+                 </div>
+                 <span class="pItemArrow">›</span>
+               </button>
+               <button type="button" class="profileDropdownItem" onclick="window.MMAAuth.openStoreCustomModalFromMenu(); window.MMAAuth.closeProfileMenu();">
                  <span class="pItemIcon">🎨</span>
                  <div class="pItemText">
                    <strong>우리 매장 페이지 꾸미기</strong>
@@ -5949,7 +5957,7 @@ const MMAAuth = {
       <div class="profileDropdownDivider"></div>
 
       <div class="profileDropdownFooter">
-        <button type="button" class="profileLogoutBtn" onclick="window.MMAAuth.logout(); window.MMAAuth.closeProfileMenu();">
+        <button type="button" class="profileLogoutBtn" onclick="window.MMAAuth.logout();">
           <span class="logoutIcon">🚪</span>
           <span>로그아웃</span>
         </button>
@@ -6312,20 +6320,34 @@ const MMAAuth = {
   },
 
   async logout() {
-    if (!confirm("로그아웃 하시겠습니까?")) return;
+    this.closeProfileMenu();
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${this.token}` },
-      });
+      if (!IS_STATIC_HOST && this.token) {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${this.token}` },
+        });
+      }
     } catch (_e) {}
+
     this.token = "";
     this.user = null;
     this.favorites.clear();
     this.likes.clear();
+
+    if (window.MMAFavorites) window.MMAFavorites.clear();
+    if (window.MMALikes) window.MMALikes.clear();
+
     try { sessionStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
+    try { sessionStorage.removeItem("mmamap_user_cache_v1"); } catch (_e) {}
+    try { localStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
+    try { localStorage.removeItem("mmamap_user_cache_v1"); } catch (_e) {}
+
     this.renderNav();
-    addDebugLog("[Auth] 로그아웃 완료", "info");
+    if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
+    if (typeof renderRankPanel === "function") renderRankPanel();
+
+    alert("로그아웃되었습니다.");
   },
 
   currentAdminTab: "analytics",
