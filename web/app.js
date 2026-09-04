@@ -579,23 +579,9 @@ async function bootstrap() {
   };
   const clientToken = getOrCreateClientToken();
 
-  const showToast = (message, type = "info") => {
-    let container = document.getElementById("mmaToastContainer");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "mmaToastContainer";
-      container.style.cssText = "position:fixed; bottom:32px; left:50%; transform:translateX(-50%); z-index:999999; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none;";
-      document.body.appendChild(container);
-    }
-    const toast = document.createElement("div");
-    toast.style.cssText = "background:rgba(15,23,42,0.92); color:#ffffff; font-size:13px; font-weight:700; padding:10px 18px; border-radius:30px; box-shadow:0 10px 25px rgba(0,0,0,0.25); display:flex; align-items:center; gap:8px; backdrop-filter:blur(8px); pointer-events:auto; animation:toastPopIn 0.2s cubic-bezier(0.16,1,0.3,1); transition:opacity 0.25s, transform 0.25s;";
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(8px)";
-      setTimeout(() => toast.remove(), 250);
-    }, 2200);
+  const showToast = (_message, _type = "info") => {
+    // 하단 검은색 알림 팝업 비활성화
+    return;
   };
   window.showToast = showToast;
 
