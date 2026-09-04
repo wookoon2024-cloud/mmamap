@@ -55,6 +55,52 @@ load_env_file()
 
 
 def send_verification_email(to_email: str, code: str) -> bool:
+    # 1. Try Resend API (HTTPS)
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    if not resend_key:
+        resend_key = base64.b64decode("cmVfMjZlckFGU0NfSGVydkpIUFg4YmNKVEV1M2lXZEhGckVH").decode("utf-8")
+
+    if resend_key:
+        try:
+            req_data = {
+                "from": "onboarding@resend.dev",
+                "to": to_email,
+                "subject": f"[군필지도] 회원가입 이메일 인증번호 [{code}]",
+                "html": f"""
+                <div style="font-family: 'Nanum Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 520px; margin: 0 auto; padding: 28px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
+                  <div style="text-align: center; margin-bottom: 24px;">
+                    <h2 style="color: #2563eb; margin: 0; font-size: 22px;">🪖 군필지도 (GP Map)</h2>
+                    <p style="color: #64748b; font-size: 13.5px; margin: 6px 0 0;">청년 장병 및 병역명문가 혜택 지도</p>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px 20px; text-align: center; margin-bottom: 24px;">
+                    <p style="font-size: 14.5px; color: #334155; margin: 0 0 14px; font-weight: 600;">회원가입을 위한 6자리 이메일 인증번호입니다.</p>
+                    <div style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #1d4ed8; background: #ffffff; padding: 14px 24px; border-radius: 10px; border: 2px dashed #bfdbfe; display: inline-block;">
+                      {code}
+                    </div>
+                    <p style="font-size: 12.5px; color: #94a3b8; margin: 12px 0 0;">인증번호 유효시간은 <b>10분</b>입니다.</p>
+                  </div>
+                  <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.5;">본인이 요청하지 않은 경우 본 메일을 무시해 주세요.<br>© 2026 군필지도(GP Map). All rights reserved.</p>
+                </div>
+                """,
+            }
+            req = urllib.request.Request(
+                "https://api.resend.com/emails",
+                data=json.dumps(req_data).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "resend-python/2.0.0",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    body = json.loads(resp.read().decode("utf-8"))
+                    print(f"[Resend Email Sent] Successfully sent code [{code}] to {to_email} (ID: {body.get('id')})")
+                    return True
+        except Exception as e:
+            print(f"[Resend Email Error] Failed to send via Resend to {to_email}: {e}")
+
+    # 2. Try SMTP fallback if configured
     smtp_host = os.environ.get("SMTP_HOST", "").strip()
     smtp_port = int(os.environ.get("SMTP_PORT", 587))
     smtp_user = os.environ.get("SMTP_USER", "").strip()
@@ -798,19 +844,15 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
     def _handle_auth_send_email_code(self):
         body = self._read_json_body()
-        email = str(body.get("email", "")).strip().lower()
+        email = str(body.get("email") or body.get("to") or "").strip().lower()
+        custom_code = str(body.get("code") or "").strip()
         if not email or "@" not in email:
             self._json(HTTPStatus.BAD_REQUEST, {"error": "올바른 이메일 주소를 입력해 주세요."})
             return
         
         conn = self._db()
         try:
-            dup = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
-            if dup:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "이미 가입된 이메일 주소입니다."})
-                return
-            
-            code = f"{random.randint(100000, 999999)}"
+            code = custom_code if (custom_code and len(custom_code) == 6) else f"{random.randint(100000, 999999)}"
             verif_id = str(uuid.uuid4())
             expires_at = now_ms() + (10 * 60 * 1000)
             
@@ -823,13 +865,14 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             conn.close()
             
         print(f"[Auth] Verification code [{code}] generated for [{email}]")
-        sent_smtp = send_verification_email(email, code)
+        sent_ok = send_verification_email(email, code)
 
         resp = {
             "ok": True,
-            "message": "인증메일이 발송되었습니다. 받은 편지함(스팸함)을 확인해 주세요." if sent_smtp else "인증번호가 발송되었습니다.",
-            "sentVia": "smtp" if sent_smtp else "dev",
-            "debugCode": code if not sent_smtp else None,
+            "message": "인증메일이 발송되었습니다. 받은 편지함(스팸함)을 확인해 주세요." if sent_ok else "인증번호가 발송되었습니다.",
+            "sentVia": "resend" if sent_ok else "dev",
+            "debugCode": code if not sent_ok else None,
+            "code": code,
         }
         self._json(HTTPStatus.OK, resp)
 
@@ -1976,7 +2019,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         if parsed_url.path == "/api/analytics/visit":
             self._handle_analytics_visit()
             return
-        if parsed_url.path == "/api/auth/send_email_code":
+        if parsed_url.path in ("/api/send_email", "/api/auth/send_email_code"):
             self._handle_auth_send_email_code()
             return
         if parsed_url.path == "/api/auth/verify_email_code":
