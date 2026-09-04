@@ -2677,6 +2677,7 @@ async function bootstrap() {
   let currentCustomPoint = null;
   let currentCustomPhotos = [];
   let currentDetailCommentPage = 1;
+  let currentDetailQaPage = 1;
   let isCommentsFlyoutOpen = false;
   let isQaFlyoutOpen = false;
   let currentDetailFacilityId = null;
@@ -2905,6 +2906,7 @@ async function bootstrap() {
       isCommentsFlyoutOpen = false;
       isQaFlyoutOpen = false;
       currentDetailCommentPage = 1;
+      currentDetailQaPage = 1;
     }
     const isLiked = likes.has(facilityId) || (legacyKey && likes.has(legacyKey));
     const isFavorite = favorites.has(facilityId) || (legacyKey && favorites.has(legacyKey));
@@ -3047,10 +3049,10 @@ async function bootstrap() {
       ? (currentUser.role === "merchant" ? "점주" : currentUser.role === "admin" ? "관리자" : "회원")
       : "";
 
-    // Side Popup Flyout: 2 comments per page pagination
+    // Side Popup Flyout: 5 comments per page pagination
     let commentsFlyoutHtml = "";
     if (custom.commentsEnabled) {
-      const pageSize = 2;
+      const pageSize = 5;
       const totalPages = Math.ceil(comments.length / pageSize) || 1;
       if (currentDetailCommentPage > totalPages) currentDetailCommentPage = totalPages;
       if (currentDetailCommentPage < 1) currentDetailCommentPage = 1;
@@ -3075,16 +3077,13 @@ async function bootstrap() {
         })
         .join("");
 
-      const paginationHtml =
-        totalPages > 1
-          ? `
-          <div class="storeCommentPagination">
-            <button type="button" class="commentPageBtn" id="btnCommentPrevPage" ${currentDetailCommentPage <= 1 ? "disabled" : ""}>◀ 이전</button>
-            <span class="commentPageIndicator">${currentDetailCommentPage} / ${totalPages}</span>
-            <button type="button" class="commentPageBtn" id="btnCommentNextPage" ${currentDetailCommentPage >= totalPages ? "disabled" : ""}>다음 ▶</button>
-          </div>
-        `
-          : "";
+      const paginationHtml = `
+        <div class="storeCommentPagination" id="commentPaginationWrap" style="${totalPages > 1 ? "" : "display:none;"}">
+          <button type="button" class="commentPageBtn" id="btnCommentPrevPage" ${currentDetailCommentPage <= 1 ? "disabled" : ""}>◀ 이전</button>
+          <span class="commentPageIndicator" id="commentPageIndicator">${currentDetailCommentPage} / ${totalPages}</span>
+          <button type="button" class="commentPageBtn" id="btnCommentNextPage" ${currentDetailCommentPage >= totalPages ? "disabled" : ""}>다음 ▶</button>
+        </div>
+      `;
 
       const commentFooterHtml = isUserLoggedIn
         ? `
@@ -3123,11 +3122,18 @@ async function bootstrap() {
       `;
     }
 
-    // Side Popup Flyout: Q&A Board
+    // Side Popup Flyout: Q&A Board (5 per page pagination)
     let qaFlyoutHtml = "";
     if (custom.qaEnabled) {
-      const qaItems = qaList
-        .slice(0, 3)
+      const qaPageSize = 5;
+      const totalQaPages = Math.ceil(qaList.length / qaPageSize) || 1;
+      if (currentDetailQaPage > totalQaPages) currentDetailQaPage = totalQaPages;
+      if (currentDetailQaPage < 1) currentDetailQaPage = 1;
+
+      const qaStartIdx = (currentDetailQaPage - 1) * qaPageSize;
+      const pageQaList = qaList.slice(qaStartIdx, qaStartIdx + qaPageSize);
+
+      const qaItems = pageQaList
         .map((item) => {
           const qMeta = parseQuestionMeta(item.q);
           const aMeta = parseAuthorMeta(item.author);
@@ -3188,6 +3194,14 @@ async function bootstrap() {
         })
         .join("");
 
+      const qaPaginationHtml = `
+        <div class="storeCommentPagination" id="qaPaginationWrap" style="${totalQaPages > 1 ? "" : "display:none;"}">
+          <button type="button" class="commentPageBtn" id="btnQaPrevPage" ${currentDetailQaPage <= 1 ? "disabled" : ""}>◀ 이전</button>
+          <span class="commentPageIndicator" id="qaPageIndicator">${currentDetailQaPage} / ${totalQaPages}</span>
+          <button type="button" class="commentPageBtn" id="btnQaNextPage" ${currentDetailQaPage >= totalQaPages ? "disabled" : ""}>다음 ▶</button>
+        </div>
+      `;
+
       const qaFooterHtml = isUserLoggedIn
         ? `
           <div class="storeAuthorBadge">
@@ -3222,6 +3236,7 @@ async function bootstrap() {
             <div class="storeQaList" id="storeQaList">
               ${qaItems || '<div style="font-size: 11px; color: #94a3b8; text-align: center; padding: 24px 6px;">등록된 문의가 없습니다. 궁금한 점을 질문해보세요!</div>'}
             </div>
+            ${qaPaginationHtml}
           </div>
           <div class="storeSideFlyoutFoot">
             ${qaFooterHtml}
@@ -3432,11 +3447,12 @@ async function bootstrap() {
     }
 
     // Helper for seamless in-place Comments Flyout update (no window reload or flicker)
+    // Helper for seamless in-place Comments Flyout update (no window reload or flicker)
     const updateCommentsFlyoutDom = () => {
       const flyout = document.getElementById("storeCommentsFlyout");
       if (!flyout) return;
       const cList = getStoreComments(facilityId);
-      const pageSize = 2;
+      const pageSize = 5;
       const totalPages = Math.ceil(cList.length / pageSize) || 1;
       if (currentDetailCommentPage > totalPages) currentDetailCommentPage = totalPages;
       if (currentDetailCommentPage < 1) currentDetailCommentPage = 1;
@@ -3472,9 +3488,11 @@ async function bootstrap() {
       const chipEl = document.querySelector("#btnOpenCommentsFlyout .commentCountChip");
       if (chipEl) chipEl.textContent = String(cList.length);
 
+      const pagWrap = flyout.querySelector("#commentPaginationWrap");
+      if (pagWrap) pagWrap.style.display = totalPages > 1 ? "flex" : "none";
       const prevBtn = flyout.querySelector("#btnCommentPrevPage");
       const nextBtn = flyout.querySelector("#btnCommentNextPage");
-      const indicator = flyout.querySelector(".commentPageIndicator");
+      const indicator = flyout.querySelector("#commentPageIndicator");
       if (prevBtn) prevBtn.disabled = currentDetailCommentPage <= 1;
       if (nextBtn) nextBtn.disabled = currentDetailCommentPage >= totalPages;
       if (indicator) indicator.textContent = `${currentDetailCommentPage} / ${totalPages}`;
@@ -3497,8 +3515,15 @@ async function bootstrap() {
       const flyout = document.getElementById("storeQaFlyout");
       if (!flyout) return;
       const qList = getStoreQaList(facilityId);
-      const itemsHtml = qList
-        .slice(0, 3)
+      const qaPageSize = 5;
+      const totalQaPages = Math.ceil(qList.length / qaPageSize) || 1;
+      if (currentDetailQaPage > totalQaPages) currentDetailQaPage = totalQaPages;
+      if (currentDetailQaPage < 1) currentDetailQaPage = 1;
+
+      const qaStartIdx = (currentDetailQaPage - 1) * qaPageSize;
+      const pageQaList = qList.slice(qaStartIdx, qaStartIdx + qaPageSize);
+
+      const itemsHtml = pageQaList
         .map((item) => {
           const qMeta = parseQuestionMeta(item.q);
           const aMeta = parseAuthorMeta(item.author);
@@ -3570,6 +3595,15 @@ async function bootstrap() {
       const chipEl = document.querySelector("#btnOpenQaFlyout .commentCountChip");
       if (chipEl) chipEl.textContent = String(qList.length);
 
+      const pagWrap = flyout.querySelector("#qaPaginationWrap");
+      if (pagWrap) pagWrap.style.display = totalQaPages > 1 ? "flex" : "none";
+      const prevBtn = flyout.querySelector("#btnQaPrevPage");
+      const nextBtn = flyout.querySelector("#btnQaNextPage");
+      const indicator = flyout.querySelector("#qaPageIndicator");
+      if (prevBtn) prevBtn.disabled = currentDetailQaPage <= 1;
+      if (nextBtn) nextBtn.disabled = currentDetailQaPage >= totalQaPages;
+      if (indicator) indicator.textContent = `${currentDetailQaPage} / ${totalQaPages}`;
+
       flyout.querySelectorAll(".qaItemDeleteBtn").forEach((btn) => {
         btn.onclick = async (e) => {
           e.stopPropagation();
@@ -3628,8 +3662,34 @@ async function bootstrap() {
     const btnCommentNext = document.getElementById("btnCommentNextPage");
     if (btnCommentNext) {
       btnCommentNext.onclick = () => {
-        currentDetailCommentPage++;
-        updateCommentsFlyoutDom();
+        const cList = getStoreComments(facilityId);
+        const totalPages = Math.ceil(cList.length / 5) || 1;
+        if (currentDetailCommentPage < totalPages) {
+          currentDetailCommentPage++;
+          updateCommentsFlyoutDom();
+        }
+      };
+    }
+
+    // QA Pagination Buttons
+    const btnQaPrev = document.getElementById("btnQaPrevPage");
+    if (btnQaPrev) {
+      btnQaPrev.onclick = () => {
+        if (currentDetailQaPage > 1) {
+          currentDetailQaPage--;
+          updateQaFlyoutDom();
+        }
+      };
+    }
+    const btnQaNext = document.getElementById("btnQaNextPage");
+    if (btnQaNext) {
+      btnQaNext.onclick = () => {
+        const qList = getStoreQaList(facilityId);
+        const totalQaPages = Math.ceil(qList.length / 5) || 1;
+        if (currentDetailQaPage < totalQaPages) {
+          currentDetailQaPage++;
+          updateQaFlyoutDom();
+        }
       };
     }
 
@@ -3705,6 +3765,7 @@ async function bootstrap() {
         qaSubmitBtn.disabled = true;
         await addStoreQa(facilityId, { q: qText, author, a: "", date });
         qaSubmitBtn.disabled = false;
+        currentDetailQaPage = 1;
         updateQaFlyoutDom();
       };
     }
