@@ -54,12 +54,13 @@ def load_env_file():
 load_env_file()
 
 
-def send_verification_email(to_email: str, code: str) -> bool:
+def send_verification_email(to_email: str, code: str):
     # 1. Try Resend API (HTTPS)
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
-    if not resend_key:
+    if not resend_key or not resend_key.startswith("re_"):
         resend_key = base64.b64decode("cmVfMjZlckFGU0NfSGVydkpIUFg4YmNKVEV1M2lXZEhGckVH").decode("utf-8")
 
+    last_err = ""
     if resend_key:
         try:
             # Resend free testing tier restricts delivery to the verified owner address (wookoon@gmail.com).
@@ -102,9 +103,14 @@ def send_verification_email(to_email: str, code: str) -> bool:
                 if resp.status == 200:
                     body = json.loads(resp.read().decode("utf-8"))
                     print(f"[Resend Email Sent] Successfully sent code [{code}] to {target_delivery_email} for [{to_email}] (ID: {body.get('id')})")
-                    return True
+                    return True, ""
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8", errors="ignore")
+            print(f"[Resend Email HTTPError] {he.code}: {err_body}")
+            last_err = f"Resend API {he.code}: {err_body}"
         except Exception as e:
             print(f"[Resend Email Error] Failed to send via Resend to {to_email}: {e}")
+            last_err = str(e)
 
     # 2. Try SMTP fallback if configured
     smtp_host = os.environ.get("SMTP_HOST", "").strip()
@@ -861,7 +867,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
             # 1. Send email first via Resend / SMTP
             print(f"[Auth] Verification code [{code}] generated for [{email}]")
-            sent_ok = send_verification_email(email, code)
+            sent_ok, last_err = send_verification_email(email, code)
 
             # 2. Try saving to DB if DB is connected (non-blocking)
             try:
@@ -882,13 +888,14 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                     "ok": True,
                     "message": "이메일로 인증번호가 발송되었습니다.",
                     "sentVia": "resend",
+                    "deliveredTo": "wookoon@gmail.com",
                     "code": code,
                 }
                 self._json(HTTPStatus.OK, resp)
             else:
                 resp = {
                     "ok": False,
-                    "error": "Resend 무료 계정은 등록된 이메일(wookoon@gmail.com)로만 발송 가능합니다.",
+                    "error": last_err or "이메일 발송에 실패했습니다.",
                     "code": code,
                 }
                 self._json(HTTPStatus.BAD_REQUEST, resp)
