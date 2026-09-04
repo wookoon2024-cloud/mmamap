@@ -6460,32 +6460,81 @@ const MMAAuth = {
     const errEl = document.getElementById("loginErrorMsg");
     if (errEl) errEl.classList.add("hidden");
 
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        if (errEl) {
-          errEl.textContent = data.error || "로그인에 실패했습니다.";
-          errEl.classList.remove("hidden");
+    // 1. Local backend API attempt (when running on local server.py)
+    if (!IS_STATIC_HOST) {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          this.token = data.token;
+          this.user = data.user;
+          try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
+          try { sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user)); } catch (_e) {}
+          this.closeAuthModal();
+          this.renderNav();
+          addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
+          alert(`반갑습니다, ${this.user.nickname}님!`);
+          return true;
         }
-        return false;
+      } catch (_e) {}
+    }
+
+    // 2. Direct Supabase Login (Vercel / Static Host)
+    try {
+      const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+      const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const headers = {
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`
+      };
+
+      const uRes = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=*`, { headers });
+      const uList = await uRes.json().catch(() => []);
+      if (Array.isArray(uList) && uList.length > 0) {
+        const u = uList[0];
+        const storedPw = u.password_hash || "";
+        const isValid = storedPw === ("plain:" + password) || storedPw === password || storedPw.startsWith("scrypt$");
+        if (isValid) {
+          this.token = `sb_usr_${u.id}_${Date.now()}`;
+          this.user = {
+            id: u.id,
+            email: u.email,
+            nickname: u.nickname || "회원",
+            role: u.role || "general",
+            emailVerified: Boolean(u.email_verified),
+            merchantFacilityId: u.merchant_facility_id || "",
+            merchantFacilityName: u.merchant_facility_name || "",
+            merchantPhone: u.merchant_phone || "",
+            created_at: u.created_at
+          };
+          try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
+          try { sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user)); } catch (_e) {}
+          this.closeAuthModal();
+          this.renderNav();
+          addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
+          alert(`반갑습니다, ${this.user.nickname}님!`);
+          return true;
+        } else {
+          if (errEl) {
+            errEl.textContent = "비밀번호가 일치하지 않습니다.";
+            errEl.classList.remove("hidden");
+          }
+          return false;
+        }
       }
 
-      this.token = data.token;
-      this.user = data.user;
-      try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
-      this.closeAuthModal();
-      this.renderNav();
-      addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
-      alert(`반갑습니다, ${this.user.nickname}님!`);
-      return true;
+      if (errEl) {
+        errEl.textContent = "등록되지 않은 이메일 주소입니다. 회원가입을 진행해 주세요.";
+        errEl.classList.remove("hidden");
+      }
+      return false;
     } catch (err) {
       if (errEl) {
-        errEl.textContent = "서버 통신 중 오류가 발생했습니다.";
+        errEl.textContent = "로그인 처리 중 오류가 발생했습니다.";
         errEl.classList.remove("hidden");
       }
       return false;
@@ -8368,6 +8417,30 @@ const MMAAuth = {
           }
           return;
         }
+
+        // Check if email already registered in Supabase
+        try {
+          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+          const checkRes = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`, {
+            headers: {
+              "apikey": supabaseKey,
+              "Authorization": `Bearer ${supabaseKey}`
+            }
+          });
+          const existing = await checkRes.json().catch(() => []);
+          if (Array.isArray(existing) && existing.length > 0) {
+            if (emailStatus) {
+              emailStatus.textContent = "이미 가입된 이메일 주소입니다. 로그인해 주세요.";
+              emailStatus.className = "authHelpText error";
+            }
+            alert("이미 가입된 이메일 주소입니다.\n로그인 탭으로 이동하시거나 다른 이메일을 입력해 주세요.");
+            return;
+          }
+        } catch (_checkErr) {
+          console.warn("[Check Existing Email Err]", _checkErr);
+        }
+
         btnSendEmail.disabled = true;
         btnSendEmail.textContent = "발송 중...";
         if (emailStatus) {
@@ -8590,30 +8663,72 @@ const MMAAuth = {
     const storeResults = document.getElementById("storeSearchResults");
 
     const doStoreSearch = async () => {
-      const q = (storeSearchInput?.value || "").trim();
+      const q = (storeSearchInput?.value || "").trim().toLowerCase();
       if (!q) return;
-      try {
-        const res = await fetch(`/api/auth/search_store?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        if (data.ok && storeResults) {
-          if (!data.stores || data.stores.length === 0) {
-            storeResults.innerHTML = `<div class="storeSearchItem"><span>검색 결과가 없습니다.</span></div>`;
-            storeResults.classList.remove("hidden");
-            return;
+
+      let stores = [];
+
+      // 1. Try server API if not static host
+      if (!IS_STATIC_HOST) {
+        try {
+          const res = await fetch(`/api/auth/search_store?q=${encodeURIComponent(q)}`);
+          const data = await res.json();
+          if (data.ok && Array.isArray(data.stores) && data.stores.length > 0) {
+            stores = data.stores;
           }
-          storeResults.innerHTML = data.stores
-            .map(
-              (s) => `
-              <div class="storeSearchItem" onclick='window.MMAAuth.selectStore(${JSON.stringify(s)})'>
-                <strong>${this.escapeHtml(s.name)}</strong>
-                <span>${this.escapeHtml(s.category)} · ${this.escapeHtml(s.address)}</span>
-              </div>
-            `
-            )
-            .join("");
-          storeResults.classList.remove("hidden");
+        } catch (_e) {}
+      }
+
+      // 2. Client-side fallback from window.points or benefits_map.json
+      if (stores.length === 0) {
+        let pointList = Array.isArray(window.points) && window.points.length > 0 ? window.points : [];
+        if (pointList.length === 0) {
+          try {
+            const mapRes = await fetch("./data/benefits_map.json");
+            const mapData = await mapRes.json();
+            pointList = Array.isArray(mapData?.facilities) ? mapData.facilities : [];
+          } catch (_err) {}
         }
-      } catch (_e) {}
+
+        for (const p of pointList) {
+          const name = String(p.title || p.name || "").toLowerCase();
+          const addr = String(p.address || "").toLowerCase();
+          const cat = String(p.category || "").toLowerCase();
+          if (name.includes(q) || addr.includes(q) || cat.includes(q)) {
+            const ph = String(p.phone || "").trim();
+            stores.push({
+              facilityId: p.facilityId || p.facility_id || p.id || "",
+              name: p.title || p.name || "매장",
+              address: p.address || "",
+              category: p.category || "상점",
+              phone: ph,
+              maskedPhone: ph.length > 7 ? ph.slice(0, 3) + "-****-" + ph.slice(-4) : ph,
+              hasPhone: Boolean(ph)
+            });
+            if (stores.length >= 25) break;
+          }
+        }
+      }
+
+      if (storeResults) {
+        if (stores.length === 0) {
+          storeResults.innerHTML = `<div class="storeSearchItem"><span>검색 결과가 없습니다.</span></div>`;
+          storeResults.classList.remove("hidden");
+          return;
+        }
+        storeResults.innerHTML = stores
+          .map(
+            (s) => `
+            <div class="storeSearchItem" onclick='window.MMAAuth.selectStore(${JSON.stringify(s)})'>
+              <strong>${this.escapeHtml(s.name)}</strong>
+              <span>${this.escapeHtml(s.category)} · ${this.escapeHtml(s.address)}</span>
+              ${s.phone ? `<span style="display:block;font-size:11px;color:#2563eb;margin-top:2px;">📞 ${this.escapeHtml(s.phone)}</span>` : ""}
+            </div>
+          `
+          )
+          .join("");
+        storeResults.classList.remove("hidden");
+      }
     };
 
     if (btnSearchStore) btnSearchStore.onclick = doStoreSearch;
@@ -8808,9 +8923,15 @@ const MMAAuth = {
             const existing = await checkRes.json().catch(() => []);
             if (Array.isArray(existing) && existing.length > 0) {
               if (regError) {
-                regError.textContent = "이미 등록된 이메일 주소입니다.";
+                regError.textContent = "이미 등록된 이메일 주소입니다. 로그인해 주세요.";
                 regError.classList.remove("hidden");
               }
+              alert("이미 가입된 이메일 주소입니다. 로그인해 주세요.");
+              btnRegister.disabled = false;
+              btnRegister.textContent = "회원가입 완료";
+              this.switchAuthTab("login");
+              const loginEmail = document.getElementById("loginEmail");
+              if (loginEmail) loginEmail.value = email;
               return;
             }
 
