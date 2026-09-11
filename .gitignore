@@ -17,5 +17,15 @@ venv/
 env/
 .env
 .env.*
-scripts/build_default_template.py
 scratch/
+
+# Contest proposal documents & generated assets
+*.docx
+*.doc
+*제안서*
+*공모*
+scripts/create_proposal_doc.py
+contest_announcement_details.txt
+early_prompts*.txt
+make_doc.py
+
