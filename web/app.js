@@ -3012,6 +3012,10 @@ async function bootstrap() {
         ? `<div class="storeSnsRow">🔗 <a href="${escapeHtml(custom.snsUrl)}" target="_blank" rel="noopener noreferrer" class="storeSnsLink">공식 채널 / SNS 방문하기</a></div>`
         : "";
 
+    // Owner-customized extras are collapsed behind a "더보기" toggle so a decorated
+    // popup stays short and never gets cut off at the top of the map viewport.
+    const hasStoreExtras = !!(photoHtml || greetingHtml || promoHtml || hoursHtml || snsHtml);
+
     // Community buttons row in main popup
     let communityBtnRowHtml = "";
     if (custom.commentsEnabled || custom.qaEnabled) {
@@ -3251,7 +3255,24 @@ async function bootstrap() {
 
     const contentHtml = `
       <div class="detailPanel detailPanelInWindow">
-        ${photoHtml}
+        ${
+          hasStoreExtras
+            ? `
+        <div class="detailExtrasBlock">
+          <div class="detailExtrasContent collapsed" id="detailExtrasContent">
+            ${photoHtml}
+            ${greetingHtml}
+            ${promoHtml}
+            ${hoursHtml}
+            ${snsHtml}
+          </div>
+          <button type="button" class="btnDetailExtrasToggle" id="btnDetailExtrasToggle" aria-label="매장 소개 더보기">
+            <span class="btnDetailExtrasToggleText">매장 소개 더보기</span>
+            <span class="detailExtrasArrow">▼</span>
+          </button>
+        </div>`
+            : ""
+        }
         <div class="detailTop">
           <div class="detailTitleRow">
             <div class="detailTitle">${title}</div>
@@ -3282,10 +3303,6 @@ async function bootstrap() {
           </button>
           ${bookingBtnHtml}
         </div>
-        ${greetingHtml}
-        ${promoHtml}
-        ${hoursHtml}
-        ${snsHtml}
         <div class="detailDivider"></div>
         <table class="detailInfoTable">
           <tbody>
@@ -3421,6 +3438,26 @@ async function bootstrap() {
           btnBenefitToggle.classList.remove("expanded");
           const label = btnBenefitToggle.querySelector(".btnBenefitToggleText");
           if (label) label.textContent = "더보기";
+        }
+      };
+    }
+
+    // Store extras (photo/greeting/promo/hours/sns) More/Collapse Toggle
+    const btnExtrasToggle = document.getElementById("btnDetailExtrasToggle");
+    const extrasContent = document.getElementById("detailExtrasContent");
+    if (btnExtrasToggle && extrasContent) {
+      btnExtrasToggle.onclick = (e) => {
+        e.stopPropagation();
+        const isCollapsed = extrasContent.classList.contains("collapsed");
+        const label = btnExtrasToggle.querySelector(".btnDetailExtrasToggleText");
+        if (isCollapsed) {
+          extrasContent.classList.remove("collapsed");
+          btnExtrasToggle.classList.add("expanded");
+          if (label) label.textContent = "접기";
+        } else {
+          extrasContent.classList.add("collapsed");
+          btnExtrasToggle.classList.remove("expanded");
+          if (label) label.textContent = "매장 소개 더보기";
         }
       };
     }
@@ -8598,6 +8635,11 @@ const MMAAuth = {
         simWidget.classList.remove("hidden");
         simRestore.classList.add("hidden");
       };
+    }
+    // On mobile, start the simulator minimized so it doesn't cover the map
+    if (simWidget && window.innerWidth <= 768) {
+      simWidget.classList.add("collapsed");
+      if (simToggle) simToggle.textContent = "+";
     }
 
     // Top Close buttons
