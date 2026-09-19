@@ -870,6 +870,7 @@ async function bootstrap() {
   let selectedFacilityId = "";
   let selectedDetailAnchor = null;
   let selectedDetailScreenPoint = null;
+  let lastShownDetailKey = null;
   let isMarkerRepositioning = false;
   let lastMarkerClickTime = 0;
   let centerMoveAnimId = null;
@@ -1769,6 +1770,7 @@ async function bootstrap() {
     isCommentsFlyoutOpen = false;
     isQaFlyoutOpen = false;
     currentDetailFacilityId = null;
+    lastShownDetailKey = null;
     if (detailInfoWindow) {
       detailInfoWindow.close();
     }
@@ -1939,7 +1941,9 @@ async function bootstrap() {
     selectedFacilityId = getFacilityKey(point);
     isCommentsFlyoutOpen = false;
     isQaFlyoutOpen = false;
-    hideDetailPanelOnly();
+    // Skip the close → re-open flicker when the same store is already on screen.
+    const sameAlreadyOpen = selectedFacilityId === lastShownDetailKey && detailInfoWindow && detailInfoWindow.getMap();
+    if (!sameAlreadyOpen) hideDetailPanelOnly();
 
     let opened = false;
     const triggerOpen = () => {
@@ -3319,7 +3323,7 @@ async function bootstrap() {
         ${communityBtnRowHtml}
         </div>
         <div class="detailScrollHint" id="detailScrollHint" style="display:none;">
-          <span class="detailScrollHintPill">아래로 더 보기
+          <span class="detailScrollHintPill">아래로 스크롤하면 더 볼 수 있어요
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </span>
         </div>
@@ -3333,6 +3337,7 @@ async function bootstrap() {
         ? anchorLatLng
         : new naver.maps.LatLng(point.lat, point.lng);
     selectedDetailAnchor = targetAnchor;
+    lastShownDetailKey = getFacilityKey(point);
 
     detailInfoWindow.setContent(contentHtml);
     if (!detailInfoWindow.getMap()) {
@@ -5721,8 +5726,9 @@ async function bootstrap() {
       setTimeout(() => {
         focusFacility(targetFid);
       }, 400);
+      // Retry only if the detail card has not opened yet (avoids a close → re-open flicker)
       setTimeout(() => {
-        focusFacility(targetFid);
+        if (!(detailInfoWindow && detailInfoWindow.getMap())) focusFacility(targetFid);
       }, 1000);
     }
   } catch (_e) {}
