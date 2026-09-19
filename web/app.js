@@ -3253,6 +3253,7 @@ async function bootstrap() {
 
     const contentHtml = `
       <div class="detailPanel detailPanelInWindow">
+        <div class="detailPanelScrollArea">
         ${photoHtml}
         <div class="detailTop">
           <div class="detailTitleRow">
@@ -3316,6 +3317,8 @@ async function bootstrap() {
           </tbody>
         </table>
         ${communityBtnRowHtml}
+        <div class="detailScrollHint" id="detailScrollHint" style="display:none;">내용이 더 있어요 · 아래로 스크롤 ∨</div>
+        </div>
         ${commentsFlyoutHtml}
         ${qaFlyoutHtml}
       </div>
@@ -3425,6 +3428,20 @@ async function bootstrap() {
           if (label) label.textContent = "더보기";
         }
       };
+    }
+
+    // Show a scroll hint when the popup content overflows its (mobile) scroll area
+    const scrollArea = document.querySelector(".detailPanelScrollArea");
+    const scrollHint = document.getElementById("detailScrollHint");
+    if (scrollArea && scrollHint) {
+      const updateScrollHint = () => {
+        const canScroll = scrollArea.scrollHeight > scrollArea.clientHeight + 4;
+        const atBottom = scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 6;
+        scrollHint.style.display = canScroll && !atBottom ? "block" : "none";
+      };
+      scrollArea.addEventListener("scroll", updateScrollHint, { passive: true });
+      setTimeout(updateScrollHint, 80);
+      setTimeout(updateScrollHint, 400);
     }
 
     // Multi-Photo Carousel Navigation Event Listeners

@@ -6400,14 +6400,36 @@ button:active {
     gap: 4px !important;
   }
 
-  /* 10. Mobile Detail Card: keep the popup small (below ~42% of the screen) and
-        scroll its content, so a tall decorated popup never runs off the top.
-        PC is left uncapped so the whole content is shown at once. */
+  /* 10. Mobile Detail Card: keep the card's V tail visible (no clipping) and
+        scroll only the inner content area, so a tall decorated popup never runs
+        off the top. PC is left uncapped so the whole content is shown at once. */
   .detailPanel.detailPanelInWindow {
-    max-height: 42vh !important;
-    overflow-y: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .detailPanel.detailPanelInWindow .detailPanelScrollArea {
+    max-height: 42vh;
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .detailPanel.detailPanelInWindow .detailPanelScrollArea::-webkit-scrollbar {
+    display: none;
+  }
+  /* Sticky "scroll for more" hint shown when the popup content overflows */
+  .detailPanel.detailPanelInWindow .detailScrollHint {
+    position: sticky;
+    bottom: 0;
+    margin-top: 10px;
+    padding: 8px 0 2px;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #2563eb;
+    background: linear-gradient(to top, #ffffff 72%, rgba(255, 255, 255, 0));
+    pointer-events: none;
   }
 }
 
