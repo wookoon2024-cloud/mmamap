@@ -2003,7 +2003,7 @@ async function bootstrap() {
         </div>
         <div style="width: ${dims.w}px; height: ${dims.h}px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-radius: 8px; margin: 10px auto; background: #F3F3ED;">
           <iframe id="printIframe" 
-                  src="./print_template.html?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=8" 
+                  src="./print_template.html?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=9" 
                   style="width: ${dims.iframeW}px; height: ${dims.iframeH}px; border: none; transform: scale(${dims.scale}); transform-origin: 0 0; display: block;"
                   title="${tplTitle}">
           </iframe>
@@ -5671,7 +5671,10 @@ async function bootstrap() {
     const scanSrc = urlParams.get("src") || urlParams.get("source") || "poster";
     if (targetFid) {
       if (typeof closeIntroPopup === "function") closeIntroPopup();
-      fetch(`/api/qr_scan?facility_id=${encodeURIComponent(targetFid)}&src=${encodeURIComponent(scanSrc)}`).catch(() => {});
+      // The QR landing page already logged the direct scan; skip a duplicate when we came from it.
+      if (scanSrc !== "qr_mobile") {
+        fetch(`/api/qr_scan?facility_id=${encodeURIComponent(targetFid)}&src=${encodeURIComponent(scanSrc)}`).catch(() => {});
+      }
       setTimeout(() => {
         focusFacility(targetFid);
       }, 400);
