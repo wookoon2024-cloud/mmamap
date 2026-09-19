@@ -3514,6 +3514,7 @@ button:active {
   align-items: baseline;
   gap: 7px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .detailTitle {
@@ -3522,6 +3523,9 @@ button:active {
   line-height: 1.04;
   color: #15294b;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detailCategory {
@@ -3537,6 +3541,10 @@ button:active {
   font-weight: 500;
   color: #6c7f9f;
   white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detailCloseBtn {
