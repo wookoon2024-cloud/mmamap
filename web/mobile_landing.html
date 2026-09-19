@@ -46,55 +46,6 @@
       border: 1px solid #e2e8f0;
     }
     
-    .store-badge {
-      background-color: #eff6ff;
-      color: #2563eb;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 12px;
-      display: inline-block;
-      margin-bottom: 12px;
-    }
-    
-    .store-name {
-      font-size: 24px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 16px 0;
-    }
-    
-    .info-row {
-      display: flex;
-      flex-direction: column;
-      border-top: 1px solid #f1f5f9;
-      padding: 12px 0;
-    }
-    
-    .info-row:first-of-type {
-      border-top: none;
-      padding-top: 0;
-    }
-    
-    .info-label {
-      font-size: 13px;
-      color: #64748b;
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-    
-    .info-value {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-      line-height: 1.5;
-    }
-    
-    .benefit-highlight {
-      color: #ef4444;
-      font-size: 15px;
-    }
-    
     .section-title {
       font-size: 16px;
       font-weight: 700;
@@ -292,29 +243,14 @@
   <div class="container">
     <!-- ===================== ENTRY GATE ===================== -->
     <div id="gateView">
-      <div class="card" id="store-card" style="display:none;">
-        <span class="store-badge">나라사랑 협력업체</span>
-        <h2 class="store-name" id="name-placeholder">로딩 중...</h2>
-        
-        <div class="info-row">
-          <span class="info-label">제공 우대 혜택</span>
-          <span class="info-value benefit-highlight" id="benefit-placeholder">-</span>
-        </div>
-        
-        <div class="info-row">
-          <span class="info-label">할인 대상자 (우대 대상)</span>
-          <span class="info-value" id="audience-placeholder">-</span>
-        </div>
-        
-        <div class="info-row" id="address-row">
-          <span class="info-label">매장 주소</span>
-          <span class="info-value" style="font-weight: 500;" id="address-placeholder">-</span>
-        </div>
-        
-        <div class="info-row" id="phone-row" style="display:none;">
-          <span class="info-label">전화번호 (연락처)</span>
-          <span class="info-value"><a href="" id="phone-placeholder" style="color: #2563eb; text-decoration: none; font-weight: 700;">-</a></span>
-        </div>
+      <div class="card">
+        <h3 class="section-title">나라사랑가게란?</h3>
+        <p class="desc-text">
+          병역을 성실히 이행한 사람(예비군, 현역 장병, 사회복무요원, 병역명문가 등)을 격려하고 실질적인 경제적 혜택을 제공하여 자긍심을 고취시키기 위해, 병무청과 민간 가맹업체가 상생하여 추진하는 공식 우대 프로그램입니다.
+        </p>
+        <p class="desc-text" style="margin-top: 10px;">
+          병역이행을 증명할 수 있는 분은 아래에서 확인방법을 확인하시고, 매장 위치와 주변 우대가맹점은 군필지도에서 보실 수 있습니다.
+        </p>
       </div>
 
       <div class="gate-grid">
@@ -326,15 +262,8 @@
         <button type="button" class="gate-box" id="mapBox">
           <span class="gate-icon">📍</span>
           <span class="gate-title">군필지도<br>들어가기</span>
-          <span class="gate-sub">이 매장 · 주변 우대가맹점</span>
+          <span class="gate-sub">매장 · 주변 우대가맹점</span>
         </button>
-      </div>
-
-      <div class="card">
-        <h3 class="section-title">나라사랑가게란?</h3>
-        <p class="desc-text">
-          병역을 성실히 이행한 사람(예비군, 현역 장병, 사회복무요원, 병역명문가 등)을 격려하고 실질적인 경제적 혜택을 제공하여 자긍심을 고취시키기 위해, 병무청과 민간 가맹업체가 상생하여 추진하는 공식 우대 프로그램입니다.
-        </p>
       </div>
     </div>
 
@@ -347,16 +276,6 @@
         <p class="desc-text">
           매장에서 우대 혜택을 받으실 때, 아래 방법으로 병역이행을 증명하시면 됩니다.
         </p>
-        <div id="store-proof-box" style="display:none;">
-          <div class="info-row">
-            <span class="info-label">이 매장 우대대상</span>
-            <span class="info-value" id="store-audience">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">필요 증빙자료</span>
-            <span class="info-value" id="store-proof">-</span>
-          </div>
-        </div>
       </div>
 
       <div class="card">
@@ -394,34 +313,6 @@
   </div>
 
   <script>
-    function formatKoreanAddress(addr) {
-      if (!addr) return "-";
-      let res = addr.trim();
-      
-      const provinces = [
-        "경기도", "서울특별시", "인천광역시", "강원특별자치도", "강원도",
-        "충청북도", "충청남도", "경상북도", "경상남도", "전라북도", "전라남도",
-        "제주특별자치도", "제주도", "대전광역시", "광주광역시", "대구광역시", "울산광역시", "세종특별자치시"
-      ];
-      for (const p of provinces) {
-        if (res.startsWith(p) && !res.startsWith(p + " ")) {
-          res = p + " " + res.substring(p.length);
-          break;
-        }
-      }
-      
-      res = res.replace(/^(경기도|서울특별시|인천광역시|강원도|강원특별자치도|충청북도|충청남도|경상북도|경상남도|전라북도|전라남도|제주특별자치도|제주도|대전광역시|광주광역시|대구광역시|울산광역시|세종특별자치시)\s*([가-힣]+[시군구])/, "$1 $2");
-      res = res.replace(/([시군구])\s*([가-힣\d]+[로길읍면])/, "$1 $2");
-      res = res.replace(/([로길읍면])\s*(\d+)/, "$1 $2");
-      res = res.replace(/(\d+)(\d층)/, "$1 $2");
-      res = res.replace(/(\S)\s*(\([가-힣\d]+동\))/g, "$1 $2");
-      res = res.replace(/(\S)\s*(\([가-힣\d]+리\))/g, "$1 $2");
-      res = res.replace(/(\S)\s*(\([가-힣\d]+읍\))/g, "$1 $2");
-      
-      res = res.replace(/\s+/g, " ");
-      return res;
-    }
-
     function getDistance(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -446,23 +337,6 @@
       { target: "병무청 직원 및 직계가족", method: "공무원증" },
       { target: "나라사랑카드 소지자", method: "나라사랑카드" }
     ];
-
-    // benefit 문자열에서 '세부 우대대상' / '세부 증빙자료' 추출
-    function parseBenefitFields(raw) {
-      const text = String(raw || "").replace(/<br\s*\/?>/gi, "\n").replace(/&nbsp;/gi, " ");
-      const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
-      let audience = "";
-      let proof = "";
-      lines.forEach(line => {
-        const norm = line.replace(/\s+/g, " ");
-        if (/세부\s*우대\s*대상/.test(norm) || /^우대\s*대상/.test(norm)) {
-          audience = norm.replace(/^세부\s*우대\s*대상\s*[:：]?\s*/, "").replace(/^우대\s*대상\s*[:：]?\s*/, "").trim();
-        } else if (/세부\s*증빙\s*자료/.test(norm) || /^증빙\s*자료/.test(norm)) {
-          proof = norm.replace(/^세부\s*증빙\s*자료\s*[:：]?\s*/, "").replace(/^증빙\s*자료\s*[:：]?\s*/, "").trim();
-        }
-      });
-      return { audience, proof };
-    }
 
     function renderTargetProof() {
       document.getElementById("target-proof-list").innerHTML = TARGET_PROOF.map(t => `
@@ -521,60 +395,23 @@
         window.location.href = `/?fid=${encodeURIComponent(facilityId)}&src=qr_mobile`;
       };
 
-      // 4) 매장 정보 로드
+      // 4) 주변 매장(간접 노출 대상) 계산 - 최근접 15개
       try {
         const res = await fetch("/data/benefits_map.json");
         const data = await res.json();
         const facilities = data.facilities || [];
         const target = facilities.find(f => f.facility_id === facilityId || f.id === facilityId);
-        
-        if (target) {
-          document.getElementById("name-placeholder").innerText = target.name;
 
-          const parsed = parseBenefitFields(target.benefit);
-          const cleanBenefit = String(target.benefit || "")
-            .replace(/<br\s*\/?>/gi, " ")
-            .replace(/<[^>]+>/g, " ")
-            .split(/(?:세부\s*우대\s*대상|세부\s*증빙\s*자료|우대\s*대상)/)[0]
-            .trim();
-          document.getElementById("benefit-placeholder").innerText = cleanBenefit || "병역의무 이행자 맞춤 우대 할인";
-
-          const cleanAudience = (target.audiences && target.audiences.length > 0)
-            ? target.audiences.join(" / ")
-            : (parsed.audience || "나라사랑카드 소지자 / 병역이행 증빙자");
-          document.getElementById("audience-placeholder").innerText = cleanAudience;
-          document.getElementById("store-audience").innerText = cleanAudience;
-          
-          document.getElementById("address-placeholder").innerText = formatKoreanAddress(target.address);
-          
-          if (target.phone) {
-            const phoneEl = document.getElementById("phone-placeholder");
-            phoneEl.innerText = target.phone;
-            phoneEl.href = `tel:${target.phone}`;
-            document.getElementById("phone-row").style.display = "block";
-          } else {
-            document.getElementById("phone-row").style.display = "none";
-          }
-
-          if (parsed.proof) {
-            document.getElementById("store-proof").innerText = parsed.proof;
-            document.getElementById("store-proof-box").style.display = "block";
-          }
-          
-          document.getElementById("store-card").style.display = "block";
-          
-          // 주변 매장(간접 노출 대상) 계산 - 최근접 15개
-          if (target.lat && target.lng) {
-            nearbyIds = facilities
-              .filter(f => (f.facility_id !== facilityId && f.id !== facilityId) && f.lat && f.lng && f.source_type === "nara_sarang_store")
-              .map(f => ({
-                id: f.facility_id || f.id,
-                distance: getDistance(target.lat, target.lng, f.lat, f.lng)
-              }))
-              .sort((a, b) => a.distance - b.distance)
-              .slice(0, 15)
-              .map(n => n.id);
-          }
+        if (target && target.lat && target.lng) {
+          nearbyIds = facilities
+            .filter(f => (f.facility_id !== facilityId && f.id !== facilityId) && f.lat && f.lng && f.source_type === "nara_sarang_store")
+            .map(f => ({
+              id: f.facility_id || f.id,
+              distance: getDistance(target.lat, target.lng, f.lat, f.lng)
+            }))
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, 15)
+            .map(n => n.id);
         }
       } catch (err) {
         console.error("Error loading facility data:", err);

@@ -754,7 +754,7 @@
         // works even if the /api/qr_scan redirect endpoint is unreachable.
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         const qrBase = isLocal ? window.location.origin : "https://mmamap-seven.vercel.app";
-        const qrTarget = `${qrBase}/mobile_landing.html?facility_id=${encodeURIComponent(facilityId)}&src=${encodeURIComponent(tplType)}&v=4`;
+        const qrTarget = `${qrBase}/mobile_landing.html?facility_id=${encodeURIComponent(facilityId)}&src=${encodeURIComponent(tplType)}&v=5`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTarget)}`;
         document.querySelectorAll(".qr-target-img").forEach(img => img.src = qrApiUrl);
 
