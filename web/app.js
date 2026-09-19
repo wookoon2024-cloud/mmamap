@@ -131,6 +131,26 @@ function normalizeTextBlock(value) {
   return escapeHtml(String(value || "").replace(/\s+/g, " ").trim());
 }
 
+// "1. 가 2. 나 3. 다"처럼 한 줄에 붙어 있는 번호 항목을 줄 단위로 분리한다.
+// 날짜/금액 오탐을 막기 위해 번호가 1,2,3… 연속 증가할 때만 분리한다.
+function splitInlineNumberedItems(line) {
+  const re = /(^|\s)(\d{1,2})[.)]\s+/g;
+  const items = [];
+  let m;
+  while ((m = re.exec(line)) !== null) {
+    items.push({ num: parseInt(m[2], 10), start: m.index + m[1].length });
+  }
+  if (items.length < 2 || !items.every((it, i) => it.num === i + 1)) return [line];
+  const parts = [];
+  const head = line.slice(0, items[0].start).trim();
+  if (head) parts.push(head);
+  items.forEach((it, i) => {
+    const end = i + 1 < items.length ? items[i + 1].start : line.length;
+    parts.push(line.slice(it.start, end).trim());
+  });
+  return parts.filter(Boolean);
+}
+
 function formatBenefitText(value) {
   const raw = String(value || "");
   if (!raw.trim()) return "혜택 정보 없음";
@@ -139,7 +159,8 @@ function formatBenefitText(value) {
   const lines = withoutTags
     .split("\n")
     .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .flatMap(splitInlineNumberedItems);
   if (!lines.length) return "혜택 정보 없음";
   return lines.map((line) => escapeHtml(line)).join("<br>");
 }

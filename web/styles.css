@@ -4062,6 +4062,11 @@ button:active {
 .benefitText {
   display: block;
   color: #1d4ed8;
+  /* Break lines at word boundaries (Korean default breaks mid-word and looks awkward) */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  line-height: 1.4;
 }
 
 .detailAudienceList {
