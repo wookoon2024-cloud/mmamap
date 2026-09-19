@@ -2873,6 +2873,8 @@ async function bootstrap() {
     const benefit = formatBenefitText(rawBenefit || "혜택 정보 없음");
     const rawBenefitPlain = rawBenefit.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     const isLongBenefit = rawBenefitPlain.length > 55 || rawBenefit.includes("\n") || (rawBenefit.match(/<br\s*\/?>/gi) || []).length >= 2;
+    // Collapse a long benefit behind a "더보기" toggle only on mobile; PC shows it in full.
+    const collapseBenefit = isLongBenefit && window.innerWidth <= 768;
     const category = escapeHtml(rawCategory);
     const title = escapeHtml(point.title || "시설");
     const rawSubtitle = String(point.subtitle || "").trim();
@@ -3297,7 +3299,7 @@ async function bootstrap() {
               <td class="detailLabelCell" style="${isLongBenefit ? "vertical-align: top; padding-top: 3px;" : ""}">혜택 :</td>
               <td class="detailValueCell benefitText">
                 ${
-                  isLongBenefit
+                  collapseBenefit
                     ? `
                   <div class="benefitContentWrapper collapsed" id="benefitContentWrapper">
                     ${benefit}

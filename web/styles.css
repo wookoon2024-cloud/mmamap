@@ -6404,7 +6404,7 @@ button:active {
         instead of letting a tall (decorated) popup run off the top. On PC the
         popup is uncapped so the whole content is shown at once. */
   .detailPanel.detailPanelInWindow {
-    max-height: calc(100vh - 300px) !important;
+    max-height: calc(100vh - 380px) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
