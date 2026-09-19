@@ -3317,7 +3317,11 @@ async function bootstrap() {
           </tbody>
         </table>
         ${communityBtnRowHtml}
-        <div class="detailScrollHint" id="detailScrollHint" style="display:none;">내용이 더 있어요 · 아래로 스크롤 ∨</div>
+        </div>
+        <div class="detailScrollHint" id="detailScrollHint" style="display:none;">
+          <span class="detailScrollHintPill">아래로 더 보기
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </span>
         </div>
         ${commentsFlyoutHtml}
         ${qaFlyoutHtml}
@@ -3430,18 +3434,38 @@ async function bootstrap() {
       };
     }
 
-    // Show a scroll hint when the popup content overflows its (mobile) scroll area
+    // Popup scroll: bottom hint + mobile auto-fit so the card's top is never clipped
     const scrollArea = document.querySelector(".detailPanelScrollArea");
     const scrollHint = document.getElementById("detailScrollHint");
+    const updateScrollHint = () => {
+      if (!scrollArea || !scrollHint) return;
+      const canScroll = scrollArea.scrollHeight > scrollArea.clientHeight + 4;
+      const atBottom = scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 6;
+      scrollHint.style.display = canScroll && !atBottom ? "flex" : "none";
+    };
     if (scrollArea && scrollHint) {
-      const updateScrollHint = () => {
-        const canScroll = scrollArea.scrollHeight > scrollArea.clientHeight + 4;
-        const atBottom = scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 6;
-        scrollHint.style.display = canScroll && !atBottom ? "block" : "none";
-      };
       scrollArea.addEventListener("scroll", updateScrollHint, { passive: true });
-      setTimeout(updateScrollHint, 80);
-      setTimeout(updateScrollHint, 400);
+      if (window.innerWidth <= 768) {
+        // If the rendered card still starts above the safe area, shrink the scroll
+        // area by exactly the overflow so the top is never cut off.
+        const fitCard = () => {
+          const card = document.querySelector(".detailPanelInWindow");
+          if (!card) return;
+          const topSafety = 64;
+          const rect = card.getBoundingClientRect();
+          if (rect.top < topSafety) {
+            const overflow = Math.ceil(topSafety - rect.top);
+            const current = scrollArea.getBoundingClientRect().height;
+            scrollArea.style.maxHeight = Math.max(150, Math.floor(current - overflow)) + "px";
+          }
+          updateScrollHint();
+        };
+        setTimeout(fitCard, 90);
+        setTimeout(fitCard, 420);
+      } else {
+        setTimeout(updateScrollHint, 90);
+        setTimeout(updateScrollHint, 420);
+      }
     }
 
     // Multi-Photo Carousel Navigation Event Listeners
