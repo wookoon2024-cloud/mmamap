@@ -171,23 +171,29 @@
       bottom: 48px;
       left: 50%;
       transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
       background-color: #1e3a8a;
       color: #ffffff;
       font-size: 16px;
       font-weight: 700;
-      padding: 6px 18px;
+      line-height: 1;
+      padding: 0 18px;
       border-radius: 20px;
       white-space: nowrap;
       box-shadow: 0 4px 12px rgba(30, 58, 138, 0.4);
       z-index: 9999;
     }
+    /* Tail overlaps the bubble by 3px so no seam/line shows between them */
     .marker-main-label::after {
       content: '';
       position: absolute;
-      bottom: -7px;
+      bottom: -6px;
       left: 50%;
       transform: translateX(-50%);
-      border-width: 7px 7px 0;
+      border-width: 9px 8px 0;
       border-style: solid;
       border-color: #1e3a8a transparent transparent;
       display: block;
@@ -219,22 +225,22 @@
     .label-top { bottom: 38px; left: 50%; transform: translateX(-50%); }
     .label-top::after {
       content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
-      border-width: 6px 6px 0; border-style: solid; border-color: #ffffff transparent transparent;
+      border-width: 9px 6px 0; border-style: solid; border-color: #ffffff transparent transparent;
     }
     .label-right { left: 38px; top: 50%; transform: translateY(-50%); }
     .label-right::after {
       content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%);
-      border-width: 6px 6px 6px 0; border-style: solid; border-color: transparent #ffffff transparent transparent;
+      border-width: 6px 9px 6px 0; border-style: solid; border-color: transparent #ffffff transparent transparent;
     }
     .label-left { right: 38px; top: 50%; transform: translateY(-50%); }
     .label-left::after {
       content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
-      border-width: 6px 0 6px 6px; border-style: solid; border-color: transparent transparent transparent #ffffff;
+      border-width: 6px 0 6px 9px; border-style: solid; border-color: transparent transparent transparent #ffffff;
     }
     .label-bottom { top: 38px; left: 50%; transform: translateX(-50%); }
     .label-bottom::after {
       content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
-      border-width: 0 6px 6px; border-style: solid; border-color: transparent transparent #ffffff;
+      border-width: 0 6px 9px; border-style: solid; border-color: transparent transparent #ffffff;
     }
 
     /* Table Section */
@@ -280,17 +286,18 @@
     .neighbors-table th:nth-child(3), .neighbors-table td:nth-child(3) { width: 28%; }
 
     .num-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-block;
       width: 26px;
       height: 26px;
+      line-height: 26px;
+      text-align: center;
       border-radius: 50%;
       background: #64748b;
       color: #ffffff;
       font-weight: 700;
       font-size: 13px;
       margin-right: 8px;
+      vertical-align: middle;
     }
 
     /* Poster Footer */
@@ -613,6 +620,7 @@
       <span class="hanger-hole-label">문고리 거치선 (지름 8cm)</span>
     </div>
 
+    <img src="./img/mma_logo.png" alt="대한민국 병무청" style="height: 40px; object-fit: contain; margin-bottom: 10px;" onerror="this.style.display='none';">
     <div class="hanger-header-tag">대한민국 병무청 | 나라사랑가게</div>
     <div class="hanger-welcome">환영합니다</div>
     <h2 class="hanger-store-name p-name">가맹점 이름</h2>
@@ -647,6 +655,20 @@
 
     function formatDistance(dist) {
       return dist >= 1000 ? (dist / 1000).toFixed(1) + "km" : Math.round(dist) + "m";
+    }
+
+    // Truncate text at a whole-character boundary and append ".." so no glyph is cut in half.
+    function truncateToWidth(text, maxWidth, fontSpec) {
+      if (!text) return "";
+      const canvas = truncateToWidth._canvas || (truncateToWidth._canvas = document.createElement("canvas"));
+      const ctx = canvas.getContext("2d");
+      ctx.font = fontSpec;
+      if (ctx.measureText(text).width <= maxWidth) return text;
+      let cut = text;
+      while (cut.length > 0 && ctx.measureText(cut + "..").width > maxWidth) {
+        cut = cut.slice(0, -1);
+      }
+      return cut + "..";
     }
 
     function formatAudienceSummary(raw) {
@@ -744,14 +766,23 @@
           return;
         }
 
-        // 3. Find 5 nearest neighbors for map & poster table
+        // 3. Find 5 nearest neighbors for map & poster table (skip stores with a duplicate name)
         const sLat = store.lat || 37.5665;
         const sLng = store.lng || 126.9780;
-        const neighbors = facilities
+        const sortedNeighbors = facilities
           .filter(f => (f.facility_id !== facilityId && f.id !== facilityId) && f.lat && f.lng)
           .map(f => ({ ...f, dist: getDistance(sLat, sLng, f.lat, f.lng) }))
-          .sort((a, b) => a.dist - b.dist)
-          .slice(0, 5);
+          .sort((a, b) => a.dist - b.dist);
+
+        const neighbors = [];
+        const seenNeighborNames = new Set();
+        for (const n of sortedNeighbors) {
+          const nameKey = (n.name || "").trim();
+          if (nameKey && seenNeighborNames.has(nameKey)) continue;
+          if (nameKey) seenNeighborNames.add(nameKey);
+          neighbors.push(n);
+          if (neighbors.length === 5) break;
+        }
 
         // Record mutual exposure analytics for nearby stores
         if (neighbors.length > 0) {
@@ -770,6 +801,13 @@
         const tbody = document.getElementById("neighborsTableBody");
         if (tbody) {
           tbody.innerHTML = "";
+          const tableEl = tbody.closest("table");
+          const tableW = tableEl ? tableEl.clientWidth : 900;
+          const cellPad = 28; // td horizontal padding (14px + 14px)
+          const nameMax = tableW * 0.28 - cellPad - 34; // 34px reserved for the number badge
+          const benefitMax = tableW * 0.44 - cellPad;
+          const audienceMax = tableW * 0.28 - cellPad;
+
           neighbors.forEach((n, idx) => {
             let nRaw = (n.benefit || "").replace(/<br\s*\/?>/gi, " ").replace(/&nbsp;/gi, " ").trim();
             let nBenefit = nRaw;
@@ -782,11 +820,15 @@
               nAudience = formatAudienceSummary(nRaw);
             }
 
+            const displayName = truncateToWidth(n.name || "", nameMax, "700 15px 'Noto Sans KR', sans-serif");
+            const displayBenefit = truncateToWidth(nBenefit, benefitMax, "400 15px 'Noto Sans KR', sans-serif");
+            const displayAudience = truncateToWidth(nAudience, audienceMax, "400 15px 'Noto Sans KR', sans-serif");
+
             const tr = document.createElement("tr");
             tr.innerHTML = `
-              <td><span class="num-pill">${idx + 1}</span><strong>${n.name}</strong></td>
-              <td>${nBenefit}</td>
-              <td>${nAudience}</td>
+              <td><span class="num-pill">${idx + 1}</span><strong>${displayName}</strong></td>
+              <td>${displayBenefit}</td>
+              <td>${displayAudience}</td>
             `;
             tbody.appendChild(tr);
           });
