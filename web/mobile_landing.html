@@ -321,12 +321,11 @@
       const urlParams = new URLSearchParams(window.location.search);
       const facilityId = urlParams.get("facility_id") || "nara_3218";
       
-      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-      const apiBase = isLocal ? "" : "http://77.90.230.91:8080";
-      
-      // 1. Log QR code scan to the server in background
+      const srcParam = urlParams.get("src") || urlParams.get("source") || "poster";
+
+      // 1. Log QR code scan to the server in background (same origin, best-effort)
       try {
-        fetch(`${apiBase}/api/qr_scan?facility_id=${encodeURIComponent(facilityId)}`);
+        fetch(`/api/qr_scan?facility_id=${encodeURIComponent(facilityId)}&src=${encodeURIComponent(srcParam)}`);
       } catch (err) {
         console.error("Failed to log scan:", err);
       }

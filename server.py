@@ -18,7 +18,7 @@ from email.mime.text import MIMEText
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 import urllib.request
 
 try:
@@ -1509,18 +1509,25 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         if not facility_id:
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
             return
-        conn = self._db()
+        # Logging must never block the visitor: if the DB is unreachable we still redirect.
         try:
-            conn.execute(
-                "INSERT INTO qr_scan_events (facility_id, source, created_at, is_indirect, parent_facility_id) VALUES (?, ?, ?, 0, '')",
-                (facility_id, source, now_ms())
-            )
-            conn.commit()
-        finally:
-            conn.close()
+            conn = self._db()
+            try:
+                conn.execute(
+                    "INSERT INTO qr_scan_events (facility_id, source, created_at, is_indirect, parent_facility_id) VALUES (?, ?, ?, 0, '')",
+                    (facility_id, source, now_ms())
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"[Server] qr_scan log failed (redirecting anyway): {e}")
         # Redirect to mobile landing page
         self.send_response(HTTPStatus.FOUND)
-        self.send_header("Location", f"/mobile_landing.html?facility_id={facility_id}&src={source}")
+        self.send_header(
+            "Location",
+            f"/mobile_landing.html?facility_id={quote(str(facility_id))}&src={quote(str(source))}"
+        )
         self.end_headers()
 
     def _handle_analytics_visit(self):

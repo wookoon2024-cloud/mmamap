@@ -750,10 +750,11 @@
         document.querySelectorAll(".p-benefit").forEach(el => el.textContent = benefitText || "병역의무 이행자 맞춤 우대 할인");
         document.querySelectorAll(".p-audience").forEach(el => el.textContent = audienceText || "우대 대상 : 모범예비군, 병역명문가, 현역병 등");
 
-        // QR code URL
+        // QR code URL - link straight to the static landing page so scanning always
+        // works even if the /api/qr_scan redirect endpoint is unreachable.
         const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         const qrBase = isLocal ? window.location.origin : "https://mmamap-seven.vercel.app";
-        const qrTarget = `${qrBase}/api/qr_scan?facility_id=${encodeURIComponent(facilityId)}&source=${tplType}`;
+        const qrTarget = `${qrBase}/mobile_landing.html?facility_id=${encodeURIComponent(facilityId)}&src=${encodeURIComponent(tplType)}&v=2`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrTarget)}`;
         document.querySelectorAll(".qr-target-img").forEach(img => img.src = qrApiUrl);
 
