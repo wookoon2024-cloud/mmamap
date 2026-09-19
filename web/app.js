@@ -2877,8 +2877,6 @@ async function bootstrap() {
     const benefit = formatBenefitText(rawBenefit || "혜택 정보 없음");
     const rawBenefitPlain = rawBenefit.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     const isLongBenefit = rawBenefitPlain.length > 55 || rawBenefit.includes("\n") || (rawBenefit.match(/<br\s*\/?>/gi) || []).length >= 2;
-    // Collapse a long benefit behind a "더보기" toggle only on mobile; PC shows it in full.
-    const collapseBenefit = isLongBenefit && window.innerWidth <= 768;
     const category = escapeHtml(rawCategory);
     const title = escapeHtml(point.title || "시설");
     const rawSubtitle = String(point.subtitle || "").trim();
@@ -3303,19 +3301,7 @@ async function bootstrap() {
             <tr>
               <td class="detailLabelCell" style="${isLongBenefit ? "vertical-align: top; padding-top: 3px;" : ""}">혜택 :</td>
               <td class="detailValueCell benefitText">
-                ${
-                  collapseBenefit
-                    ? `
-                  <div class="benefitContentWrapper collapsed" id="benefitContentWrapper">
-                    ${benefit}
-                  </div>
-                  <button type="button" class="btnBenefitToggle" id="btnBenefitToggle" aria-label="혜택 상세 더보기">
-                    <span class="btnBenefitToggleText">더보기</span>
-                    <span class="benefitToggleArrow">▼</span>
-                  </button>
-                `
-                    : benefit
-                }
+                ${benefit}
               </td>
             </tr>
           </tbody>
@@ -3415,27 +3401,6 @@ async function bootstrap() {
       btnCloseQa.onclick = () => {
         isQaFlyoutOpen = false;
         openDetailInfo(point, targetAnchor);
-      };
-    }
-
-    // Benefit More/Collapse Toggle
-    const btnBenefitToggle = document.getElementById("btnBenefitToggle");
-    const benefitWrapper = document.getElementById("benefitContentWrapper");
-    if (btnBenefitToggle && benefitWrapper) {
-      btnBenefitToggle.onclick = (e) => {
-        e.stopPropagation();
-        const isCollapsed = benefitWrapper.classList.contains("collapsed");
-        if (isCollapsed) {
-          benefitWrapper.classList.remove("collapsed");
-          btnBenefitToggle.classList.add("expanded");
-          const label = btnBenefitToggle.querySelector(".btnBenefitToggleText");
-          if (label) label.textContent = "접기";
-        } else {
-          benefitWrapper.classList.add("collapsed");
-          btnBenefitToggle.classList.remove("expanded");
-          const label = btnBenefitToggle.querySelector(".btnBenefitToggleText");
-          if (label) label.textContent = "더보기";
-        }
       };
     }
 
