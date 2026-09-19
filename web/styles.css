@@ -6400,11 +6400,11 @@ button:active {
     gap: 4px !important;
   }
 
-  /* 10. Mobile Detail Card: keep a screen-fitting size and scroll the content
-        instead of letting a tall (decorated) popup run off the top. On PC the
-        popup is uncapped so the whole content is shown at once. */
+  /* 10. Mobile Detail Card: keep the popup small (below ~42% of the screen) and
+        scroll its content, so a tall decorated popup never runs off the top.
+        PC is left uncapped so the whole content is shown at once. */
   .detailPanel.detailPanelInWindow {
-    max-height: calc(100vh - 380px) !important;
+    max-height: 42vh !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
