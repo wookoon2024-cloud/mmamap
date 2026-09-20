@@ -2025,6 +2025,18 @@ async function bootstrap() {
       hanger2: { w: 210, h: 590, scale: 0.42, iframeW: 500, iframeH: 1405 }
     }[tplName] || { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 };
 
+    const printSize = {
+      poster: { trim: [210, 297], work: [214, 301] },
+      table_stand: { trim: [100, 150], work: [104, 154] },
+      door_hanger: { trim: [90, 200], work: [94, 204] },
+      design: { trim: [210, 297], work: [214, 301] },
+      design2: { trim: [210, 297], work: [214, 301] },
+      hanger2: { trim: [105, 295], work: [110, 300] }
+    }[tplName] || { trim: [210, 297], work: [214, 301] };
+    const sizeLabel = `재단 ${printSize.trim[0]}×${printSize.trim[1]}mm · 작업 ${printSize.work[0]}×${printSize.work[1]}mm`;
+    const sizeBar = document.getElementById("printSizeBar");
+    if (sizeBar) sizeBar.textContent = sizeLabel;
+
     container.innerHTML = `
       <div class="print-sheet-wrap" style="width: 100%; height: 100%; min-height: 640px; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #e2e8f0; border-radius: 8px; position: relative;">
         <div id="printLoadingWrap" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 10; background: rgba(243,243,237,0.95); transition: opacity 0.25s ease;">
