@@ -2033,19 +2033,13 @@ async function bootstrap() {
         </div>
         <div style="width: ${dims.w}px; height: ${dims.h}px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-radius: 8px; margin: 10px auto; background: #F3F3ED;">
           <iframe id="printIframe" 
-                  src="./${tplFile}?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=16" 
+                  src="./${tplFile}?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=17" 
                   style="width: ${dims.iframeW}px; height: ${dims.iframeH}px; border: none; transform: scale(${dims.scale}); transform-origin: 0 0; display: block;"
                   title="${tplTitle}">
           </iframe>
         </div>
       </div>
     `;
-
-    // Warm the shared server-side map render (the A2 poster uses it) so switching
-    // to that tab shows the map instantly instead of waiting on a cold capture.
-    if (tplName !== "design2") {
-      fetch(`/api/map_image?facility_id=${encodeURIComponent(facilityId)}&w=896&h=522`).catch(() => {});
-    }
 
     const iframe = document.getElementById("printIframe");
     const loadingWrap = document.getElementById("printLoadingWrap");

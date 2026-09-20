@@ -107,24 +107,92 @@
       background: #e8f1f8;
       z-index: 2;
     }
-    .map-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .map-note {
+    /* 지도 마커/말풍선: 상생지도 포스터와 같은 마크업·크기를 쓴다 */
+    .marker-main {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      background-image: url('./img/blue_pin.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      z-index: 9999;
+    }
+    .marker-main-label {
       position: absolute;
-      inset: 0;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 30px;
-      text-align: center;
-      font-size: 22px;
-      font-weight: 800;
-      color: #64748b;
-      background: #e8f1f8;
-      line-height: 1.4;
-      opacity: 0;
-      transition: opacity 200ms ease;
+      min-height: 36px;
+      background-color: #1e3a8a;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 0 18px;
+      border-radius: 20px;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.4);
+      z-index: 9999;
     }
-    .map-note.visible { opacity: 1; }
+    /* 꼬리를 3px 겹쳐 말풍선과 이어지게 한다 (선이 보이지 않게) */
+    .marker-main-label::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 9px 8px 0;
+      border-style: solid;
+      border-color: #1e3a8a transparent transparent;
+      display: block;
+    }
+    .marker-neighbor {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      background-image: url('./img/gold_pin.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      z-index: 100;
+    }
+    .marker-neighbor-label {
+      position: absolute;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 7px 13px;
+      border-radius: 10px;
+      border: 2px solid #d2c9bd;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      z-index: 100;
+    }
+    .label-top { bottom: 38px; left: 50%; transform: translateX(-50%); }
+    .label-top::after {
+      content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+      border-width: 9px 6px 0; border-style: solid; border-color: #ffffff transparent transparent;
+    }
+    .label-right { left: 38px; top: 50%; transform: translateY(-50%); }
+    .label-right::after {
+      content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%);
+      border-width: 6px 9px 6px 0; border-style: solid; border-color: transparent #ffffff transparent transparent;
+    }
+    .label-left { right: 38px; top: 50%; transform: translateY(-50%); }
+    .label-left::after {
+      content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+      border-width: 6px 0 6px 9px; border-style: solid; border-color: transparent transparent transparent #ffffff;
+    }
+    .label-bottom { top: 38px; left: 50%; transform: translateX(-50%); }
+    .label-bottom::after {
+      content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+      border-width: 0 6px 9px; border-style: solid; border-color: transparent transparent #ffffff;
+    }
 
     /* 우대대상 값: 아트워크의 흰 박스를 그대로 덮어 그린다.
        내용이 길면 setAudienceWidth() 가 지도 오른쪽 끝까지 늘려 준다. */
@@ -175,8 +243,7 @@
     </div>
 
     <div class="map-wrap">
-      <img class="map-img" id="mapImg" alt="매장 위치 지도">
-      <div class="map-note" id="mapNote">지도 불러오는 중…</div>
+      <div id="mapPoster" style="width:100%; height:100%;"></div>
     </div>
 
     <div class="aud"><span class="value" id="audienceText">우대사항</span></div>
@@ -420,27 +487,361 @@
       }
     }
 
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function formatDistance(dist) {
+      return dist >= 1000 ? (dist / 1000).toFixed(1) + "km" : Math.round(dist) + "m";
+    }
+
+    function loadNaverMapSDK() {
+      return new Promise((resolve, reject) => {
+        const keyId = window.APP_CONFIG?.naverMap?.keyId || "5im3q2kbhw";
+        if (window.naver && window.naver.maps) return resolve();
+        const script = document.createElement("script");
+        script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(keyId)}`;
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Naver Map Script load failed"));
+        document.head.appendChild(script);
+      });
+    }
+
+    function signalMapReady() {
+      if (window.__MAP_READY) return;
+      window.__MAP_READY = true;
+      if (window.parent && window.parent.postMessage) window.parent.postMessage({ type: "MMA_MAP_READY" }, "*");
+    }
+
+    function getBubbleDims(group) {
+      const w = group.length > 1 ? 240 : 190;
+      const h = 40 + (group.length - 1) * 26;
+      return { w: w + 20, h: h + 20 };
+    }
+
+    function getBubbleBox(m, dir, dims) {
+      const w = dims.w;
+      const h = dims.h;
+      let x1, y1, x2, y2;
+      if (dir === "top") {
+        x1 = m.avgX - w / 2;
+        y1 = m.avgY - 40 - h;
+        x2 = m.avgX + w / 2;
+        y2 = m.avgY - 40;
+      } else if (dir === "bottom") {
+        x1 = m.avgX - w / 2;
+        y1 = m.avgY + 40;
+        x2 = m.avgX + w / 2;
+        y2 = m.avgY + 40 + h;
+      } else if (dir === "left") {
+        x1 = m.avgX - 40 - w;
+        y1 = m.avgY - h / 2;
+        x2 = m.avgX - 40;
+        y2 = m.avgY + h / 2;
+      } else if (dir === "right") {
+        x1 = m.avgX + 40;
+        y1 = m.avgY - h / 2;
+        x2 = m.avgX + 40 + w;
+        y2 = m.avgY + h / 2;
+      }
+      return { x1, y1, x2, y2 };
+    }
+
+    function getPinBox(m) {
+      return { x1: m.avgX - 25, y1: m.avgY - 25, x2: m.avgX + 25, y2: m.avgY + 25 };
+    }
+
+    function intersect(b1, b2) {
+      return !(b1.x2 < b2.x1 || b1.x1 > b2.x2 || b1.y2 < b2.y1 || b1.y1 > b2.y2);
+    }
+
+    // 상생지도 포스터와 같은 네이버 지도를 직접 그린다 (서버 없이 로컬/배포 모두 동작).
+    async function initMap(store, facilities, facilityId) {
+      const sLat = store.lat || 37.5665;
+      const sLng = store.lng || 126.9780;
+
+      // 주변 5곳: 이름이 같은 매장은 하나만 남긴다 (포스터와 같은 규칙)
+      const sortedNeighbors = facilities
+        .filter((f) => f.facility_id !== facilityId && f.id !== facilityId && f.lat && f.lng)
+        .map((f) => ({ ...f, dist: getDistance(sLat, sLng, f.lat, f.lng) }))
+        .sort((a, b) => a.dist - b.dist);
+
+      const neighbors = [];
+      const seenNeighborNames = new Set();
+      for (const n of sortedNeighbors) {
+        const nameKey = (n.name || "").trim();
+        if (nameKey && seenNeighborNames.has(nameKey)) continue;
+        if (nameKey) seenNeighborNames.add(nameKey);
+        neighbors.push(n);
+        if (neighbors.length === 5) break;
+      }
+
+      await loadNaverMapSDK();
+
+      const map = new naver.maps.Map("mapPoster", {
+        center: new naver.maps.LatLng(sLat, sLng),
+        zoom: 16,
+        minZoom: 10,
+        maxZoom: 19,
+        disableKineticPan: true,
+        scrollWheel: false,
+        draggable: false,
+        pinchZoom: false,
+        mapDataControl: false,
+        zoomControl: false,
+        scaleControl: true
+      });
+
+      if (neighbors.length > 0) {
+        let maxDLat = 0.003;
+        let maxDLng = 0.004;
+        neighbors.forEach((n) => {
+          const dLat = Math.abs(n.lat - sLat);
+          const dLng = Math.abs(n.lng - sLng);
+          if (dLat > maxDLat) maxDLat = dLat;
+          if (dLng > maxDLng) maxDLng = dLng;
+        });
+        maxDLat = Math.max(maxDLat * 1.6, 0.0045);
+        maxDLng = Math.max(maxDLng * 1.6, 0.0060);
+        const swCoord = new naver.maps.LatLng(sLat - maxDLat, sLng - maxDLng);
+        const neCoord = new naver.maps.LatLng(sLat + maxDLat, sLng + maxDLng);
+        map.fitBounds(new naver.maps.LatLngBounds(swCoord, neCoord), { top: 90, right: 100, bottom: 80, left: 100 });
+      }
+
+      new naver.maps.Marker({
+        position: new naver.maps.LatLng(sLat, sLng),
+        map: map,
+        icon: {
+          content: `
+            <div class="marker-main">
+              <div class="marker-main-label">${store.name || "본 매장"}</div>
+            </div>
+          `,
+          anchor: new naver.maps.Point(22, 44)
+        },
+        zIndex: 9999
+      });
+
+      let dynamicMarkers = [];
+
+      function renderDynamicMarkers() {
+        dynamicMarkers.forEach((m) => m.setMap(null));
+        dynamicMarkers = [];
+
+        const projection = map.getProjection();
+        if (!projection) return;
+
+        const mainPixel = projection.fromCoordToOffset(new naver.maps.LatLng(sLat, sLng));
+        const mainPinBox = { x1: mainPixel.x - 30, y1: mainPixel.y - 30, x2: mainPixel.x + 30, y2: mainPixel.y + 30 };
+        const mainLabelBox = { x1: mainPixel.x - 110, y1: mainPixel.y - 85, x2: mainPixel.x + 110, y2: mainPixel.y - 45 };
+
+        const neighborPixels = neighbors.map((n) => {
+          const coord = new naver.maps.LatLng(n.lat, n.lng);
+          const pixel = projection.fromCoordToOffset(coord);
+          return { ...n, coord: coord, x: pixel.x, y: pixel.y };
+        });
+
+        // 화면상 65px 안에 있는 마커는 한 말풍선으로 묶는다
+        const pixelGroupThreshold = 65;
+        const groupedNeighbors = [];
+        neighborPixels.forEach((n) => {
+          let foundGroup = null;
+          for (const group of groupedNeighbors) {
+            const dx = group[0].x - n.x;
+            const dy = group[0].y - n.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < pixelGroupThreshold) {
+              foundGroup = group;
+              break;
+            }
+          }
+          if (foundGroup) {
+            foundGroup.push(n);
+          } else {
+            groupedNeighbors.push([n]);
+          }
+        });
+
+        groupedNeighbors.forEach((group) => {
+          group.avgDistance = group.reduce((sum, g) => sum + g.dist, 0) / group.length;
+          group.avgX = group.reduce((sum, g) => sum + g.x, 0) / group.length;
+          group.avgY = group.reduce((sum, g) => sum + g.y, 0) / group.length;
+          group.avgLat = group.reduce((sum, g) => sum + g.lat, 0) / group.length;
+          group.avgLng = group.reduce((sum, g) => sum + g.lng, 0) / group.length;
+        });
+
+        const groupCandidates = groupedNeighbors.map((group, idx) => {
+          const dims = getBubbleDims(group);
+          const dx = group.avgX - mainPixel.x;
+          const dy = group.avgY - mainPixel.y;
+          const angleDeg = Math.atan2(-dy, dx) * 180 / Math.PI;
+
+          let preferredDir = "top";
+          let disallowedDir = "bottom";
+          if (angleDeg >= -45 && angleDeg <= 45) {
+            preferredDir = "right";
+            disallowedDir = "left";
+          } else if (angleDeg > 45 && angleDeg < 135) {
+            preferredDir = "top";
+            disallowedDir = "bottom";
+          } else if (angleDeg >= 135 || angleDeg <= -135) {
+            preferredDir = "left";
+            disallowedDir = "right";
+          } else {
+            preferredDir = "bottom";
+            disallowedDir = "top";
+          }
+
+          const allDirs = ["top", "bottom", "left", "right"];
+          const allowed = [preferredDir];
+          allDirs.forEach((d) => {
+            if (d !== preferredDir && d !== disallowedDir) allowed.push(d);
+          });
+          allowed.push(disallowedDir);
+
+          return {
+            group: group,
+            dims: dims,
+            avgX: group.avgX,
+            avgY: group.avgY,
+            avgLat: group.avgLat,
+            avgLng: group.avgLng,
+            allowed: allowed,
+            disallowed: disallowedDir,
+            index: idx
+          };
+        });
+
+        let bestAssignment = null;
+        let minPenalty = Infinity;
+
+        function evaluate(dirs) {
+          let penalty = 0;
+          const boxes = [];
+          const mapContainerEl = document.getElementById("mapPoster");
+          const mapWidth = mapContainerEl?.offsetWidth || 900;
+          const mapHeight = mapContainerEl?.offsetHeight || 500;
+          const borderPadding = 20;
+
+          for (let i = 0; i < groupCandidates.length; i++) {
+            const cand = groupCandidates[i];
+            const dir = dirs[i];
+            const box = getBubbleBox(cand, dir, cand.dims);
+            boxes.push(box);
+
+            if (box.x1 < borderPadding || box.x2 > mapWidth - borderPadding ||
+                box.y1 < borderPadding || box.y2 > mapHeight - borderPadding) {
+              penalty += 100000;
+            }
+            if (intersect(box, mainPinBox) || intersect(box, mainLabelBox)) {
+              penalty += 50000;
+            }
+            for (let j = 0; j < groupCandidates.length; j++) {
+              if (i === j) continue;
+              if (intersect(box, getPinBox(groupCandidates[j]))) {
+                penalty += 20000;
+              }
+            }
+            const prefIdx = cand.allowed.indexOf(dir);
+            penalty += prefIdx * 100;
+            if (dir === cand.disallowed) penalty += 500;
+          }
+
+          for (let i = 0; i < boxes.length; i++) {
+            for (let j = i + 1; j < boxes.length; j++) {
+              if (intersect(boxes[i], boxes[j])) {
+                penalty += 100000;
+              }
+            }
+          }
+          return penalty;
+        }
+
+        function solve(index, currentDirs) {
+          if (index === groupCandidates.length) {
+            const p = evaluate(currentDirs);
+            if (p < minPenalty) {
+              minPenalty = p;
+              bestAssignment = [...currentDirs];
+            }
+            return;
+          }
+          const cand = groupCandidates[index];
+          for (const dir of cand.allowed) {
+            currentDirs.push(dir);
+            solve(index + 1, currentDirs);
+            currentDirs.pop();
+          }
+        }
+
+        solve(0, []);
+
+        groupCandidates.forEach((cand, idx) => {
+          const chosenDir = (bestAssignment && bestAssignment[idx]) || cand.allowed[0];
+          const group = cand.group;
+
+          let bubbleContent = "";
+          if (group.length === 1) {
+            const n = group[0];
+            let nName = n.name || "이웃 가게";
+            if (nName.length > 13) nName = nName.slice(0, 12) + "..";
+            bubbleContent = `<strong>${nName}</strong> <span style="color: #2563eb; font-size: 13px;">(${formatDistance(n.dist)})</span>`;
+          } else {
+            bubbleContent = group.map((n, i) => {
+              let nName = n.name || "이웃 가게";
+              if (nName.length > 11) nName = nName.slice(0, 10) + "..";
+              return `
+                <div style="font-size: 13px; line-height: 1.35; white-space: nowrap; ${i > 0 ? 'border-top: 1px solid #e2e8f0; margin-top: 4px; padding-top: 4px;' : ''}">
+                  <strong>${nName}</strong> <span style="color: #2563eb; font-size: 12px;">(${formatDistance(n.dist)})</span>
+                </div>
+              `;
+            }).join("");
+          }
+
+          const marker = new naver.maps.Marker({
+            position: new naver.maps.LatLng(cand.avgLat, cand.avgLng),
+            map: map,
+            icon: {
+              content: `
+                <div class="marker-neighbor">
+                  <div class="marker-neighbor-label label-${chosenDir}" style="padding: ${group.length > 1 ? '6px 12px' : '7px 13px'}; text-align: left;">
+                    ${bubbleContent}
+                  </div>
+                </div>
+              `,
+              anchor: new naver.maps.Point(17, 34)
+            },
+            zIndex: 100 + idx
+          });
+          dynamicMarkers.push(marker);
+        });
+      }
+
+      renderDynamicMarkers();
+      naver.maps.Event.addListener(map, "idle", renderDynamicMarkers);
+
+      // 다운로드가 빈 지도를 찍지 않도록 첫 idle(타일 로딩 완료) 뒤에 준비 완료를 알린다.
+      let readySent = false;
+      const onIdle = () => {
+        if (readySent) return;
+        readySent = true;
+        setTimeout(signalMapReady, 150);
+      };
+      naver.maps.Event.addListener(map, "idle", onIdle);
+      setTimeout(signalMapReady, 4000); // 지도 로딩이 실패해도 다운로드는 막지 않는다
+    }
+
     async function init() {
       const params = new URLSearchParams(location.search);
       const facilityId = params.get("facility_id") || "nara_3218";
-
-      // map: same naver map image as the "상생지도 결합" poster
-      const mapImg = document.getElementById("mapImg");
-      const mapNote = document.getElementById("mapNote");
-      // the server renders the map on the first view of a store, so only show the
-      // note when it actually takes a while (fast loads never flash it)
-      const noteTimer = setTimeout(() => mapNote.classList.add("visible"), 500);
-      mapImg.addEventListener("load", () => {
-        clearTimeout(noteTimer);
-        mapNote.classList.remove("visible");
-        mapNote.style.display = "none";
-      });
-      mapImg.addEventListener("error", () => {
-        clearTimeout(noteTimer);
-        mapNote.textContent = "지도를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.";
-        mapNote.classList.add("visible");
-      });
-      mapImg.src = `/api/map_image?facility_id=${encodeURIComponent(facilityId)}&w=896&h=522`;
+      let mapStarted = false;
 
       try {
         const res = await fetch("./data/benefits_map.json");
@@ -457,6 +858,11 @@
           renderChecks(benefitLines(store.benefit));
         }
 
+        if (store) {
+          await initMap(store, facilities, facilityId);
+          mapStarted = true;
+        }
+
         const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
         const qrBase = isLocal ? location.origin : "https://mmamap-seven.vercel.app";
         const qrTarget = `${qrBase}/mobile_landing.html?facility_id=${encodeURIComponent(facilityId)}&src=design2`;
@@ -466,8 +872,8 @@
         console.error("A2 template init error:", err);
       }
 
-      window.__MAP_READY = true;
-      if (window.parent && window.parent.postMessage) window.parent.postMessage({ type: "MMA_MAP_READY" }, "*");
+      // 지도 생성이 끝나면 initMap 이 idle 뒤에 알린다. 실패했을 때만 여기서 바로 알린다.
+      if (!mapStarted) signalMapReady();
     }
 
     // Download = sample artwork size (A4 @ 600dpi) + trim bleed
