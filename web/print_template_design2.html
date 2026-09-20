@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나라사랑가게 홍보물 - A2 디자인</title>
+  <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;800;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #eaf4fb; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+
+    /* The provided A2 artwork is the base; only name / QR / benefits / map /
+       audience are overlaid on top. */
+    .sheet { position: relative; width: 1000px; height: 1414px; overflow: hidden; background: #cceaf7; }
+    .base { position: absolute; inset: 0; width: 1000px; height: 1414px; display: block; z-index: 0; }
+
+    /* store name (covers the sample pill) */
+    .name-pill {
+      position: absolute;
+      left: 499px;
+      top: 540px;
+      transform: translateX(-50%);
+      height: 84px;
+      min-width: 457px;
+      max-width: 760px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 22px 6px;
+      border-radius: 999px;
+      background: #003669;
+      color: #ffffff;
+      font-size: 39px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      z-index: 3;
+    }
+    .name-pill .dot { width: 13px; height: 13px; border-radius: 50%; background: #ffffff; flex: 0 0 auto; }
+    .name-pill .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* top-right QR (inside the empty white box, padded like the sky design) */
+    .qr { position: absolute; left: 873px; top: 54px; width: 92px; height: 92px; display: block; z-index: 2; }
+
+    /* benefit board (covers the sample checklist text only, not the artwork's box line) */
+    .cover {
+      position: absolute;
+      left: 84px;
+      top: 626px;
+      width: 831px;
+      height: 113px;
+      border-radius: 0 0 24px 24px;
+      background: #cceaf7;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 2px;
+      overflow: hidden;
+      z-index: 2;
+    }
+    /* 혜택이 한 줄뿐이면 배경 박스 안에서 위아래 중앙보다 조금 위에 놓는다
+       (아트워크에 인쇄된 샘플 체크리스트의 세로 중심과 맞춤) */
+    .cover.centered { justify-content: center; padding-bottom: 24px; }
+    .checks {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 26px;
+      row-gap: 8px;
+      width: 100%;
+      --fs: 24px;
+    }
+    .check { display: flex; align-items: flex-start; gap: 10px; }
+    /* 마지막 항목에 부가 설명이 있으면 2칸을 모두 쓰고 설명은 같은 줄에 이어 붙인다 */
+    .check.wide { grid-column: 1 / -1; }
+    .check svg { flex: 0 0 auto; width: 26px; height: 26px; margin-top: 3px; }
+    .check .txt {
+      font-size: var(--fs);
+      font-weight: 900;
+      color: #133a72;
+      line-height: 1.25;
+      letter-spacing: -1px;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      text-wrap: pretty;
+    }
+    .check .sub {
+      font-size: calc(var(--fs) * 0.66);
+      font-weight: 700;
+      color: #2c6bab;
+      letter-spacing: -0.5px;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    /* map (the big empty box in the artwork) */
+    .map-wrap {
+      position: absolute;
+      left: 78px;
+      top: 768px;
+      width: 843px;
+      height: 478px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #e8f1f8;
+      z-index: 2;
+    }
+    .map-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .map-note {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 30px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #64748b;
+      background: #e8f1f8;
+      line-height: 1.4;
+      opacity: 0;
+      transition: opacity 200ms ease;
+    }
+    .map-note.visible { opacity: 1; }
+
+    /* 우대대상 값: 아트워크의 흰 박스를 그대로 덮어 그린다.
+       내용이 길면 setAudienceWidth() 가 지도 오른쪽 끝까지 늘려 준다. */
+    .aud {
+      position: absolute;
+      left: 186px;
+      top: 1272px;
+      width: 345px;
+      height: 39px;
+      box-sizing: border-box;
+      background: #ffffff;
+      border: 2px solid #003669;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      z-index: 2;
+    }
+    .aud .value {
+      font-size: 22px;
+      font-weight: 800;
+      color: #003669;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: keep-all;
+    }
+
+    @media print { html, body { background: #ffffff; } }
+  </style>
+</head>
+<body>
+  <div class="sheet" id="sheet">
+    <img class="base" src="./img/design_a2_base.png" alt="나라사랑가게 홍보물 배경">
+
+    <img class="qr" id="qrImg" alt="QR">
+
+    <div class="name-pill">
+      <span class="dot"></span>
+      <span class="name" id="storeName">가맹점 이름</span>
+      <span class="dot"></span>
+    </div>
+
+    <div class="cover">
+      <div class="checks" id="checkList"></div>
+    </div>
+
+    <div class="map-wrap">
+      <img class="map-img" id="mapImg" alt="매장 위치 지도">
+      <div class="map-note" id="mapNote">지도 불러오는 중…</div>
+    </div>
+
+    <div class="aud"><span class="value" id="audienceText">우대사항</span></div>
+  </div>
+
+  <script>
+    const CHECK_SVG = '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#133a72"></circle><path d="M9 16.5 L13.6 21 L23 11.5" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+
+    function splitInlineNumberedItems(line) {
+      const re = /(^|\s)(\d{1,2})[.)]\s+/g;
+      const items = [];
+      let m;
+      while ((m = re.exec(line)) !== null) items.push({ num: parseInt(m[2], 10), start: m.index + m[1].length });
+      if (items.length < 2 || !items.every((it, i) => it.num === i + 1)) return [line];
+      const parts = [];
+      const head = line.slice(0, items[0].start).trim();
+      if (head) parts.push(head);
+      items.forEach((it, i) => {
+        const end = i + 1 < items.length ? items[i + 1].start : line.length;
+        parts.push(line.slice(it.start, end).trim());
+      });
+      return parts.filter(Boolean);
+    }
+
+    function splitSlashItems(line) {
+      const parts = line.split(/\s*\/\s*/);
+      if (parts.length < 2) return [line];
+      const out = [];
+      let buf = "";
+      for (const p of parts) {
+        if (!buf) { buf = p; continue; }
+        if ([...buf].length < 4) { buf = `${buf}/${p}`; continue; }
+        out.push(buf);
+        buf = p;
+      }
+      if (buf) out.push(buf);
+      if (out.length > 1 && [...out[out.length - 1]].length < 4) {
+        out[out.length - 2] = `${out[out.length - 2]}/${out.pop()}`;
+      }
+      return out;
+    }
+
+    // 줄 앞에 남는 머리기호(❍, ※, ☞ …)와 공백을 반복해서 제거한다.
+    function stripMarks(line) {
+      let out = String(line);
+      let prev = "";
+      while (out !== prev) {
+        prev = out;
+        out = out
+          .replace(/^[\s\u00a0\u3000]+/, "")
+          .replace(/^[-*·•○◦◯❍□■▢▣▶▷▸►▪▫ㅇ❖◇◆☞☛※＊×✓✔√⦁‣⁃–—]+\s*/, "")
+          .replace(/^[oO]\s+/, "")
+          .trim();
+      }
+      return out;
+    }
+
+    function benefitLines(raw) {
+      return String(raw || "")
+        .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+        .replace(/<[^>]+>/g, " ")
+        .split("\n")
+        .map((l) => l.replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+        .flatMap(splitInlineNumberedItems)
+        .flatMap(splitSlashItems)
+        .map(stripMarks)
+        .filter(Boolean);
+    }
+
+    function parseAudience(raw) {
+      let audience = "";
+      String(raw || "").replace(/<\s*br\s*\/?\s*>/gi, "\n").split("\n").forEach((line) => {
+        const n = line.replace(/\s+/g, " ").trim();
+        if (/세부\s*우대\s*대상/.test(n) || /^우대\s*대상/.test(n)) {
+          audience = n.replace(/^세부\s*우대\s*대상\s*[:：]?\s*/, "").replace(/^우대\s*대상\s*[:：]?\s*/, "").trim();
+        }
+      });
+      return audience;
+    }
+
+    function esc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderChecks(lines) {
+      const bullets = lines.slice(0, 4);
+      let extra = lines[4] || "";
+      const last = bullets[bullets.length - 1];
+      if (!extra && last) {
+        const m = last.match(/\(([^()]{8,})\)\s*$/);
+        if (m) {
+          bullets[bullets.length - 1] = last.slice(0, m.index).trim().replace(/[,·]\s*$/, "");
+          extra = m[0].trim();
+        }
+      }
+      document.getElementById("checkList").innerHTML = bullets.map((b, i) => {
+        const isLast = i === bullets.length - 1;
+        const wide = isLast && !!extra;
+        return `
+        <div class="check${wide ? " wide" : ""}">
+          ${CHECK_SVG}
+          <div class="txt"><span class="main">${esc(b)}</span>${wide ? ` <span class="sub">${esc(extra)}</span>` : ""}</div>
+        </div>`;
+      }).join("");
+      widenLoneRows();
+      fitChecksToBox();
+
+      // 혜택이 한 줄뿐이면 배경 박스 위아래 중앙에 놓는다
+      const list = document.getElementById("checkList");
+      const oneLine = list.querySelectorAll(".check").length === 1
+        && list.getBoundingClientRect().height <= LINE_H + 1;
+      document.querySelector(".cover").classList.toggle("centered", oneLine);
+    }
+
+    // The artwork's benefit box is a fixed size, so the dynamic checklist is
+    // shortened until it fits the box (each grid row gets one line by default,
+    // the last item may use the spare rows). Nothing may cross the box outline.
+    const LINE_H = 31;
+    const ROW_GAP = 8;
+    const BOX_H = 111;
+
+    function shortenTo(str, len) {
+      const s = String(str);
+      if (len >= s.length) return s;
+      const cut = s.slice(0, Math.max(0, len)).trimEnd().replace(/[\s,·/\-–()]+$/, "");
+      return cut ? `${cut}..` : "..";
+    }
+
+    function fitTo(el, ok) {
+      if (ok()) return;
+      const full = el.textContent;
+      let lo = 0;
+      let hi = full.length;
+      let best = null;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        el.textContent = shortenTo(full, mid);
+        if (ok()) { best = el.textContent; lo = mid + 1; } else { hi = mid - 1; }
+      }
+      el.textContent = best === null ? shortenTo(full, 0) : best;
+    }
+
+    function fitCheckItem(item, lineBudget) {
+      const txt = item.querySelector(".txt");
+      const main = item.querySelector(".txt > .main");
+      if (!txt || !main) return;
+      const limit = lineBudget * LINE_H + 1;
+      const ok = () => txt.getBoundingClientRect().height <= limit;
+      if (ok()) return;
+
+      const sub = item.querySelector(".txt > .sub");
+      if (sub) {
+        sub.style.display = "none";
+        const mainFitsAlone = ok();
+        sub.style.display = "";
+        if (mainFitsAlone) {
+          fitTo(sub, ok);
+          if (sub.textContent === "..") sub.remove();
+          if (ok()) return;
+          // the parenthetical cannot shrink enough: drop it and give the room to the main text
+          if (sub.isConnected) sub.remove();
+        } else {
+          sub.remove();
+        }
+      }
+      fitTo(main, ok);
+    }
+
+    // 우대대상 값이 아트워크 박스보다 길면 박스를 지도 오른쪽 끝까지 늘리고,
+    // 그래도 안 들어가면 글자를 조금씩 줄여서 ".." 로 잘리지 않게 한다.
+    function setAudienceWidth() {
+      const box = document.querySelector(".aud");
+      const value = document.getElementById("audienceText");
+      if (!box || !value) return;
+      const LEFT = 186, MAP_RIGHT = 921, BASE_W = 345;
+      const chrome = box.offsetWidth - value.clientWidth; // 좌우 패딩 + 테두리
+      value.style.fontSize = "";
+      for (let size = 21; size >= 14 && value.scrollWidth + chrome > MAP_RIGHT - LEFT; size -= 1) {
+        value.style.fontSize = `${size}px`;
+      }
+      box.style.width = `${Math.min(Math.max(BASE_W, value.scrollWidth + chrome), MAP_RIGHT - LEFT)}px`;
+    }
+
+    // 같은 줄에 옆 항목이 없어 오른쪽 칸이 비는 경우엔 2칸을 모두 쓰게 한다.
+    // (전에 이 칸이 비어 있는데도 1칸 폭으로 글자를 잘라내고 있었다)
+    function widenLoneRows() {
+      const list = document.getElementById("checkList");
+      const items = [...list.querySelectorAll(".check")];
+      if (items.length < 2) {
+        items.forEach((el) => el.classList.add("wide"));
+        return;
+      }
+      const cr = list.getBoundingClientRect();
+      const rects = items.map((el) => el.getBoundingClientRect());
+      items.forEach((el, i) => {
+        if (el.classList.contains("wide")) return;
+        const r = rects[i];
+        const alone = !rects.some((o, j) => j !== i && Math.abs(o.top - r.top) < 4);
+        if (alone && cr.right - r.right > 60) el.classList.add("wide");
+      });
+    }
+
+    function fitChecksToBox() {
+      const list = document.getElementById("checkList");
+      if (!list) return;
+      const items = [...list.querySelectorAll(".check")];
+      if (!items.length) return;
+
+      // how many grid rows the current items occupy (a "wide" item takes a full row)
+      let rows = 0;
+      let col = 0;
+      items.forEach((item) => {
+        if (item.classList.contains("wide")) {
+          if (col) rows += 1;
+          rows += 1;
+          col = 0;
+        } else {
+          col += 1;
+          if (col === 2) { rows += 1; col = 0; }
+        }
+      });
+      if (col) rows += 1;
+
+      const maxRows = Math.floor((BOX_H + ROW_GAP) / (LINE_H + ROW_GAP));
+      const spare = Math.max(0, maxRows - rows);
+      items.forEach((item, i) => fitCheckItem(item, 1 + (i === items.length - 1 ? spare : 0)));
+
+      // safety net: drop trailing items, then shrink the font
+      const fits = () => list.getBoundingClientRect().height <= BOX_H;
+      while (!fits() && list.querySelectorAll(".check").length > 1) {
+        const left = list.querySelectorAll(".check");
+        left[left.length - 1].remove();
+      }
+      let size = 24;
+      while (!fits() && size > 14) {
+        size -= 1;
+        list.style.setProperty("--fs", `${size}px`);
+      }
+    }
+
+    async function init() {
+      const params = new URLSearchParams(location.search);
+      const facilityId = params.get("facility_id") || "nara_3218";
+
+      // map: same naver map image as the "상생지도 결합" poster
+      const mapImg = document.getElementById("mapImg");
+      const mapNote = document.getElementById("mapNote");
+      // the server renders the map on the first view of a store, so only show the
+      // note when it actually takes a while (fast loads never flash it)
+      const noteTimer = setTimeout(() => mapNote.classList.add("visible"), 500);
+      mapImg.addEventListener("load", () => {
+        clearTimeout(noteTimer);
+        mapNote.classList.remove("visible");
+        mapNote.style.display = "none";
+      });
+      mapImg.addEventListener("error", () => {
+        clearTimeout(noteTimer);
+        mapNote.textContent = "지도를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.";
+        mapNote.classList.add("visible");
+      });
+      mapImg.src = `/api/map_image?facility_id=${encodeURIComponent(facilityId)}&w=896&h=522`;
+
+      try {
+        const res = await fetch("./data/benefits_map.json");
+        const data = await res.json();
+        const facilities = data.facilities || [];
+        const store = facilities.find((f) => f.facility_id === facilityId || f.id === facilityId) || facilities[0];
+
+        if (store) {
+          document.getElementById("storeName").textContent = store.name || "가맹점";
+          // 혜택대상을 먼저 넣어야 한다: renderChecks 의 박스 맞춤이 혜택대상 높이를 빼고 계산한다
+          const aud = parseAudience(store.benefit) || (Array.isArray(store.audiences) ? store.audiences.join(", ") : "");
+          document.getElementById("audienceText").textContent = aud || "병역명문가";
+          setAudienceWidth();
+          renderChecks(benefitLines(store.benefit));
+        }
+
+        const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        const qrBase = isLocal ? location.origin : "https://mmamap-seven.vercel.app";
+        const qrTarget = `${qrBase}/mobile_landing.html?facility_id=${encodeURIComponent(facilityId)}&src=design2`;
+        document.getElementById("qrImg").src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(qrTarget)}`;
+      } catch (err) {
+        console.error("A2 template init error:", err);
+      }
+
+      window.__MAP_READY = true;
+      if (window.parent && window.parent.postMessage) window.parent.postMessage({ type: "MMA_MAP_READY" }, "*");
+    }
+
+    // Download = sample artwork size (A4 @ 600dpi) + trim bleed
+    const POSTER_W = 4962;
+    const POSTER_H = 7017;
+    const DPI = 600;
+    const BLEED_MM = 2; // per side -> +4mm on width and height
+
+    window.downloadPosterImage = async function (filename = "나라사랑가게_홍보물.png") {
+      const sheet = document.getElementById("sheet");
+      if (!sheet) return;
+      try {
+        const scale = POSTER_W / sheet.offsetWidth;
+        const rendered = await html2canvas(sheet, {
+          scale,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#cceaf7",
+          logging: false
+        });
+
+        const bleed = Math.round((BLEED_MM * DPI) / 25.4);
+        const w = rendered.width;
+        const h = rendered.height;
+
+        const out = document.createElement("canvas");
+        out.width = POSTER_W + bleed * 2;
+        out.height = POSTER_H + bleed * 2;
+        const ctx = out.getContext("2d");
+
+        ctx.drawImage(rendered, 0, 0, w, h, bleed, bleed, POSTER_W, POSTER_H);
+        ctx.drawImage(rendered, 0, 0, 1, h, 0, bleed, bleed, POSTER_H);
+        ctx.drawImage(rendered, w - 1, 0, 1, h, bleed + POSTER_W, bleed, bleed, POSTER_H);
+        ctx.drawImage(rendered, 0, 0, w, 1, bleed, 0, POSTER_W, bleed);
+        ctx.drawImage(rendered, 0, h - 1, w, 1, bleed, bleed + POSTER_H, POSTER_W, bleed);
+        ctx.drawImage(rendered, 0, 0, 1, 1, 0, 0, bleed, bleed);
+        ctx.drawImage(rendered, w - 1, 0, 1, 1, bleed + POSTER_W, 0, bleed, bleed);
+        ctx.drawImage(rendered, 0, h - 1, 1, 1, 0, bleed + POSTER_H, bleed, bleed);
+        ctx.drawImage(rendered, w - 1, h - 1, 1, 1, bleed + POSTER_W, bleed + POSTER_H, bleed, bleed);
+
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = out.toDataURL("image/png");
+        link.click();
+      } catch (e) {
+        console.error("poster capture failed:", e);
+        window.print();
+      }
+    };
+
+    window.printPoster = function () { window.print(); };
+
+    window.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>

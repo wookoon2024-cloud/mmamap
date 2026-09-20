@@ -2012,12 +2012,17 @@ async function bootstrap() {
     if (!container || !point) return;
 
     const facilityId = point.facilityId || point.id || "";
-    const tplTitle = tplName === "poster" ? "포스터" : (tplName === "table_stand" ? "미니 스탠드" : "도어행거");
+    const tplTitle = tplName === "poster" ? "포스터" : tplName === "table_stand" ? "미니 스탠드" : tplName === "design" ? "포스터 (스카이)" : tplName === "design2" ? "포스터 (A2)" : tplName === "hanger2" ? "도어행거 (A2)" : "도어행거";
+    // Extra local-only designs live in their own files so existing templates stay untouched.
+    const tplFile = tplName === "design" ? "print_template_design.html" : tplName === "design2" ? "print_template_design2.html" : tplName === "hanger2" ? "print_template_hanger_a2.html" : "print_template.html";
 
     const dims = {
       poster: { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 },
       table_stand: { w: 400, h: 600, scale: 0.50, iframeW: 800, iframeH: 1200 },
-      door_hanger: { w: 300, h: 550, scale: 0.50, iframeW: 600, iframeH: 1100 }
+      door_hanger: { w: 300, h: 550, scale: 0.50, iframeW: 600, iframeH: 1100 },
+      design: { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 },
+      design2: { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 },
+      hanger2: { w: 210, h: 590, scale: 0.42, iframeW: 500, iframeH: 1405 }
     }[tplName] || { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 };
 
     container.innerHTML = `
@@ -2028,13 +2033,19 @@ async function bootstrap() {
         </div>
         <div style="width: ${dims.w}px; height: ${dims.h}px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18); border-radius: 8px; margin: 10px auto; background: #F3F3ED;">
           <iframe id="printIframe" 
-                  src="./print_template.html?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=10" 
+                  src="./${tplFile}?facility_id=${encodeURIComponent(facilityId)}&tpl=${tplName}&v=16" 
                   style="width: ${dims.iframeW}px; height: ${dims.iframeH}px; border: none; transform: scale(${dims.scale}); transform-origin: 0 0; display: block;"
                   title="${tplTitle}">
           </iframe>
         </div>
       </div>
     `;
+
+    // Warm the shared server-side map render (the A2 poster uses it) so switching
+    // to that tab shows the map instantly instead of waiting on a cold capture.
+    if (tplName !== "design2") {
+      fetch(`/api/map_image?facility_id=${encodeURIComponent(facilityId)}&w=896&h=522`).catch(() => {});
+    }
 
     const iframe = document.getElementById("printIframe");
     const loadingWrap = document.getElementById("printLoadingWrap");
@@ -5354,7 +5365,7 @@ async function bootstrap() {
   if (doPrintBtn) {
     doPrintBtn.addEventListener("click", () => {
       if (!currentPrintPoint) return;
-      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : (currentPrintTemplate === "table_stand" ? "미니스탠드" : "도어행거");
+      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : currentPrintTemplate === "table_stand" ? "미니스탠드" : currentPrintTemplate === "design" ? "포스터_스카이" : currentPrintTemplate === "design2" ? "포스터_A2" : currentPrintTemplate === "hanger2" ? "도어행거_A2" : "도어행거";
       const filename = `나라사랑가게_${tplTitle}_${currentPrintPoint.name || currentPrintPoint.title || "홍보물"}.png`;
       
       const iframe = document.getElementById("printIframe");

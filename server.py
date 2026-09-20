@@ -11,6 +11,7 @@ import re
 import secrets
 import smtplib
 import sqlite3
+import threading
 import time
 import uuid
 from email.mime.multipart import MIMEMultipart
@@ -31,6 +32,12 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
 DEFAULT_DB_PATH = BASE_DIR / "outputs" / "military_benefits.db"
+
+# rendered poster-map PNGs are cached on disk for a week (the map for a store
+# never changes, and a cold render costs seconds)
+MAP_CACHE_TTL = 7 * 24 * 3600
+_MAP_RENDER_JOBS = {}
+_MAP_RENDER_JOBS_LOCK = threading.Lock()
 
 
 def load_env_file():
@@ -1501,6 +1508,105 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             conn.close()
         self._json(HTTPStatus.OK, {"ok": True, "count": len(nearby_ids)})
 
+    def _handle_map_image(self):
+        """OSM map snapshot for the A2 design poster (rendered server-side)."""
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        facility_id = (q.get("facility_id") or [""])[0]
+        if not facility_id:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing facility_id"})
+            return
+        try:
+            width = int((q.get("w") or ["896"])[0])
+            height = int((q.get("h") or ["522"])[0])
+        except Exception:
+            width, height = 896, 522
+        try:
+            import hashlib
+            import tempfile
+            port = getattr(getattr(self, "server", None), "server_port", int(os.environ.get("PORT", 8080)))
+
+            cache_dir = Path(tempfile.gettempdir()) / "mmamap_map_cache"
+            try:
+                cache_dir.mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
+            key = hashlib.md5(f"{facility_id}|poster-map-v2".encode("utf-8")).hexdigest()[:16]
+            cache_file = cache_dir / f"map_{key}.png"
+
+            data = self._read_map_cache(cache_file)
+            if not data:
+                data = self._render_map_image(key, cache_file, facility_id, port, width, height)
+            if not data:
+                self._json(HTTPStatus.BAD_GATEWAY, {"error": "map render failed"})
+                return
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
+            return
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self._safe_write(data)
+
+    def _read_map_cache(self, cache_file):
+        try:
+            import time as _time
+            if cache_file.exists() and (_time.time() - cache_file.stat().st_mtime) < MAP_CACHE_TTL:
+                return cache_file.read_bytes()
+        except Exception:
+            pass
+        return None
+
+    def _render_map_image(self, key, cache_file, facility_id, port, width, height):
+        """Render once per key even if several requests ask for the same store."""
+        import map_image
+        entry = None
+        with _MAP_RENDER_JOBS_LOCK:
+            entry = _MAP_RENDER_JOBS.get(key)
+            if entry is None:
+                entry = threading.Event()
+                _MAP_RENDER_JOBS[key] = entry
+            else:
+                entry = None
+        if entry is None:
+            # another request is already rendering this map - wait for it
+            waiter = _MAP_RENDER_JOBS.get(key)
+            if waiter is not None:
+                waiter.wait(timeout=60)
+            return self._read_map_cache(cache_file)
+
+        try:
+            data = None
+            try:
+                # same map image the "상생지도 결합" poster shows
+                data = map_image.capture_poster_map(port, facility_id)
+            except Exception as e:
+                print(f"[Server] poster map capture failed: {e}")
+            if not data:
+                try:
+                    data = map_image.capture_naver_map(port, facility_id, width=width, height=height)
+                except Exception as e:
+                    print(f"[Server] naver map capture failed, using OSM fallback: {e}")
+            if not data:
+                from poster_renderer import get_store_and_neighbors
+                store, _neighbors = get_store_and_neighbors(facility_id)
+                data = map_image.render_map_png(store, width=width * 2, height=height * 2)
+            if data:
+                try:
+                    cache_file.write_bytes(data)
+                except Exception:
+                    pass
+            return data
+        finally:
+            with _MAP_RENDER_JOBS_LOCK:
+                _MAP_RENDER_JOBS.pop(key, None)
+            entry.set()
+
     def _handle_qr_scan(self):
         parsed = urlparse(self.path)
         q = parse_qs(parsed.query)
@@ -2010,6 +2116,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return
         if parsed_url.path == "/api/qr_stats":
             self._handle_qr_stats()
+            return
+        if parsed_url.path == "/api/map_image":
+            self._handle_map_image()
             return
         if parsed_url.path == "/api/merchant/stats":
             self._handle_merchant_stats()

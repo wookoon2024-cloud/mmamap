@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나라사랑가게 홍보물 - 도어행거 (A2 디자인)</title>
+  <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;800;900&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #eaf4fb; font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+
+    /* Work size 110x300mm, trim 105x295mm  ->  sheet is 500x1405 (same ratio as 105:295) */
+    .sheet {
+      position: relative;
+      width: 500px;
+      height: 1405px;
+      overflow: hidden;
+      padding: 40px 26px 0;
+      background: linear-gradient(180deg, #d9eefb 0%, #e9f6ff 40%, #f4fbff 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .cloud { position: absolute; background: #ffffff; border-radius: 999px; opacity: 0.85; }
+    .cloud::before { content: ""; position: absolute; background: #ffffff; border-radius: 999px; }
+    .c1 { width: 130px; height: 48px; left: -30px; top: 260px; }
+    .c1::before { width: 74px; height: 48px; left: 26px; top: -22px; }
+    .c2 { width: 150px; height: 54px; right: -34px; top: 300px; }
+    .c2::before { width: 86px; height: 54px; left: 38px; top: -26px; }
+    .c3 { width: 120px; height: 44px; left: -20px; top: 980px; opacity: 0.7; }
+    .c4 { width: 130px; height: 48px; right: -26px; top: 1020px; opacity: 0.7; }
+
+    /* hook hole guide */
+    .hole-wrap { position: relative; z-index: 2; width: 100%; height: 170px; flex: 0 0 auto; }
+    .hole {
+      position: absolute;
+      left: 50%;
+      top: 30px;
+      transform: translateX(-50%);
+      width: 92px;
+      height: 92px;
+      border: 2px dashed #6b8ba8;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.65);
+    }
+    .cut-line {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 30px;
+      border-left: 2px dashed #6b8ba8;
+    }
+    .hole-label {
+      position: absolute;
+      left: 50%;
+      top: 132px;
+      transform: translateX(-50%);
+      font-size: 13px;
+      font-weight: 800;
+      color: #6b8ba8;
+      white-space: nowrap;
+    }
+
+    /* header (투명 배경 로고) */
+    .head {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      margin-top: 4px;
+      align-self: flex-start;
+      position: relative;
+      z-index: 2;
+    }
+    .head img { height: 28px; width: auto; object-fit: contain; }
+
+    /* 캐릭터 ~ 우대사항을 한 덩어리로 묶어 하단(풋터 바로 위)에 배치 */
+    .group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: auto 0 0;
+      flex: 0 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+    .group > * { flex: 0 0 auto; }
+
+    .title-wrap {
+      position: relative;
+      align-self: stretch;
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    /* 캐릭터 왼쪽: 대한민국 병무청 + 예비군 여러분, 힘내세요! */
+    .hero-left {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding-bottom: 12px;
+    }
+    .hero-left img { display: block; width: 100%; }
+    .hero-left .logo-sm { width: 30%; margin-bottom: 8px; }
+    /* 남자 캐릭터 (A2 이미지에서 추출) - 배지 뒤에 걸치되 얼굴은 다 보이게 */
+    .char {
+      position: absolute;
+      right: 0;
+      bottom: 84px;
+      width: 180px;
+      z-index: 0;
+    }
+    .title-pill {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
+      text-align: center;
+      background: #003669;
+      color: #ffe9a8;
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1.2;
+      padding: 6px 30px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .name-pill {
+      margin-top: 12px;
+      flex: 0 0 auto;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 18px 5px;
+      height: 62px;
+      min-width: 300px;
+      border-radius: 999px;
+      background: #003669;
+      color: #ffffff;
+      font-size: 29px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .name-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: #ffffff; flex: 0 0 auto; }
+    .name-pill .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* benefit board */
+    .board {
+      margin-top: 14px;
+      flex: 0 0 auto;
+      width: 100%;
+      background: #cceaf7;
+      border: 2px solid #a7d3ef;
+      border-radius: 20px;
+      padding: 16px 16px 14px;
+    }
+    .checks { display: flex; flex-direction: column; gap: 12px; }
+    .check { display: flex; align-items: flex-start; gap: 9px; }
+    .check svg { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 2px; }
+    .check .txt {
+      font-size: 21px;
+      font-weight: 900;
+      color: #133a72;
+      line-height: 1.3;
+      letter-spacing: -0.8px;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      text-wrap: pretty;
+    }
+    .check .sub {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      color: #2c6bab;
+      margin-top: 2px;
+      line-height: 1.3;
+      letter-spacing: -0.3px;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    /* map removed for the door hanger */
+
+    /* QR + guide */
+    .qr-row { margin-top: 16px; flex: 0 0 auto; display: flex; align-items: center; gap: 16px; width: 100%; }
+    .qr-col { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 0 0 auto; }
+    .qr-box {
+      width: 148px;
+      height: 148px;
+      background: #ffffff;
+      border: 2px solid #a7d3ef;
+      border-radius: 14px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .qr-caption {
+      background: #003669;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 900;
+      padding: 5px 14px 7px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .qr-desc { font-size: 18px; font-weight: 800; color: #123a72; line-height: 1.45; letter-spacing: -0.6px; word-break: keep-all; }
+    .qr-desc b { color: #0b2f63; }
+
+    /* audience */
+    .aud { margin-top: 16px; flex: 0 0 auto; display: flex; align-items: stretch; width: 100%; }
+    .aud-chip {
+      background: #0b2f63;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      padding: 9px 14px;
+      border-radius: 8px 0 0 8px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+    }
+    .aud-value {
+      flex: 1 1 auto;
+      min-width: 0;
+      background: #ffffff;
+      border: 2px solid #0b2f63;
+      border-left: 0;
+      border-radius: 0 8px 8px 0;
+      padding: 8px 12px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #123a72;
+      letter-spacing: -0.6px;
+      line-height: 1.3;
+      display: flex;
+      align-items: center;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    /* bottom */
+    .bottom-bar {
+      margin: 16px -26px 0;
+      position: relative;
+      z-index: 2;
+      flex: 0 0 auto;
+      width: calc(100% + 52px);
+      height: 62px;
+      padding: 0;
+      background: #0b2f63;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #ffffff;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+    }
+    .bottom-bar .foot-mark {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bottom-bar .foot-mark img { width: 74%; height: auto; object-fit: contain; }
+
+    @media print { html, body { background: #ffffff; } }
+  </style>
+</head>
+<body>
+  <div class="sheet" id="sheet">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="cloud c4"></div>
+
+    <div class="group">
+      <div class="title-wrap">
+        <div class="hero-left">
+          <img class="logo-sm" src="./img/mma_logo_hires.png" alt="병무청" onerror="this.style.display='none'">
+          <img src="./img/a2_note.png" alt="예비군 여러분, 힘내세요!">
+          <img src="./img/a2_title.png?v=2" alt="대한민국 병무청">
+        </div>
+        <img class="char" src="./img/char_a2.png" alt="예비군 캐릭터" onerror="this.style.display='none'">
+        <div class="title-pill">나라사랑가게</div>
+      </div>
+
+      <div class="name-pill">
+        <span class="dot"></span>
+        <span class="name" id="storeName">가맹점 이름</span>
+        <span class="dot"></span>
+      </div>
+
+      <div class="board">
+        <div class="checks" id="checkList"></div>
+      </div>
+
+      <div class="qr-row">
+        <div class="qr-col">
+          <div class="qr-box"><img id="qrImg" alt="QR"></div>
+        </div>
+        <div class="qr-desc">
+          <b>스마트폰으로 QR을 스캔</b>하면<br>
+          혜택 상세와 주변 우대가맹점,<br>
+          매장 위치를 바로 확인할 수 있어요.
+        </div>
+      </div>
+
+      <div class="aud">
+        <span class="aud-chip">우대사항</span>
+        <span class="aud-value" id="audienceText">병역명문가</span>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <span class="foot-mark"><img src="./img/mma_mark.png" alt="" onerror="this.style.display='none'"></span>
+      <span>병무청 × 나라사랑가게 네트워크</span>
+    </div>
+  </div>
+
+  <script>
+    const CHECK_SVG = '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#133a72"></circle><path d="M9 16.5 L13.6 21 L23 11.5" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+
+    function splitInlineNumberedItems(line) {
+      const re = /(^|\s)(\d{1,2})[.)]\s+/g;
+      const items = [];
+      let m;
+      while ((m = re.exec(line)) !== null) items.push({ num: parseInt(m[2], 10), start: m.index + m[1].length });
+      if (items.length < 2 || !items.every((it, i) => it.num === i + 1)) return [line];
+      const parts = [];
+      const head = line.slice(0, items[0].start).trim();
+      if (head) parts.push(head);
+      items.forEach((it, i) => {
+        const end = i + 1 < items.length ? items[i + 1].start : line.length;
+        parts.push(line.slice(it.start, end).trim());
+      });
+      return parts.filter(Boolean);
+    }
+
+    function splitSlashItems(line) {
+      const parts = line.split(/\s*\/\s*/);
+      if (parts.length < 2) return [line];
+      const out = [];
+      let buf = "";
+      for (const p of parts) {
+        if (!buf) { buf = p; continue; }
+        if ([...buf].length < 4) { buf = `${buf}/${p}`; continue; }
+        out.push(buf);
+        buf = p;
+      }
+      if (buf) out.push(buf);
+      if (out.length > 1 && [...out[out.length - 1]].length < 4) {
+        out[out.length - 2] = `${out[out.length - 2]}/${out.pop()}`;
+      }
+      return out;
+    }
+
+    // 줄 앞에 남는 머리기호(❍, ※, ☞ …)와 공백을 반복해서 제거한다.
+    function stripMarks(line) {
+      let out = String(line);
+      let prev = "";
+      while (out !== prev) {
+        prev = out;
+        out = out
+          .replace(/^[\s\u00a0\u3000]+/, "")
+          .replace(/^[-*·•○◦◯❍□■▢▣▶▷▸►▪▫ㅇ❖◇◆☞☛※＊×✓✔√⦁‣⁃–—]+\s*/, "")
+          .replace(/^[oO]\s+/, "")
+          .trim();
+      }
+      return out;
+    }
+
+    function benefitLines(raw) {
+      return String(raw || "")
+        .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+        .replace(/<[^>]+>/g, " ")
+        .split("\n")
+        .map((l) => l.replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+        .flatMap(splitInlineNumberedItems)
+        .flatMap(splitSlashItems)
+        .map(stripMarks)
+        .filter(Boolean);
+    }
+
+    function parseAudience(raw) {
+      let audience = "";
+      String(raw || "").replace(/<\s*br\s*\/?\s*>/gi, "\n").split("\n").forEach((line) => {
+        const n = line.replace(/\s+/g, " ").trim();
+        if (/세부\s*우대\s*대상/.test(n) || /^우대\s*대상/.test(n)) {
+          audience = n.replace(/^세부\s*우대\s*대상\s*[:：]?\s*/, "").replace(/^우대\s*대상\s*[:：]?\s*/, "").trim();
+        }
+      });
+      return audience;
+    }
+
+    function renderChecks(lines) {
+      const bullets = lines.slice(0, 4);
+      let extra = lines[4] || "";
+      const last = bullets[bullets.length - 1];
+      if (!extra && last) {
+        const m = last.match(/\(([^()]{8,})\)\s*$/);
+        if (m) {
+          bullets[bullets.length - 1] = last.slice(0, m.index).trim().replace(/[,·]\s*$/, "");
+          extra = m[0].trim();
+        }
+      }
+      document.getElementById("checkList").innerHTML = bullets.map((b, i) => {
+        const isLast = i === bullets.length - 1;
+        return `
+        <div class="check">
+          ${CHECK_SVG}
+          <div class="txt">${b}${isLast && extra ? `<span class="sub">${extra}</span>` : ""}</div>
+        </div>`;
+      }).join("");
+    }
+
+    async function init() {
+      const params = new URLSearchParams(location.search);
+      const facilityId = params.get("facility_id") || "nara_3218";
+
+      // (지도는 도어행거에서 사용하지 않습니다)
+
+      try {
+        const res = await fetch("./data/benefits_map.json");
+        const data = await res.json();
+        const facilities = data.facilities || [];
+        const store = facilities.find((f) => f.facility_id === facilityId || f.id === facilityId) || facilities[0];
+
+        if (store) {
+          document.getElementById("storeName").textContent = store.name || "가맹점";
+          renderChecks(benefitLines(store.benefit));
+          const aud = parseAudience(store.benefit) || (Array.isArray(store.audiences) ? store.audiences.join(", ") : "");
+          document.getElementById("audienceText").textContent = aud || "병역명문가";
+        }
+
+        const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        const qrBase = isLocal ? location.origin : "https://mmamap-seven.vercel.app";
+        const qrTarget = `${qrBase}/mobile_landing.html?facility_id=${encodeURIComponent(facilityId)}&src=hanger_a2`;
+        document.getElementById("qrImg").src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(qrTarget)}`;
+      } catch (err) {
+        console.error("hanger(A2) template init error:", err);
+      }
+
+      window.__MAP_READY = true;
+      if (window.parent && window.parent.postMessage) window.parent.postMessage({ type: "MMA_MAP_READY" }, "*");
+    }
+
+    // Print spec: work size 110x300mm, trim size 105x295mm  (bleed 2.5mm per side)
+    const DPI = 600;
+    const MM = (v) => Math.round((v * DPI) / 25.4);
+    const WORK_W = MM(110);   // 2598
+    const WORK_H = MM(300);   // 7087
+    const TRIM_W = MM(105);   // 2480
+    const TRIM_H = MM(295);   // 6969
+
+    window.downloadPosterImage = async function (filename = "나라사랑가게_도어행거.png") {
+      const sheet = document.getElementById("sheet");
+      if (!sheet) return;
+      try {
+        const rendered = await html2canvas(sheet, {
+          scale: TRIM_W / sheet.offsetWidth,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#d9eefb",
+          logging: false
+        });
+
+        const bleedX = Math.round((WORK_W - TRIM_W) / 2);
+        const bleedY = Math.round((WORK_H - TRIM_H) / 2);
+        const w = rendered.width;
+        const h = rendered.height;
+
+        const out = document.createElement("canvas");
+        out.width = WORK_W;
+        out.height = WORK_H;
+        const ctx = out.getContext("2d");
+
+        // artwork at the trim size, centred in the work size
+        ctx.drawImage(rendered, 0, 0, w, h, bleedX, bleedY, TRIM_W, TRIM_H);
+
+        // bleed: extend the artwork's outermost pixels into the margin
+        ctx.drawImage(rendered, 0, 0, 1, h, 0, bleedY, bleedX, TRIM_H);
+        ctx.drawImage(rendered, w - 1, 0, 1, h, bleedX + TRIM_W, bleedY, bleedX, TRIM_H);
+        ctx.drawImage(rendered, 0, 0, w, 1, bleedX, 0, TRIM_W, bleedY);
+        ctx.drawImage(rendered, 0, h - 1, w, 1, bleedX, bleedY + TRIM_H, TRIM_W, bleedY);
+        ctx.drawImage(rendered, 0, 0, 1, 1, 0, 0, bleedX, bleedY);
+        ctx.drawImage(rendered, w - 1, 0, 1, 1, bleedX + TRIM_W, 0, bleedX, bleedY);
+        ctx.drawImage(rendered, 0, h - 1, 1, 1, 0, bleedY + TRIM_H, bleedX, bleedY);
+        ctx.drawImage(rendered, w - 1, h - 1, 1, 1, bleedX + TRIM_W, bleedY + TRIM_H, bleedX, bleedY);
+
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = out.toDataURL("image/png");
+        link.click();
+      } catch (e) {
+        console.error("hanger poster capture failed:", e);
+        window.print();
+      }
+    };
+
+    window.printPoster = function () { window.print(); };
+
+    window.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
