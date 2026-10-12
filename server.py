@@ -1136,13 +1136,13 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         conn = self._db()
         try:
             fav_rows = conn.execute(
-                "SELECT facility_id FROM user_favorites WHERE user_id = ?",
+                "SELECT facility_id FROM facility_action_states WHERE client_token = ? AND action_type = 'favorite' AND active = 1",
                 (user["id"],)
             ).fetchall()
             favorites = [r["facility_id"] for r in fav_rows]
 
             like_rows = conn.execute(
-                "SELECT facility_id FROM user_likes WHERE user_id = ?",
+                "SELECT facility_id FROM facility_action_states WHERE client_token = ? AND action_type = 'like' AND active = 1",
                 (user["id"],)
             ).fetchall()
             likes = [r["facility_id"] for r in like_rows]
@@ -2458,15 +2458,18 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
         conn = self._db()
         try:
-            row = conn.execute(
-                """
-                SELECT active
-                FROM facility_action_states
-                WHERE client_token = ? AND facility_id = ? AND action_type = ?
-                """,
-                (client_token, facility_id, action_type),
-            ).fetchone()
-            next_active = 0 if row and int(row["active"] or 0) == 1 else 1
+            if "active" in body:
+                next_active = 1 if body.get("active") else 0
+            else:
+                row = conn.execute(
+                    """
+                    SELECT active
+                    FROM facility_action_states
+                    WHERE client_token = ? AND facility_id = ? AND action_type = ?
+                    """,
+                    (client_token, facility_id, action_type),
+                ).fetchone()
+                next_active = 0 if row and int(row["active"] or 0) == 1 else 1
             conn.execute(
                 """
                 INSERT INTO facility_action_states (client_token, facility_id, action_type, active, updated_at)

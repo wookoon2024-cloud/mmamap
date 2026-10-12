@@ -739,11 +739,12 @@ async function bootstrap() {
     const setObj = actionType === "like" ? likes : favorites;
     const willBeActive = forceActive !== null ? forceActive : !setObj.has(facilityId);
 
-    // 1. Direct Supabase Upsert (Primary & Authoritative)
+    // 1. Direct PostgREST Upsert (Primary & Authoritative)
+    let pgSaved = false;
     try {
       const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
-      await fetch(`${url}/facility_action_states`, {
+      const res = await fetch(`${url}/facility_action_states`, {
         method: "POST",
         headers: {
           "apikey": key,
@@ -759,17 +760,18 @@ async function bootstrap() {
           updated_at: Date.now()
         })
       });
+      if (res.ok) pgSaved = true;
     } catch (e) {
-      console.warn("[Supabase Engagement Upsert Warn]", e);
+      console.warn("[PostgREST Engagement Upsert Warn]", e);
     }
 
-    // 2. Local SQLite sync fallback (only when local server is present)
-    if (!IS_STATIC_HOST) {
+    // 2. Local backend fallback only if PostgREST was not reached
+    if (!pgSaved && !IS_STATIC_HOST) {
       try {
         await fetch(`${ENGAGEMENT_API_BASE}/toggle`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clientToken: userToken, facilityId, actionType })
+          body: JSON.stringify({ clientToken: userToken, facilityId, actionType, active: willBeActive ? 1 : 0 })
         });
       } catch (_e) {}
     }
@@ -5768,6 +5770,9 @@ async function bootstrap() {
   // Initialize Auth & Member System
   try {
     await MMAAuth.init();
+    if (MMAAuth.user && typeof syncUserEngagementFromSupabase === "function") {
+      await syncUserEngagementFromSupabase(MMAAuth.user.id);
+    }
   } catch (authErr) {
     console.error("Auth init error:", authErr);
   }
@@ -5804,7 +5809,7 @@ const addDebugLog = (msg, type = "info") => (typeof window !== "undefined" && ty
 const MMAAuth = {
   token: (() => {
     try {
-      return sessionStorage.getItem(LS_AUTH_TOKEN_KEY) || "";
+      return sessionStorage.getItem(LS_AUTH_TOKEN_KEY) || localStorage.getItem(LS_AUTH_TOKEN_KEY) || "";
     } catch (_e) {
       return "";
     }
@@ -6005,6 +6010,10 @@ const MMAAuth = {
           this.user = data.user;
           this.favorites = new Set(data.favorites || []);
           this.likes = new Set(data.likes || []);
+          likes.clear();
+          (data.likes || []).forEach(id => likes.add(String(id).split("____")[0]));
+          favorites.clear();
+          (data.favorites || []).forEach(id => favorites.add(String(id).split("____")[0]));
           authenticated = true;
         }
       } catch (_err) {}
@@ -6045,10 +6054,14 @@ const MMAAuth = {
 
     if (authenticated && this.user) {
       addDebugLog(`[Auth] 로그인 세션 활성화: ${this.user.nickname} (${this.user.role})`, "success");
+      if (typeof window.syncUserEngagementFromSupabase === "function") {
+        await window.syncUserEngagementFromSupabase(this.user.id);
+      }
     } else {
       this.token = "";
       this.user = null;
       try { sessionStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
+      try { localStorage.removeItem(LS_AUTH_TOKEN_KEY); } catch (_e) {}
       try { sessionStorage.removeItem("mmamap_user_cache_v1"); } catch (_e) {}
     }
     this.renderNav();
@@ -6619,10 +6632,15 @@ const MMAAuth = {
           this.token = data.token;
           this.user = data.user;
           try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
+          try { localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
           try { sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user)); } catch (_e) {}
+          try { localStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user)); } catch (_e) {}
           this.closeAuthModal();
           this.renderNav();
           addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
+          if (typeof window.syncUserEngagementFromSupabase === "function") {
+            await window.syncUserEngagementFromSupabase(this.user.id);
+          }
           alert(`반갑습니다, ${this.user.nickname}님!`);
           return true;
         }
@@ -6658,10 +6676,15 @@ const MMAAuth = {
             created_at: u.created_at
           };
           try { sessionStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
+          try { localStorage.setItem(LS_AUTH_TOKEN_KEY, this.token); } catch (_e) {}
           try { sessionStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user)); } catch (_e) {}
+          try { localStorage.setItem("mmamap_user_cache_v1", JSON.stringify(this.user)); } catch (_e) {}
           this.closeAuthModal();
           this.renderNav();
           addDebugLog(`[Auth] 로그인 성공: ${this.user.nickname}님`, 'success');
+          if (typeof window.syncUserEngagementFromSupabase === "function") {
+            await window.syncUserEngagementFromSupabase(this.user.id);
+          }
           alert(`반갑습니다, ${this.user.nickname}님!`);
           return true;
         } else {
@@ -6702,6 +6725,8 @@ const MMAAuth = {
     this.user = null;
     this.favorites.clear();
     this.likes.clear();
+    likes.clear();
+    favorites.clear();
 
     if (window.MMAFavorites) window.MMAFavorites.clear();
     if (window.MMALikes) window.MMALikes.clear();
