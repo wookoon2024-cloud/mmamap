@@ -2044,9 +2044,9 @@ async function bootstrap() {
     if (!container || !point) return;
 
     const facilityId = point.facilityId || point.id || "";
-    const tplTitle = tplName === "poster" ? "포스터" : tplName === "table_stand" ? "미니 스탠드" : tplName === "design" ? "포스터 (스카이)" : tplName === "design2" ? "포스터 (A2)" : tplName === "design3" ? "포스터 (A2-2)" : tplName === "hanger2" ? "도어행거 (A2)" : "도어행거";
+    const tplTitle = tplName === "poster" ? "포스터" : tplName === "table_stand" ? "미니 스탠드" : tplName === "design" ? "포스터 (스카이)" : tplName === "design2" ? "포스터 (A2)" : tplName === "hanger2" ? "도어행거 (A2)" : "도어행거";
     // Extra local-only designs live in their own files so existing templates stay untouched.
-    const tplFile = tplName === "design" ? "print_template_design.html" : tplName === "design2" ? "print_template_design2.html" : tplName === "design3" ? "print_template_design3.html" : tplName === "hanger2" ? "print_template_hanger_a2.html" : "print_template.html";
+    const tplFile = tplName === "design" ? "print_template_design.html" : tplName === "design2" ? "print_template_design2.html" : tplName === "hanger2" ? "print_template_hanger_a2.html" : "print_template.html";
 
     const dims = {
       poster: { w: 440, h: 622, scale: 0.44, iframeW: 1000, iframeH: 1414 },
@@ -2063,7 +2063,6 @@ async function bootstrap() {
       door_hanger: { trim: [90, 200], work: [94, 204] },
       design: { trim: [210, 297], work: [214, 301] },
       design2: { trim: [210, 297], work: [214, 301] },
-      design3: { trim: [210, 297], work: [214, 301] },
       hanger2: { trim: [105, 295], work: [110, 300] }
     }[tplName] || { trim: [210, 297], work: [214, 301] };
     const sizeLabel = `재단 ${printSize.trim[0]}×${printSize.trim[1]}mm · 작업 ${printSize.work[0]}×${printSize.work[1]}mm`;
@@ -5431,7 +5430,7 @@ async function bootstrap() {
   if (doPrintBtn) {
     doPrintBtn.addEventListener("click", () => {
       if (!currentPrintPoint) return;
-      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : currentPrintTemplate === "table_stand" ? "미니스탠드" : currentPrintTemplate === "design" ? "포스터_스카이" : currentPrintTemplate === "design2" ? "포스터_A2" : currentPrintTemplate === "design3" ? "포스터_A2-2" : currentPrintTemplate === "hanger2" ? "도어행거_A2" : "도어행거";
+      const tplTitle = currentPrintTemplate === "poster" ? "포스터" : currentPrintTemplate === "table_stand" ? "미니스탠드" : currentPrintTemplate === "design" ? "포스터_스카이" : currentPrintTemplate === "design2" ? "포스터_A2" : currentPrintTemplate === "hanger2" ? "도어행거_A2" : "도어행거";
       const filename = `나라사랑가게_${tplTitle}_${currentPrintPoint.name || currentPrintPoint.title || "홍보물"}.png`;
       
       const iframe = document.getElementById("printIframe");
@@ -5468,7 +5467,7 @@ async function bootstrap() {
 
       const guideEl = document.getElementById("printGuideContent");
       if (guideEl) {
-        if (currentPrintTemplate === "poster" || currentPrintTemplate === "design3") {
+        if (currentPrintTemplate === "poster") {
           guideEl.textContent = "가맹점 출입구나 카운터 주변에 부착하여 방문하는 대상자(현역병, 사회복무, 병역명문가 등)가 혜택을 즉시 알아볼 수 있도록 홍보하는 용도로 활용됩니다.";
         } else if (currentPrintTemplate === "table_stand") {
           guideEl.textContent = "테이블, 매대, 또는 안내 데스크 위에 올려두어 결제나 대기 중인 대상자들에게 자연스럽게 할인 및 혜택 정보를 전달하는 데 적합합니다.";
