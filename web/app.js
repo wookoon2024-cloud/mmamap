@@ -626,19 +626,42 @@ async function bootstrap() {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
       });
       const rows = await res.json();
+      likes.clear();
+      favorites.clear();
       if (Array.isArray(rows)) {
         rows.forEach(r => {
-          const fid = String(r.facility_id || "");
+          let fid = String(r.facility_id || "");
+          if (fid.includes("____")) fid = fid.split("____")[0];
           if (r.action_type === "like") likes.add(fid);
           if (r.action_type === "favorite") favorites.add(fid);
         });
       }
+      if (window.MMAAuth?.renderProfileDropdown) window.MMAAuth.renderProfileDropdown();
       if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
     } catch (_err) {
       console.warn("[Engagement Sync Error]", _err);
     }
   };
   window.syncUserEngagementFromSupabase = syncUserEngagementFromSupabase;
+
+  const getUniqueSavedCount = (type = "likes") => {
+    const setObj = type === "likes" ? likes : favorites;
+    const seenPointKeys = new Set();
+    for (const id of setObj) {
+      let cleanId = String(id || "");
+      if (cleanId.includes("____")) cleanId = cleanId.split("____")[0];
+      let point = pointByFacilityKey.get(cleanId) || pointByFacilityKey.get(id);
+      if (!point && cleanId.includes("_")) {
+        const baseFid = cleanId.split("_").slice(0, 2).join("_");
+        point = pointByFacilityKey.get(baseFid);
+      }
+      if (point) {
+        seenPointKeys.add(getFacilityKey(point));
+      }
+    }
+    return seenPointKeys.size;
+  };
+  window.getUniqueSavedCount = getUniqueSavedCount;
 
   const loadEngagementSnapshot = async () => {
     try {
@@ -3878,7 +3901,6 @@ async function bootstrap() {
         // 1. Instant Optimistic UI Update
         if (willBeActive) {
           likes.add(facilityId);
-          if (legacyKey) likes.add(legacyKey);
           likeBtn.classList.add("active");
           likeBtn.title = "좋아요 취소";
           showToast(`❤️ <strong>${escapeHtml(point.title || "가맹점")}</strong> 매장에 좋아요를 보냈습니다!`);
@@ -3900,6 +3922,7 @@ async function bootstrap() {
 
         if (typeof renderRankPanel === "function") renderRankPanel();
         if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
+        if (window.MMAAuth?.renderProfileDropdown) window.MMAAuth.renderProfileDropdown();
 
         // 2. Background Persistence to Supabase
         try {
@@ -3924,7 +3947,6 @@ async function bootstrap() {
         // 1. Instant Optimistic UI Update
         if (willBeFav) {
           favorites.add(facilityId);
-          if (legacyKey) favorites.add(legacyKey);
           favBtn.classList.add("active");
           favBtn.title = "즐겨찾기 해제";
           showToast(`⭐ <strong>${escapeHtml(point.title || "가맹점")}</strong> 매장을 즐겨찾기(찜)에 추가했습니다!`);
@@ -3946,6 +3968,7 @@ async function bootstrap() {
 
         if (typeof renderFavoritesPanel === "function") renderFavoritesPanel();
         if (typeof renderRankPanel === "function") renderRankPanel();
+        if (window.MMAAuth?.renderProfileDropdown) window.MMAAuth.renderProfileDropdown();
 
         // 2. Background Persistence to Supabase
         try {
@@ -4607,13 +4630,11 @@ async function bootstrap() {
     const seenPointKeys = new Set();
     const validItems = [];
     for (const id of ids) {
-      let point = pointByFacilityKey.get(id);
-      if (!point && id.includes("____")) {
-        const cleanFid = id.split("____")[0];
-        point = pointByFacilityKey.get(cleanFid);
-      }
-      if (!point && id.includes("_")) {
-        const baseFid = id.split("_").slice(0, 2).join("_");
+      let cleanId = String(id || "");
+      if (cleanId.includes("____")) cleanId = cleanId.split("____")[0];
+      let point = pointByFacilityKey.get(cleanId) || pointByFacilityKey.get(id);
+      if (!point && cleanId.includes("_")) {
+        const baseFid = cleanId.split("_").slice(0, 2).join("_");
         point = pointByFacilityKey.get(baseFid);
       }
       if (point) {
@@ -4623,6 +4644,12 @@ async function bootstrap() {
           validItems.push({ point, key: pKey });
         }
       }
+    }
+
+    if (titleEl) {
+      titleEl.textContent = isLike
+        ? `❤️ 찜한 매장 (좋아요) ${validItems.length}개`
+        : `⭐ 즐겨찾기 매장 ${validItems.length}개`;
     }
 
     if (!validItems.length) {
@@ -6073,8 +6100,12 @@ const MMAAuth = {
   renderProfileDropdown() {
     const el = document.getElementById("userProfileDropdown");
     if (!el) return;
-    const favCount = (window.MMAFavorites ? window.MMAFavorites.size : (this.favorites ? this.favorites.size : 0)) || 0;
-    const likeCount = (window.MMALikes ? window.MMALikes.size : (this.likes ? this.likes.size : 0)) || 0;
+    const favCount = (typeof window.getUniqueSavedCount === "function")
+      ? window.getUniqueSavedCount("favorites")
+      : ((window.MMAFavorites ? window.MMAFavorites.size : (this.favorites ? this.favorites.size : 0)) || 0);
+    const likeCount = (typeof window.getUniqueSavedCount === "function")
+      ? window.getUniqueSavedCount("likes")
+      : ((window.MMALikes ? window.MMALikes.size : (this.likes ? this.likes.size : 0)) || 0);
 
     if (!this.user) {
       el.innerHTML = `
