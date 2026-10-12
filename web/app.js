@@ -1301,6 +1301,7 @@ async function bootstrap() {
                 <li><b>4. 제3자 제공</b>: 원칙적 미제공 (법률 규정 및 명시적 동의 시에만)</li>
                 <li><b>5. 안전성 조치</b>: SHA-256/Salt 단방향 암호화, HTTPS 전송 보안</li>
                 <li><b>6. 권리 행사</b>: 언제든지 회원정보 수정 및 탈퇴(즉시 삭제) 가능</li>
+                <li><b>7. 보호책임 및 문의</b>: 군필지도 운영정보팀 (jwh1187@naver.com)</li>
               </ul>
               <div style="margin-top: 12px;">
                 <button type="button" class="hubBtnLink" onclick="window.MMAAuth.showPolicyModal('privacy')" style="cursor: pointer; border: none; font-size: 12.5px; padding: 8px 14px;">
@@ -8543,7 +8544,7 @@ const MMAAuth = {
         <p>서비스는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
         <ul>
           <li><b>개인정보 보호책임 부서</b>: 군필지도 운영정보팀</li>
-          <li><b>문의 및 고충처리 이메일</b>: support@mmamap.org / 서비스 문의 채널</li>
+          <li><b>문의 및 고충처리 이메일</b>: jwh1187@naver.com</li>
         </ul>
 
         <h4>제13조 (정보주체의 권익침해 구제방법)</h4>
