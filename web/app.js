@@ -526,11 +526,15 @@ async function bootstrap() {
   const favoriteCountsById = {};
   let reviewBoardPosts = [];
   const ratingsById = {};
+  const getSupabaseRestUrl = () => {
+    const base = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
+    return `${base.replace(/\/+$/, "")}/rest/v1`;
+  };
   const saveRatings = async (facilityId, rating) => {
     if (!ratingsById[facilityId]) ratingsById[facilityId] = [];
     ratingsById[facilityId].push(rating);
     try {
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       await fetch(`${url}/facility_ratings`, {
         method: "POST",
@@ -616,7 +620,7 @@ async function bootstrap() {
     try {
       const token = targetToken || getEffectiveUserToken();
       if (!token) return;
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       const res = await fetch(`${url}/facility_action_states?client_token=eq.${encodeURIComponent(token)}&active=eq.1&select=facility_id,action_type`, {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
@@ -638,7 +642,7 @@ async function bootstrap() {
 
   const loadEngagementSnapshot = async () => {
     try {
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       const userToken = getEffectiveUserToken();
 
@@ -714,7 +718,7 @@ async function bootstrap() {
 
     // 1. Direct Supabase Upsert (Primary & Authoritative)
     try {
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       await fetch(`${url}/facility_action_states`, {
         method: "POST",
@@ -758,7 +762,7 @@ async function bootstrap() {
 
     // 1. Direct Supabase Insert (Primary & Authoritative)
     try {
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       await fetch(`${url}/facility_click_events`, {
         method: "POST",
@@ -792,7 +796,7 @@ async function bootstrap() {
 
   const fetchReviewPosts = async () => {
     try {
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       const res = await fetch(`${url}/review_posts?order=created_at.desc&limit=100`, {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
@@ -938,7 +942,7 @@ async function bootstrap() {
     if (saveDismiss && introNeverCheckEl?.checked) {
       isIntroDismissed = true;
       try {
-        const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+        const url = getSupabaseRestUrl();
         const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
         await fetch(`${url}/client_preferences`, {
           method: "POST",
@@ -963,7 +967,7 @@ async function bootstrap() {
   const openIntroPopup = async () => {
     if (isIntroDismissed) return;
     try {
-      const url = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       const res = await fetch(`${url}/client_preferences?client_token=eq.${encodeURIComponent(clientToken)}`, {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
@@ -2325,7 +2329,7 @@ async function bootstrap() {
   const getSupabaseDirectConfig = () => {
     const url = (window.MMAAuth && window.MMAAuth.getSupabaseUrl)
       ? window.MMAAuth.getSupabaseUrl()
-      : "https://mwprznynxyvzxweehynl.supabase.co/rest/v1";
+      : getSupabaseRestUrl();
     const headers = (window.MMAAuth && window.MMAAuth.getSupabaseHeaders)
       ? window.MMAAuth.getSupabaseHeaders()
       : {
@@ -6596,7 +6600,7 @@ const MMAAuth = {
 
     // 2. Direct Supabase Login (Vercel / Static Host)
     try {
-      const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+      const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
       const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
       const headers = {
         "apikey": supabaseKey,
@@ -6699,7 +6703,7 @@ const MMAAuth = {
   },
 
   getSupabaseUrl() {
-    const base = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+    const base = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
     return `${base.replace(/\/+$/, '')}/rest/v1`;
   },
 
@@ -8770,7 +8774,7 @@ const MMAAuth = {
 
         // Check if email already registered in Supabase
         try {
-          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
           const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
           const checkRes = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`, {
             headers: {
@@ -8837,7 +8841,7 @@ const MMAAuth = {
 
         // 3. Resend 무료 계정 제한(본인 외 차단) 또는 Supabase OTP 발송
         try {
-          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
           const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
 
           const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
@@ -8923,7 +8927,7 @@ const MMAAuth = {
         }
 
         try {
-          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+          const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
           const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
 
           const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
@@ -9260,7 +9264,7 @@ const MMAAuth = {
             }
           } else {
             // Direct Supabase Registration for static hosting
-            const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://mwprznynxyvzxweehynl.supabase.co";
+            const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
             const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
             const headers = {
               "apikey": supabaseKey,

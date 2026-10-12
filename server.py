@@ -224,17 +224,22 @@ def verify_password_hash(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(legacy, h)
 
 
-DEFAULT_SUPABASE_DB_URL = "postgresql://postgres.mwprznynxyvzxweehynl:Whdhksgml1!@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres"
+DEFAULT_POSTGRES_DB_URL = "postgresql://mmamap:mmamap_secure_pwd_2026!@127.0.0.1:5432/mmamap"
 
 def get_db_url() -> str:
-    return os.environ.get("DATABASE_URL") or DEFAULT_SUPABASE_DB_URL
+    return os.environ.get("DATABASE_URL") or DEFAULT_POSTGRES_DB_URL
+
+def get_sslmode(db_url: str) -> str:
+    if "127.0.0.1" in db_url or "localhost" in db_url:
+        return "prefer"
+    return "require"
 
 
 class PostgresConnWrapper:
     def __init__(self, db_url):
         import psycopg2
         import psycopg2.extras
-        self.conn = psycopg2.connect(db_url, sslmode="require", keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=5)
+        self.conn = psycopg2.connect(db_url, sslmode=get_sslmode(db_url), keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=5)
         
     def execute(self, sql, params=None):
         sql_pg = sql.replace('?', '%s')
@@ -277,7 +282,7 @@ def init_review_table(db_path: Path) -> None:
     if db_url:
         try:
             import psycopg2
-            conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
+            conn = psycopg2.connect(db_url, sslmode=get_sslmode(db_url), connect_timeout=5)
             try:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -336,7 +341,7 @@ def init_engagement_tables(db_path: Path) -> None:
     if db_url:
         try:
             import psycopg2
-            conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
+            conn = psycopg2.connect(db_url, sslmode=get_sslmode(db_url), connect_timeout=5)
             try:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -436,7 +441,7 @@ def init_auth_tables(db_path: Path) -> None:
     if db_url and _USE_POSTGRES:
         try:
             import psycopg2
-            conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=5)
+            conn = psycopg2.connect(db_url, sslmode=get_sslmode(db_url), connect_timeout=5)
             try:
                 with conn.cursor() as cur:
                     cur.execute(
@@ -1486,19 +1491,25 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             self._json(HTTPStatus.BAD_REQUEST, {"error": "Missing nearby_facility_ids"})
             return
 
-        conn = self._db()
+        # 텔레메트리 실패가 인쇄 화면을 막아서는 안 된다 (DB 미설정/미연결 시 조용히 넘어간다)
         try:
-            now = now_ms()
-            for nid in nearby_ids[:25]:
-                nid_str = str(nid).strip()[:100]
-                if nid_str and nid_str != main_id:
-                    conn.execute(
-                        "INSERT INTO qr_scan_events (facility_id, source, created_at, is_indirect, parent_facility_id) VALUES (?, ?, ?, 1, ?)",
-                        (nid_str, source, now, main_id)
-                    )
-            conn.commit()
-        finally:
-            conn.close()
+            conn = self._db()
+            try:
+                now = now_ms()
+                for nid in nearby_ids[:25]:
+                    nid_str = str(nid).strip()[:100]
+                    if nid_str and nid_str != main_id:
+                        conn.execute(
+                            "INSERT INTO qr_scan_events (facility_id, source, created_at, is_indirect, parent_facility_id) VALUES (?, ?, ?, 1, ?)",
+                            (nid_str, source, now, main_id)
+                        )
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"[Server] exposure log failed: {e}")
+            self._json(HTTPStatus.OK, {"ok": False, "count": 0})
+            return
         self._json(HTTPStatus.OK, {"ok": True, "count": len(nearby_ids)})
 
     def _handle_qr_scan(self):
@@ -1548,18 +1559,24 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         visited_at = int(time.time() * 1000)
         visit_id = f"v_{secrets.token_hex(12)}"
 
-        conn = self._db()
+        # 텔레메트리 실패가 방문자를 막아서는 안 된다 (DB 미설정/미연결 시 조용히 넘어간다)
         try:
-            conn.execute(
-                """
-                INSERT INTO page_visits (id, visited_at, path, referrer, device_type, user_role, ip_hash, user_agent_short)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (visit_id, visited_at, path, referrer, device_type, user_role, ip_hash, user_agent)
-            )
-            conn.commit()
-        finally:
-            conn.close()
+            conn = self._db()
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO page_visits (id, visited_at, path, referrer, device_type, user_role, ip_hash, user_agent_short)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (visit_id, visited_at, path, referrer, device_type, user_role, ip_hash, user_agent)
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"[Server] visit log failed: {e}")
+            self._json(HTTPStatus.OK, {"ok": False})
+            return
 
         self._json(HTTPStatus.OK, {"ok": True})
 
