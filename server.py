@@ -993,6 +993,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         self._json(HTTPStatus.OK, {"ok": True, "message": "점주 전화번호 인증이 완료되었습니다."})
 
     def _handle_auth_register(self):
+        # [개인정보 보호 정책] 신규 회원가입 일시 비활성화
+        self._json(HTTPStatus.FORBIDDEN, {
+            "ok": False,
+            "error": "군필지도는 개인정보 보호 정책에 따라 신규 회원가입을 운영하지 않습니다. 별도의 회원가입 없이 모든 혜택과 지도 서비스를 100% 무료로 이용하실 수 있습니다."
+        })
+        return
         body = self._read_json_body()
         email = str(body.get("email", "")).strip().lower()
         password = str(body.get("password", "")).strip()
