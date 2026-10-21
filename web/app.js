@@ -3792,11 +3792,7 @@ async function bootstrap() {
     const btnCommentLoginPrompt = document.getElementById("btnCommentLoginPrompt");
     if (btnCommentLoginPrompt) {
       btnCommentLoginPrompt.onclick = () => {
-        if (window.MMAAuth && typeof window.MMAAuth.openAuthModal === "function") {
-          window.MMAAuth.openAuthModal("login");
-        } else {
-          alert("로그인 후 이용하실 수 있습니다.");
-        }
+        alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
       };
     }
 
@@ -3804,11 +3800,7 @@ async function bootstrap() {
     const btnQaLoginPrompt = document.getElementById("btnQaLoginPrompt");
     if (btnQaLoginPrompt) {
       btnQaLoginPrompt.onclick = () => {
-        if (window.MMAAuth && typeof window.MMAAuth.openAuthModal === "function") {
-          window.MMAAuth.openAuthModal("login");
-        } else {
-          alert("로그인 후 이용하실 수 있습니다.");
-        }
+        alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
       };
     }
 
@@ -3817,8 +3809,7 @@ async function bootstrap() {
     if (commentSubmitBtn) {
       commentSubmitBtn.onclick = async () => {
         if (!isUserLoggedIn) {
-          alert("로그인 후 작성하실 수 있습니다.");
-          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
           return;
         }
         const inp = document.getElementById("storeNewCommentInput");
@@ -3888,8 +3879,7 @@ async function bootstrap() {
     if (likeBtn) {
       likeBtn.onclick = async () => {
         if (!isUserLoggedIn) {
-          alert("로그인 후 이용하실 수 있습니다.");
-          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
           return;
         }
 
@@ -3934,8 +3924,7 @@ async function bootstrap() {
     if (favBtn) {
       favBtn.onclick = async () => {
         if (!isUserLoggedIn) {
-          alert("로그인 후 이용하실 수 있습니다.");
-          if (window.MMAAuth?.openAuthModal) window.MMAAuth.openAuthModal("login");
+          alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
           return;
         }
 
