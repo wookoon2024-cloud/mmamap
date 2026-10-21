@@ -590,15 +590,30 @@ async function bootstrap() {
   const getOrCreateClientToken = () => {
     let existing = "";
     try {
-      existing = String(sessionStorage.getItem(LS_CLIENT_TOKEN_KEY) || "").trim();
+      existing = String(localStorage.getItem(LS_CLIENT_TOKEN_KEY) || sessionStorage.getItem(LS_CLIENT_TOKEN_KEY) || "").trim();
     } catch (_e) {}
-    if (existing) return existing;
+    if (existing) {
+      try {
+        localStorage.setItem(LS_CLIENT_TOKEN_KEY, existing);
+        sessionStorage.setItem(LS_CLIENT_TOKEN_KEY, existing);
+      } catch (_e) {}
+      return existing;
+    }
     const created = `ct_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     try {
+      localStorage.setItem(LS_CLIENT_TOKEN_KEY, created);
       sessionStorage.setItem(LS_CLIENT_TOKEN_KEY, created);
     } catch (_e) {}
     return created;
   };
+
+  // Restore local engagement cache on startup
+  try {
+    const _cLikes = JSON.parse(localStorage.getItem("mma_map_local_likes_v1") || "[]");
+    const _cFavs = JSON.parse(localStorage.getItem("mma_map_local_favs_v1") || "[]");
+    if (Array.isArray(_cLikes)) _cLikes.forEach(id => likes.add(String(id)));
+    if (Array.isArray(_cFavs)) _cFavs.forEach(id => favorites.add(String(id)));
+  } catch (_e) {}
   const clientToken = getOrCreateClientToken();
 
   const showToast = (_message, _type = "info") => {
@@ -727,10 +742,10 @@ async function bootstrap() {
   };
 
   const toggleEngagement = async (facilityId, actionType, forceActive = null) => {
-    if (!window.MMAAuth?.user) {
-      return { ok: false, error: "login_required" };
-    }
     const userToken = getEffectiveUserToken();
+    if (!userToken) {
+      return { ok: false, error: "no_token" };
+    }
     const setObj = actionType === "like" ? likes : favorites;
     const willBeActive = forceActive !== null ? forceActive : !setObj.has(facilityId);
 
@@ -770,6 +785,14 @@ async function bootstrap() {
         });
       } catch (_e) {}
     }
+
+    try {
+      if (actionType === "like") {
+        localStorage.setItem("mma_map_local_likes_v1", JSON.stringify([...likes]));
+      } else {
+        localStorage.setItem("mma_map_local_favs_v1", JSON.stringify([...favorites]));
+      }
+    } catch (_e) {}
 
     return { ok: true, active: willBeActive };
   };
@@ -3878,11 +3901,6 @@ async function bootstrap() {
     const likeBtn = document.getElementById("detailLikeBtn");
     if (likeBtn) {
       likeBtn.onclick = async () => {
-        if (!isUserLoggedIn) {
-          alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
-          return;
-        }
-
         const willBeActive = !likes.has(facilityId) && !(legacyKey && likes.has(legacyKey));
 
         // 1. Instant Optimistic UI Update
@@ -3923,11 +3941,6 @@ async function bootstrap() {
     const favBtn = document.getElementById("detailFavBtn");
     if (favBtn) {
       favBtn.onclick = async () => {
-        if (!isUserLoggedIn) {
-          alert("해당 기능은 차후 오픈 예정입니다.\n(별도의 로그인 없이 모든 혜택 검색 및 지도 서비스를 무료로 이용하실 수 있습니다.)");
-          return;
-        }
-
         const willBeFav = !favorites.has(facilityId) && !(legacyKey && favorites.has(legacyKey));
 
         // 1. Instant Optimistic UI Update
