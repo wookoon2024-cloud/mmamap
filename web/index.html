@@ -76,18 +76,23 @@
     <div id="authBackdrop" class="authBackdrop hidden" aria-hidden="true"></div>
     <section id="authModal" class="authModal hidden" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
       <div class="authModalHead">
-        <div class="authTabs" style="display: flex; align-items: center; justify-content: flex-start;">
-          <button id="authTabLogin" class="authTab active" type="button" style="cursor: default; pointer-events: none; border-bottom: 2px solid #2563eb; font-weight: 800;">로그인</button>
-          <!-- 회원가입 탭 비활성화 (개인정보 수집 원천 차단) -->
+        <div class="authModalHeadTitle" style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🔐</span>
+          <h3 id="authModalTitle" style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a;">로그인</h3>
+        </div>
+        <!-- Hidden tab controls for script compatibility -->
+        <div class="authTabs" style="display: none;">
+          <button id="authTabLogin" class="authTab active" type="button">로그인</button>
+          <button id="authTabRegister" class="authTab" type="button">회원가입</button>
         </div>
         <button id="authCloseBtn" class="authCloseBtn" type="button" aria-label="닫기">×</button>
       </div>
       
       <!-- Login View -->
       <div id="authLoginView" class="authModalBody">
-        <div class="authWelcome">
-          <h3>군필지도 계정 로그인</h3>
-          <p>가맹점주 및 운영 관리자 전용 로그인 화면입니다.</p>
+        <div class="authWelcome" style="margin-bottom: 14px;">
+          <h3 style="margin: 0 0 4px; font-size: 16px; font-weight: 800; color: #0f172a;">가맹점주 및 관리자 로그인</h3>
+          <p style="margin: 0; font-size: 12.5px; color: #64748b; line-height: 1.5;">가맹점 QR 통계 및 관리자 전용 로그인 화면입니다.<br>일반 이용자는 별도 로그인 없이 모든 혜택을 100% 무료로 이용하실 수 있습니다.</p>
         </div>
         <form id="loginForm" class="authForm" onsubmit="return false;">
           <div class="authInputGroup">
@@ -100,16 +105,15 @@
           </div>
           <div id="loginErrorMsg" class="authErrorMsg hidden"></div>
           <button id="loginSubmitBtn" class="authSubmitBtn" type="button">로그인</button>
-          <div class="authSwitchWrap" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-top: 16px; font-size: 12px; color: #475569; line-height: 1.55; text-align: left;">
-            <strong style="color: #1e293b; display: block; margin-bottom: 4px; font-size: 12.5px;">🔒 개인정보 보호 및 비회원 이용 안내</strong>
-            군필지도는 이용자의 소중한 개인정보 보호를 위해 별도의 회원가입 없이 모든 지도 검색과 우대 혜택 조회를 <b>100% 무료</b>로 자유롭게 이용하실 수 있습니다.<br>
-            <span style="display: block; margin-top: 4px; color: #64748b; font-size: 11.5px;">※ 일반 병역이행자는 회원가입 절차 없이 모든 혜택을 이용하실 수 있습니다.</span>
+          <div class="authSwitchWrap" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-size: 12px; color: #475569; line-height: 1.55; text-align: left;">
+            <strong style="color: #1e293b; display: block; margin-bottom: 4px; font-size: 12.5px;">🔒 개인정보 비수집 방침 안내</strong>
+            군필지도는 개인정보 보호를 위해 일반 사용자의 회원가입 절차를 운영하지 않습니다. 누구나 로그인 없이 모든 지도 및 혜택 정보를 <b>100% 무료</b>로 확인하실 수 있습니다.
           </div>
         </form>
       </div>
 
-      <!-- Register View (Disabled for Privacy Protection)
-      <div id="authRegisterView" class="authModalBody hidden">
+      <!-- Register View (Hidden for Privacy Protection) -->
+      <div id="authRegisterView" class="authModalBody hidden" style="display: none !important;">
         <div class="authRoleSelectWrap">
           <label class="authRoleLabel">회원 유형을 선택해 주세요</label>
           <div class="authRoleOptions">
@@ -240,7 +244,6 @@
           </div>
         </form>
       </div>
-      -->
     </section>
 
     <!-- Merchant Stats & My Page Modal -->
@@ -1140,6 +1143,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./supabase-client.js?v=160"></script>
-    <script src="./app.js?v=177.0"></script>
+    <script src="./app.js?v=178.0"></script>
   </body>
 </html>
