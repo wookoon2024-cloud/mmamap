@@ -5086,14 +5086,17 @@ async function bootstrap() {
       }
     });
 
-    // Request location once gracefully on startup
+    // Request location once gracefully on startup and pan to user's location if allowed
     if (navigator.geolocation) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasDirectTarget = Boolean(urlParams.get("fid") || urlParams.get("facility_id") || urlParams.get("focus"));
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, false);
+          const shouldPan = !hasDirectTarget;
+          updateCurrentLocationMarker(pos.coords.latitude, pos.coords.longitude, shouldPan);
         },
         () => {},
-        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
     }
   }
