@@ -7232,24 +7232,41 @@ const MMAAuth = {
     const tab = targetTab || this.currentAdminTab || "analytics";
     this.switchAdminTab(tab);
 
-    // Initialize date inputs to default 30d
-    const defRange = this.getPeriodRange("30d");
+    // 1. Analytics Period: preserve selected period or default to 30d
+    if (!this.adminPeriod) {
+      this.adminPeriod = "30d";
+    }
+    const anaRange = this.getPeriodRange(this.adminPeriod);
     const sAna = document.getElementById("adminAnalyticsStartDate");
     const eAna = document.getElementById("adminAnalyticsEndDate");
-    if (sAna && !sAna.value) sAna.value = defRange.startDateStr;
-    if (eAna && !eAna.value) eAna.value = defRange.endDateStr;
+    if (sAna && !sAna.value && anaRange.startDateStr) sAna.value = anaRange.startDateStr;
+    if (eAna && !eAna.value && anaRange.endDateStr) eAna.value = anaRange.endDateStr;
+    if (this.adminAnalyticsCurrentStartTs == null) {
+      this.adminAnalyticsCurrentStartTs = anaRange.startTs;
+      this.adminAnalyticsCurrentEndTs = anaRange.endTs;
+    }
+    const anaBtns = document.querySelectorAll(".adminPeriodBtn");
+    anaBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === this.adminPeriod));
 
+    // 2. Facilities Period: preserve selected period or default to 30d
+    if (!this.adminFacPeriod) {
+      this.adminFacPeriod = "30d";
+    }
+    const facRange = this.getPeriodRange(this.adminFacPeriod);
     const sFac = document.getElementById("adminFacStartDate");
     const eFac = document.getElementById("adminFacEndDate");
-    if (sFac && !sFac.value) sFac.value = defRange.startDateStr;
-    if (eFac && !eFac.value) eFac.value = defRange.endDateStr;
-
-    this.adminFacCurrentStartTs = defRange.startTs;
-    this.adminFacCurrentEndTs = defRange.endTs;
+    if (sFac && !sFac.value && facRange.startDateStr) sFac.value = facRange.startDateStr;
+    if (eFac && !eFac.value && facRange.endDateStr) eFac.value = facRange.endDateStr;
+    if (this.adminFacCurrentStartTs == null) {
+      this.adminFacCurrentStartTs = facRange.startTs;
+      this.adminFacCurrentEndTs = facRange.endTs;
+    }
+    const facBtns = document.querySelectorAll(".adminFacPeriodBtn");
+    facBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-fac-period") === this.adminFacPeriod));
 
     // Load real stats directly from Supabase
     try {
-      const directStats = await this.fetchSupabaseDirectStats(defRange.startTs, defRange.endTs);
+      const directStats = await this.fetchSupabaseDirectStats(this.adminAnalyticsCurrentStartTs, this.adminAnalyticsCurrentEndTs);
       if (directStats) {
         this.renderAdminStats(directStats);
       }
@@ -7260,7 +7277,7 @@ const MMAAuth = {
     // Always fetch members and stats so badges and tabs are 100% updated!
     this.fetchAdminMembers(adminKey);
     if (tab === "facilities") {
-      this.fetchAdminFacilities();
+      this.fetchAdminFacilities("", this.adminFacCurrentStartTs, this.adminFacCurrentEndTs);
     }
   },
 
@@ -7295,7 +7312,7 @@ const MMAAuth = {
       this.fetchAdminMembers();
     }
     if (tab === "facilities" && this.adminFacilities.length === 0) {
-      this.fetchAdminFacilities();
+      this.fetchAdminFacilities("", this.adminFacCurrentStartTs, this.adminFacCurrentEndTs);
     }
   },
 
@@ -7775,6 +7792,9 @@ const MMAAuth = {
     if (sInput && range.startDateStr) sInput.value = range.startDateStr;
     if (eInput && range.endDateStr) eInput.value = range.endDateStr;
 
+    this.adminAnalyticsCurrentStartTs = range.startTs;
+    this.adminAnalyticsCurrentEndTs = range.endTs;
+
     const labelMap = {
       "1d": "오늘(1일)",
       "7d": "최근 7일",
@@ -7808,6 +7828,8 @@ const MMAAuth = {
     const btns = document.querySelectorAll(".adminPeriodBtn");
     btns.forEach(b => b.classList.remove("active"));
     this.adminPeriod = "custom";
+    this.adminAnalyticsCurrentStartTs = startD.getTime();
+    this.adminAnalyticsCurrentEndTs = endD.getTime();
 
     const titleEl = document.getElementById("adminChartTitle");
     if (titleEl) {
