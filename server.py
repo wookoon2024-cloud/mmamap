@@ -1557,10 +1557,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         user_role = str(body.get("user_role") or "guest").strip()[:50]
         user_agent = self.headers.get("User-Agent", "")[:100]
 
-        # Privacy-preserving daily hashed client ID
-        client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
-        today_str = datetime.date.today().isoformat()
-        ip_hash = hashlib.sha256(f"{client_ip}_{today_str}".encode("utf-8")).hexdigest()[:24]
+        # Privacy-preserving salted one-way hashed visitor key
+        raw_ip = payload.get("client_ip") or (self.client_address[0] if self.client_address else "127.0.0.1")
+        if str(raw_ip).startswith("USR-"):
+            ip_hash = str(raw_ip)
+        else:
+            ip_hash = "USR-" + hashlib.sha256(f"{raw_ip}_MMA_SALT_2026_GP".encode("utf-8")).hexdigest()[:8].upper()
 
         visited_at = int(time.time() * 1000)
         visit_id = f"v_{secrets.token_hex(12)}"

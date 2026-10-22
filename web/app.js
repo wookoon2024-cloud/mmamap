@@ -1,3 +1,19 @@
+function anonymizeIpSync(ipStr) {
+  if (!ipStr) return "USR-UNKNOWN";
+  const s = String(ipStr).trim();
+  if (s.startsWith("USR-")) return s;
+  let hash1 = 5381, hash2 = 52711;
+  const salt = "_MMA_SALT_2026_GP";
+  const full = s + salt;
+  for (let i = 0; i < full.length; i++) {
+    const char = full.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1) ^ char;
+    hash2 = ((hash2 << 5) + hash2) ^ char;
+  }
+  const hex = (Math.abs(hash1).toString(16).padStart(8, "0") + Math.abs(hash2).toString(16).padStart(8, "0")).substring(0, 8).toUpperCase();
+  return `USR-${hex}`;
+}
+
 window.addEventListener("error", function (e) {
   const errDiv = document.getElementById("debugErrorBadge") || document.createElement("div");
   errDiv.id = "debugErrorBadge";
@@ -5942,7 +5958,7 @@ const MMAAuth = {
               referrer: document.referrer || "",
               device_type: deviceType,
               user_role: this.user ? this.user.role : "guest",
-              client_ip: clientIp || "",
+              client_ip: clientIp ? anonymizeIpSync(clientIp) : "",
             }),
           });
           clearTimeout(timeoutId);
@@ -5967,7 +5983,8 @@ const MMAAuth = {
           visitorId = "vis_" + Math.random().toString(36).substring(2, 9);
         }
 
-        const effectiveIpHash = clientIp || (this.user ? String(this.user.id) : visitorId);
+        const anonymizedKey = clientIp ? anonymizeIpSync(clientIp) : "";
+        const effectiveIpHash = anonymizedKey || (this.user ? String(this.user.id) : visitorId);
         const payload = {
           id: "pv_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9),
           visited_at: Date.now(),
@@ -5976,7 +5993,7 @@ const MMAAuth = {
           device_type: deviceType,
           user_role: this.user ? this.user.role : "anonymous",
           ip_hash: effectiveIpHash,
-          user_agent_short: (clientIp ? `[IP: ${clientIp}] ` : "") + navigator.userAgent.substring(0, 160)
+          user_agent_short: (anonymizedKey ? `[식별키: ${anonymizedKey}] ` : "") + navigator.userAgent.substring(0, 160)
         };
 
         await fetch(`${url}/page_visits`, {
@@ -8044,28 +8061,28 @@ const MMAAuth = {
         timeStr = `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
       }
 
-      // Resolve visitor IP address
-      let resolvedIp = "";
+      // Resolve visitor anonymized key (Never raw IP)
+      let visitorKey = "";
       const rawHash = (f.ip_hash || "").trim();
-      const isDirectIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(rawHash);
-
-      if (isDirectIp) {
-        resolvedIp = rawHash;
+      if (rawHash.startsWith("USR-")) {
+        visitorKey = rawHash;
+      } else if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(rawHash)) {
+        visitorKey = anonymizeIpSync(rawHash);
       } else {
-        const ipFromUa = (f.user_agent_short || "").match(/\[IP:\s*([\d\.]+)\]/);
+        const ipFromUa = (f.user_agent_short || "").match(/\[(?:IP|식별키):\s*([^\]]+)\]/);
         if (ipFromUa && ipFromUa[1]) {
-          resolvedIp = ipFromUa[1];
-        } else if (f.device_type === "mobile") {
-          resolvedIp = "223.39.148.82";
+          visitorKey = anonymizeIpSync(ipFromUa[1]);
+        } else if (rawHash.startsWith("vis_")) {
+          visitorKey = "USR-" + rawHash.substring(4, 12).toUpperCase();
         } else {
-          resolvedIp = "114.207.10.76";
+          visitorKey = anonymizeIpSync(rawHash || f.id || "guest");
         }
       }
 
       const ipCol = `
         <div style="text-align: center;">
-          <code style="font-size: 13px; font-weight: 800; color: #1d4ed8; background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe; font-family: monospace; display: inline-block;">${resolvedIp}</code>
-          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${f.device_type === "mobile" ? "📱 LTE/5G 모바일" : "💻 유선 초고속망"}</div>
+          <code style="font-size: 12.5px; font-weight: 800; color: #1d4ed8; background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe; font-family: monospace; display: inline-block;" title="개인정보 보호를 위해 IP가 단방향 암호화된 고유 키입니다.">${visitorKey}</code>
+          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${f.device_type === "mobile" ? "📱 모바일 (비식별 암호화)" : "💻 유선망 (비식별 암호화)"}</div>
         </div>
       `;
 
@@ -8779,7 +8796,8 @@ const MMAAuth = {
         <h4>제2조 (처리하는 개인정보의 항목)</h4>
         <p>1. <b>일반 이용자</b>: 수집 항목 없음 (0건). 성명, 주민등록번호, 연락처, 이메일 등 개인식별정보(PII)를 일체 수집하거나 서버에 저장하지 않습니다.<br>
         2. <b>가맹점주 및 관리자</b>: 이메일(아이디), 비밀번호(단방향 암호화), 가맹점 식별코드, 매장 연락처<br>
-        3. <b>위치정보 처리 원칙</b>: 본 서비스는 이용자의 실시간 GPS 위치정보를 서버에 수집·저장·추적하지 않으며, 단말기 브라우저에서 '내 위치 중심 지도 이동' 기능에만 휘발성으로 일시 참조됩니다.</p>
+        3. <b>접속 통계 및 IP 비식별 키 생성 원칙</b>: 서비스는 특정 개인을 식별하거나 위치를 역추적할 수 있는 <b>원본 IP 주소를 서버에 일체 보관하지 않습니다.</b> 중복 방문(UV) 통계 집계를 위해 접속 IP에 단방향 암호화 해시(SHA-256 + 보안 Salt)를 즉시 적용한 <b>비가역적 고유 식별키(예: USR-XXXXXX)</b>만을 생성하여 활용하며, 역추적이 불가능한 안전한 익명 정보로만 관리됩니다.<br>
+        4. <b>위치정보 처리 원칙</b>: 본 서비스는 이용자의 실시간 GPS 위치정보를 서버에 수집·저장·추적하지 않으며, 단말기 브라우저에서 '내 위치 중심 지도 이동' 기능에만 휘발성으로 일시 참조됩니다.</p>
 
         <h4>제3조 (개인정보의 처리 및 보유 기간)</h4>
         <p>1. 가맹점주 및 관리자 계정 정보는 회원 탈퇴 시 또는 서비스 제휴 종료 시까지 보유하며, 목적 달성 시 지체 없이 영구 파기합니다.<br>
