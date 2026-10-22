@@ -1843,12 +1843,26 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+        def extract_clean_facility_id(raw_id):
+            if not raw_id:
+                return ""
+            s = str(raw_id).strip()
+            m = re.match(r"^(nara_\d+|mmg_\d+|fac_[a-zA-Z0-9_-]+)", s, re.IGNORECASE)
+            if m:
+                return m.group(1)
+            return s.split("____")[0].split("__")[0]
+
         try:
             # 1. Clicks per facility
             try:
                 c_rows = conn.execute(f"SELECT facility_id, COUNT(*) AS cnt FROM facility_click_events {click_where} GROUP BY facility_id", click_params).fetchall()
                 for r in c_rows:
-                    clicks_by_fac[str(r["facility_id"])] = int(r["cnt"] or 0)
+                    fid = str(r["facility_id"])
+                    cnt = int(r["cnt"] or 0)
+                    clean_fid = extract_clean_facility_id(fid)
+                    clicks_by_fac[fid] = clicks_by_fac.get(fid, 0) + cnt
+                    if clean_fid and clean_fid != fid:
+                        clicks_by_fac[clean_fid] = clicks_by_fac.get(clean_fid, 0) + cnt
             except Exception:
                 pass
 
@@ -1856,7 +1870,12 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             try:
                 q_rows = conn.execute(f"SELECT facility_id, COUNT(*) AS cnt FROM qr_scan_events {qr_where} GROUP BY facility_id", qr_params).fetchall()
                 for r in q_rows:
-                    qr_by_fac[str(r["facility_id"])] = int(r["cnt"] or 0)
+                    fid = str(r["facility_id"])
+                    cnt = int(r["cnt"] or 0)
+                    clean_fid = extract_clean_facility_id(fid)
+                    qr_by_fac[fid] = qr_by_fac.get(fid, 0) + cnt
+                    if clean_fid and clean_fid != fid:
+                        qr_by_fac[clean_fid] = qr_by_fac.get(clean_fid, 0) + cnt
             except Exception:
                 pass
 
@@ -1866,11 +1885,16 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 for r in a_rows:
                     fid = str(r["facility_id"])
                     atype = str(r["action_type"])
-                    c = int(r["cnt"] or 0)
+                    cnt = int(r["cnt"] or 0)
+                    clean_fid = extract_clean_facility_id(fid)
                     if atype == "like":
-                        likes_by_fac[fid] = c
+                        likes_by_fac[fid] = likes_by_fac.get(fid, 0) + cnt
+                        if clean_fid and clean_fid != fid:
+                            likes_by_fac[clean_fid] = likes_by_fac.get(clean_fid, 0) + cnt
                     elif atype == "favorite":
-                        favs_by_fac[fid] = c
+                        favs_by_fac[fid] = favs_by_fac.get(fid, 0) + cnt
+                        if clean_fid and clean_fid != fid:
+                            favs_by_fac[clean_fid] = favs_by_fac.get(clean_fid, 0) + cnt
             except Exception:
                 pass
         finally:
@@ -1879,13 +1903,14 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         # Build list of all facilities with engagement stats
         results = []
         for f in FACILITIES_LIST:
-            fid = f.get("facility_id", "")
+            fid = f.get("facility_id") or f.get("id") or ""
             if not fid:
                 continue
-            clicks = clicks_by_fac.get(fid, 0)
-            qrs = qr_by_fac.get(fid, 0)
-            likes = likes_by_fac.get(fid, 0)
-            favs = favs_by_fac.get(fid, 0)
+            clean_fid = extract_clean_facility_id(fid)
+            clicks = clicks_by_fac.get(clean_fid) or clicks_by_fac.get(fid, 0)
+            qrs = qr_by_fac.get(clean_fid) or qr_by_fac.get(fid, 0)
+            likes = likes_by_fac.get(clean_fid) or likes_by_fac.get(fid, 0)
+            favs = favs_by_fac.get(clean_fid) or favs_by_fac.get(fid, 0)
             tot = clicks + qrs + likes + favs
             results.append({
                 "facilityId": fid,

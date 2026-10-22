@@ -348,6 +348,14 @@ function formatKoreanAddress(rawAddr) {
   return s + parenPart;
 }
 
+function extractCleanFacilityId(rawId) {
+  if (!rawId) return "";
+  const s = String(rawId).trim();
+  const m = s.match(/^(nara_\d+|mmg_\d+|fac_[a-zA-Z0-9_-]+)/i);
+  if (m) return m[1];
+  return s.split("____")[0].split("__")[0] || s;
+}
+
 function getFacilityKey(point) {
   if (!point) return "";
   const fid = String(point.facilityId || point.id || "").trim();
@@ -4944,9 +4952,13 @@ async function bootstrap() {
             updateZoomLabel();
           }
           openDetailAfterMapMove(v, v.pos, marker);
+          const pureFid = v.facilityId || v.id || extractCleanFacilityId(selectedFacilityId);
           clickCountsById[selectedFacilityId] = getClickCount(selectedFacilityId) + 1;
+          if (pureFid && pureFid !== selectedFacilityId) {
+            clickCountsById[pureFid] = (clickCountsById[pureFid] || 0) + 1;
+          }
           renderRankPanel();
-          recordFacilityClick(selectedFacilityId)
+          recordFacilityClick(pureFid || selectedFacilityId)
             .then((resp) => {
               clickCountsById[selectedFacilityId] = Number(resp.clickCount || clickCountsById[selectedFacilityId] || 0);
               renderRankPanel();
@@ -6776,8 +6788,13 @@ const MMAAuth = {
 
       // 1. Page visits count
       let pvCountUrl = `${url}/page_visits?select=count`;
-      if (startTs != null && startTs > 0) pvCountUrl += `&visited_at=gte.${startTs}`;
-      if (endTs != null && endTs > 0) pvCountUrl += `&visited_at=lte.${endTs}`;
+      if (startTs != null && startTs > 0 && endTs != null && endTs > 0) {
+        pvCountUrl += `&and=(visited_at.gte.${startTs},visited_at.lte.${endTs})`;
+      } else if (startTs != null && startTs > 0) {
+        pvCountUrl += `&visited_at=gte.${startTs}`;
+      } else if (endTs != null && endTs > 0) {
+        pvCountUrl += `&visited_at=lte.${endTs}`;
+      }
       const pvRes = await fetch(pvCountUrl, { headers });
       const pvData = await pvRes.json();
       const totalPv = (pvData && pvData[0] && typeof pvData[0].count === "number") ? pvData[0].count : 0;
@@ -6838,8 +6855,13 @@ const MMAAuth = {
       const startOfMonthMs = startOfMonth.getTime();
 
       let recentUrl = `${url}/page_visits?select=id,visited_at,device_type,path,referrer,user_role,ip_hash,user_agent_short`;
-      if (startTs != null && startTs > 0) recentUrl += `&visited_at=gte.${startTs}`;
-      if (endTs != null && endTs > 0) recentUrl += `&visited_at=lte.${endTs}`;
+      if (startTs != null && startTs > 0 && endTs != null && endTs > 0) {
+        recentUrl += `&and=(visited_at.gte.${startTs},visited_at.lte.${endTs})`;
+      } else if (startTs != null && startTs > 0) {
+        recentUrl += `&visited_at=gte.${startTs}`;
+      } else if (endTs != null && endTs > 0) {
+        recentUrl += `&visited_at=lte.${endTs}`;
+      }
       recentUrl += `&order=visited_at.desc&limit=5000`;
       const recentAllRes = await fetch(recentUrl, { headers });
       const recentList = (await recentAllRes.json()) || [];
@@ -7069,34 +7091,61 @@ const MMAAuth = {
 
       // 2. Fetch clicks from Supabase with period filter
       let clickUrl = `${url}/facility_click_events?select=facility_id`;
-      if (startTs != null && startTs > 0) clickUrl += `&created_at=gte.${startTs}`;
-      if (endTs != null && endTs > 0) clickUrl += `&created_at=lte.${endTs}`;
+      if (startTs != null && startTs > 0 && endTs != null && endTs > 0) {
+        clickUrl += `&and=(created_at.gte.${startTs},created_at.lte.${endTs})`;
+      } else if (startTs != null && startTs > 0) {
+        clickUrl += `&created_at=gte.${startTs}`;
+      } else if (endTs != null && endTs > 0) {
+        clickUrl += `&created_at=lte.${endTs}`;
+      }
       const clickRes = await fetch(clickUrl, { headers });
       const clicks = (await clickRes.json()) || [];
       const clickCounts = {};
       if (Array.isArray(clicks)) {
         clicks.forEach(c => {
-          if (c.facility_id) clickCounts[c.facility_id] = (clickCounts[c.facility_id] || 0) + 1;
+          if (!c.facility_id) return;
+          const raw = String(c.facility_id).trim();
+          const clean = extractCleanFacilityId(raw);
+          clickCounts[raw] = (clickCounts[raw] || 0) + 1;
+          if (clean && clean !== raw) {
+            clickCounts[clean] = (clickCounts[clean] || 0) + 1;
+          }
         });
       }
 
       // 3. Fetch QR scans from Supabase with period filter
       let qrUrl = `${url}/qr_scan_events?select=facility_id`;
-      if (startTs != null && startTs > 0) qrUrl += `&created_at=gte.${startTs}`;
-      if (endTs != null && endTs > 0) qrUrl += `&created_at=lte.${endTs}`;
+      if (startTs != null && startTs > 0 && endTs != null && endTs > 0) {
+        qrUrl += `&and=(created_at.gte.${startTs},created_at.lte.${endTs})`;
+      } else if (startTs != null && startTs > 0) {
+        qrUrl += `&created_at=gte.${startTs}`;
+      } else if (endTs != null && endTs > 0) {
+        qrUrl += `&created_at=lte.${endTs}`;
+      }
       const qrRes = await fetch(qrUrl, { headers });
       const qrs = (await qrRes.json()) || [];
       const qrCounts = {};
       if (Array.isArray(qrs)) {
         qrs.forEach(q => {
-          if (q.facility_id) qrCounts[q.facility_id] = (qrCounts[q.facility_id] || 0) + 1;
+          if (!q.facility_id) return;
+          const raw = String(q.facility_id).trim();
+          const clean = extractCleanFacilityId(raw);
+          qrCounts[raw] = (qrCounts[raw] || 0) + 1;
+          if (clean && clean !== raw) {
+            qrCounts[clean] = (qrCounts[clean] || 0) + 1;
+          }
         });
       }
 
       // 4. Fetch likes/favorites from Supabase with period filter
       let actUrl = `${url}/facility_action_states?select=facility_id,action_type,active`;
-      if (startTs != null && startTs > 0) actUrl += `&updated_at=gte.${startTs}`;
-      if (endTs != null && endTs > 0) actUrl += `&updated_at=lte.${endTs}`;
+      if (startTs != null && startTs > 0 && endTs != null && endTs > 0) {
+        actUrl += `&and=(updated_at.gte.${startTs},updated_at.lte.${endTs})`;
+      } else if (startTs != null && startTs > 0) {
+        actUrl += `&updated_at=gte.${startTs}`;
+      } else if (endTs != null && endTs > 0) {
+        actUrl += `&updated_at=lte.${endTs}`;
+      }
       const actRes = await fetch(actUrl, { headers });
       const acts = (await actRes.json()) || [];
       const likeCounts = {};
@@ -7104,24 +7153,32 @@ const MMAAuth = {
       if (Array.isArray(acts)) {
         acts.forEach(a => {
           if (a.active === 1 && a.facility_id) {
-            if (a.action_type === 'like') likeCounts[a.facility_id] = (likeCounts[a.facility_id] || 0) + 1;
-            else if (a.action_type === 'favorite') favCounts[a.facility_id] = (favCounts[a.facility_id] || 0) + 1;
+            const raw = String(a.facility_id).trim();
+            const clean = extractCleanFacilityId(raw);
+            if (a.action_type === 'like') {
+              likeCounts[raw] = (likeCounts[raw] || 0) + 1;
+              if (clean && clean !== raw) likeCounts[clean] = (likeCounts[clean] || 0) + 1;
+            } else if (a.action_type === 'favorite') {
+              favCounts[raw] = (favCounts[raw] || 0) + 1;
+              if (clean && clean !== raw) favCounts[clean] = (favCounts[clean] || 0) + 1;
+            }
           }
         });
       }
 
       // 5. Build rich facilities list
-      let totalClicksSum = Array.isArray(clicks) && clicks.length > 0 ? clicks.length : 315;
-      let totalQrSum = Array.isArray(qrs) && qrs.length > 0 ? qrs.length : 885;
+      let totalClicksSum = Array.isArray(clicks) ? clicks.length : 0;
+      let totalQrSum = Array.isArray(qrs) ? qrs.length : 0;
       let totalLikesSum = 0;
       let totalFavSum = 0;
 
       const facilities = rawFacs.map(f => {
         const fid = f.facility_id || f.facilityId || f.id || "";
-        const c = clickCounts[fid] || 0;
-        const q = qrCounts[fid] || 0;
-        const l = likeCounts[fid] || 0;
-        const fav = favCounts[fid] || 0;
+        const cleanFid = extractCleanFacilityId(fid);
+        const c = clickCounts[cleanFid] || clickCounts[fid] || 0;
+        const q = qrCounts[cleanFid] || qrCounts[fid] || 0;
+        const l = likeCounts[cleanFid] || likeCounts[fid] || 0;
+        const fav = favCounts[cleanFid] || favCounts[fid] || 0;
         totalLikesSum += l;
         totalFavSum += fav;
 
