@@ -1631,21 +1631,45 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             month_uv_row = conn.execute("SELECT COUNT(DISTINCT ip_hash) AS cnt FROM page_visits WHERE visited_at >= ?", (month_start,)).fetchone()
             month_uv = int(month_uv_row["cnt"] or 0) if month_uv_row else 0
 
-            # 4. Daily stats (last 30 days)
+            # 4. Daily stats (Custom period or preset days)
+            start_ts = (q.get("start_ts") or [""])[0]
+            end_ts = (q.get("end_ts") or [""])[0]
+            days_param = (q.get("days") or [""])[0]
+
+            if start_ts and end_ts:
+                try:
+                    s_dt = datetime.datetime.fromtimestamp(int(start_ts) / 1000).date()
+                    e_dt = datetime.datetime.fromtimestamp(int(end_ts) / 1000).date()
+                except Exception:
+                    s_dt = (now - datetime.timedelta(days=29)).date()
+                    e_dt = now.date()
+            elif days_param:
+                try:
+                    num_d = min(365, max(1, int(days_param)))
+                    s_dt = (now - datetime.timedelta(days=num_d - 1)).date()
+                    e_dt = now.date()
+                except Exception:
+                    s_dt = (now - datetime.timedelta(days=29)).date()
+                    e_dt = now.date()
+            else:
+                s_dt = (now - datetime.timedelta(days=29)).date()
+                e_dt = now.date()
+
             daily_stats = []
-            for d in range(29, -1, -1):
-                day_date = (now - datetime.timedelta(days=d)).date()
-                day_start_ts = int(datetime.datetime(day_date.year, day_date.month, day_date.day).timestamp() * 1000)
+            cur_date = s_dt
+            while cur_date <= e_dt:
+                day_start_ts = int(datetime.datetime(cur_date.year, cur_date.month, cur_date.day).timestamp() * 1000)
                 day_end_ts = day_start_ts + (86400 * 1000)
                 d_row = conn.execute(
                     "SELECT COUNT(*) AS pv, COUNT(DISTINCT ip_hash) AS uv FROM page_visits WHERE visited_at >= ? AND visited_at < ?",
                     (day_start_ts, day_end_ts)
                 ).fetchone()
                 daily_stats.append({
-                    "date": day_date.strftime("%m.%d"),
+                    "date": cur_date.strftime("%m.%d"),
                     "pv": int(d_row["pv"] or 0) if d_row else 0,
                     "uv": int(d_row["uv"] or 0) if d_row else 0
                 })
+                cur_date += datetime.timedelta(days=1)
 
             # 5. Device Breakdown
             dev_rows = conn.execute("SELECT device_type, COUNT(*) AS cnt FROM page_visits GROUP BY device_type").fetchall()
@@ -1795,10 +1819,34 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         qr_by_fac = {}
         likes_by_fac = {}
         favs_by_fac = {}
+
+        start_ts = (q.get("start_ts") or [""])[0]
+        end_ts = (q.get("end_ts") or [""])[0]
+
+        click_where = ""
+        qr_where = ""
+        action_where = "WHERE active = 1"
+        click_params = []
+        qr_params = []
+        action_params = []
+
+        if start_ts and end_ts:
+            try:
+                s_ts = int(start_ts)
+                e_ts = int(end_ts)
+                click_where = "WHERE created_at >= ? AND created_at <= ?"
+                click_params = [s_ts, e_ts]
+                qr_where = "WHERE created_at >= ? AND created_at <= ?"
+                qr_params = [s_ts, e_ts]
+                action_where = "WHERE active = 1 AND updated_at >= ? AND updated_at <= ?"
+                action_params = [s_ts, e_ts]
+            except Exception:
+                pass
+
         try:
             # 1. Clicks per facility
             try:
-                c_rows = conn.execute("SELECT facility_id, COUNT(*) AS cnt FROM facility_click_events GROUP BY facility_id").fetchall()
+                c_rows = conn.execute(f"SELECT facility_id, COUNT(*) AS cnt FROM facility_click_events {click_where} GROUP BY facility_id", click_params).fetchall()
                 for r in c_rows:
                     clicks_by_fac[str(r["facility_id"])] = int(r["cnt"] or 0)
             except Exception:
@@ -1806,7 +1854,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
             # 2. QR Scans per facility
             try:
-                q_rows = conn.execute("SELECT facility_id, COUNT(*) AS cnt FROM qr_scan_events GROUP BY facility_id").fetchall()
+                q_rows = conn.execute(f"SELECT facility_id, COUNT(*) AS cnt FROM qr_scan_events {qr_where} GROUP BY facility_id", qr_params).fetchall()
                 for r in q_rows:
                     qr_by_fac[str(r["facility_id"])] = int(r["cnt"] or 0)
             except Exception:
@@ -1814,7 +1862,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
 
             # 3. Actions (Like / Favorite)
             try:
-                a_rows = conn.execute("SELECT facility_id, action_type, COUNT(*) AS cnt FROM facility_action_states WHERE active = 1 GROUP BY facility_id, action_type").fetchall()
+                a_rows = conn.execute(f"SELECT facility_id, action_type, COUNT(*) AS cnt FROM facility_action_states {action_where} GROUP BY facility_id, action_type", action_params).fetchall()
                 for r in a_rows:
                     fid = str(r["facility_id"])
                     atype = str(r["action_type"])

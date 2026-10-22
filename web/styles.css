@@ -7222,28 +7222,83 @@ button:active {
 }
 
 .periodFilterBtn,
-.adminPeriodBtn {
+.adminPeriodBtn,
+.adminFacPeriodBtn {
   background: transparent;
   border: none;
-  padding: 5px 12px;
+  padding: 5px 10px;
   font-size: 12px;
   font-weight: 700;
   color: #64748b;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .periodFilterBtn:hover,
-.adminPeriodBtn:hover {
+.adminPeriodBtn:hover,
+.adminFacPeriodBtn:hover {
   color: #1e293b;
 }
 
 .periodFilterBtn.active,
-.adminPeriodBtn.active {
+.adminPeriodBtn.active,
+.adminFacPeriodBtn.active {
   background: #ffffff;
   color: #2563eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 800;
+}
+
+.adminPeriodWrap,
+.adminFacDateBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.adminCustomDateRange {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+}
+
+.adminDateInput {
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #1e293b;
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+}
+
+.adminDateInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.adminDateApplyBtn {
+  height: 28px;
+  padding: 0 10px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.adminDateApplyBtn:hover {
+  background: #1d4ed8;
 }
 
 /* Pagination Row */

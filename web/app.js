@@ -6765,18 +6765,28 @@ const MMAAuth = {
     return `${base.replace(/\/+$/, '')}/rest/v1`;
   },
 
-  async fetchSupabaseDirectStats() {
+  async fetchSupabaseDirectStats(startTs = null, endTs = null) {
     try {
       const url = this.getSupabaseUrl();
       const headers = this.getSupabaseHeaders();
 
-      // 1. Page visits total count
-      const pvRes = await fetch(`${url}/page_visits?select=count`, { headers });
+      const now = new Date();
+      const effectiveEnd = (endTs != null && endTs > 0) ? Number(endTs) : now.getTime();
+      const effectiveStart = (startTs != null && startTs > 0) ? Number(startTs) : (effectiveEnd - 29 * 86400000);
+
+      // 1. Page visits count
+      let pvCountUrl = `${url}/page_visits?select=count`;
+      if (startTs != null && startTs > 0) pvCountUrl += `&visited_at=gte.${startTs}`;
+      if (endTs != null && endTs > 0) pvCountUrl += `&visited_at=lte.${endTs}`;
+      const pvRes = await fetch(pvCountUrl, { headers });
       const pvData = await pvRes.json();
       const totalPv = (pvData && pvData[0] && typeof pvData[0].count === "number") ? pvData[0].count : 0;
 
       // 2. QR scan events count
-      const qrRes = await fetch(`${url}/qr_scan_events?select=count`, { headers });
+      let qrCountUrl = `${url}/qr_scan_events?select=count`;
+      if (startTs != null && startTs > 0) qrCountUrl += `&created_at=gte.${startTs}`;
+      if (endTs != null && endTs > 0) qrCountUrl += `&created_at=lte.${endTs}`;
+      const qrRes = await fetch(qrCountUrl, { headers });
       const qrData = await qrRes.json();
       const totalQrs = (qrData && qrData[0] && typeof qrData[0].count === "number") ? qrData[0].count : 0;
 
@@ -6827,7 +6837,11 @@ const MMAAuth = {
       const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
       const startOfMonthMs = startOfMonth.getTime();
 
-      const recentAllRes = await fetch(`${url}/page_visits?select=id,visited_at,device_type,path,referrer,user_role,ip_hash,user_agent_short&order=visited_at.desc&limit=1000`, { headers });
+      let recentUrl = `${url}/page_visits?select=id,visited_at,device_type,path,referrer,user_role,ip_hash,user_agent_short`;
+      if (startTs != null && startTs > 0) recentUrl += `&visited_at=gte.${startTs}`;
+      if (endTs != null && endTs > 0) recentUrl += `&visited_at=lte.${endTs}`;
+      recentUrl += `&order=visited_at.desc&limit=5000`;
+      const recentAllRes = await fetch(recentUrl, { headers });
       const recentList = (await recentAllRes.json()) || [];
 
       // Helper for true unique visitor identification
@@ -6910,10 +6924,14 @@ const MMAAuth = {
         .sort((a,b) => b.count - a.count)
         .slice(0, 10);
 
-      // 6. Real 30-day chart data (no fake sine formulas)
+      // 6. Real dynamic daily chart data for requested period
+      const sDay = new Date(effectiveStart); sDay.setHours(0,0,0,0);
+      const eDay = new Date(effectiveEnd); eDay.setHours(0,0,0,0);
+      const diffDays = Math.max(1, Math.min(366, Math.round((eDay.getTime() - sDay.getTime()) / 86400000) + 1));
+
       const dayMap = {};
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date(startOfTodayMs - i * 86400000);
+      for (let i = 0; i < diffDays; i++) {
+        const d = new Date(sDay.getTime() + i * 86400000);
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
         const dateKey = `${m}.${day}`;
@@ -6936,8 +6954,8 @@ const MMAAuth = {
       }
 
       const daily = [];
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date(startOfTodayMs - i * 86400000);
+      for (let i = 0; i < diffDays; i++) {
+        const d = new Date(sDay.getTime() + i * 86400000);
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
         const dateKey = `${m}.${day}`;
@@ -7024,7 +7042,7 @@ const MMAAuth = {
     }
   },
 
-  async fetchSupabaseDirectFacilities() {
+  async fetchSupabaseDirectFacilities(startTs = null, endTs = null) {
     try {
       const url = this.getSupabaseUrl();
       const headers = this.getSupabaseHeaders();
@@ -7049,8 +7067,11 @@ const MMAAuth = {
         rawFacs = [];
       }
 
-      // 2. Fetch all clicks from Supabase
-      const clickRes = await fetch(`${url}/facility_click_events?select=facility_id`, { headers });
+      // 2. Fetch clicks from Supabase with period filter
+      let clickUrl = `${url}/facility_click_events?select=facility_id`;
+      if (startTs != null && startTs > 0) clickUrl += `&created_at=gte.${startTs}`;
+      if (endTs != null && endTs > 0) clickUrl += `&created_at=lte.${endTs}`;
+      const clickRes = await fetch(clickUrl, { headers });
       const clicks = (await clickRes.json()) || [];
       const clickCounts = {};
       if (Array.isArray(clicks)) {
@@ -7059,8 +7080,11 @@ const MMAAuth = {
         });
       }
 
-      // 3. Fetch all QR scans from Supabase
-      const qrRes = await fetch(`${url}/qr_scan_events?select=facility_id`, { headers });
+      // 3. Fetch QR scans from Supabase with period filter
+      let qrUrl = `${url}/qr_scan_events?select=facility_id`;
+      if (startTs != null && startTs > 0) qrUrl += `&created_at=gte.${startTs}`;
+      if (endTs != null && endTs > 0) qrUrl += `&created_at=lte.${endTs}`;
+      const qrRes = await fetch(qrUrl, { headers });
       const qrs = (await qrRes.json()) || [];
       const qrCounts = {};
       if (Array.isArray(qrs)) {
@@ -7069,8 +7093,11 @@ const MMAAuth = {
         });
       }
 
-      // 4. Fetch all likes/favorites from Supabase
-      const actRes = await fetch(`${url}/facility_action_states?select=facility_id,action_type,active`, { headers });
+      // 4. Fetch likes/favorites from Supabase with period filter
+      let actUrl = `${url}/facility_action_states?select=facility_id,action_type,active`;
+      if (startTs != null && startTs > 0) actUrl += `&updated_at=gte.${startTs}`;
+      if (endTs != null && endTs > 0) actUrl += `&updated_at=lte.${endTs}`;
+      const actRes = await fetch(actUrl, { headers });
       const acts = (await actRes.json()) || [];
       const likeCounts = {};
       const favCounts = {};
@@ -7148,9 +7175,24 @@ const MMAAuth = {
     const tab = targetTab || this.currentAdminTab || "analytics";
     this.switchAdminTab(tab);
 
+    // Initialize date inputs to default 30d
+    const defRange = this.getPeriodRange("30d");
+    const sAna = document.getElementById("adminAnalyticsStartDate");
+    const eAna = document.getElementById("adminAnalyticsEndDate");
+    if (sAna && !sAna.value) sAna.value = defRange.startDateStr;
+    if (eAna && !eAna.value) eAna.value = defRange.endDateStr;
+
+    const sFac = document.getElementById("adminFacStartDate");
+    const eFac = document.getElementById("adminFacEndDate");
+    if (sFac && !sFac.value) sFac.value = defRange.startDateStr;
+    if (eFac && !eFac.value) eFac.value = defRange.endDateStr;
+
+    this.adminFacCurrentStartTs = defRange.startTs;
+    this.adminFacCurrentEndTs = defRange.endTs;
+
     // Load real stats directly from Supabase
     try {
-      const directStats = await this.fetchSupabaseDirectStats();
+      const directStats = await this.fetchSupabaseDirectStats(defRange.startTs, defRange.endTs);
       if (directStats) {
         this.renderAdminStats(directStats);
       }
@@ -7200,10 +7242,18 @@ const MMAAuth = {
     }
   },
 
-  async fetchAdminFacilities(adminKey = "") {
+  async fetchAdminFacilities(adminKey = "", startTs = null, endTs = null) {
     try {
-      const key = adminKey || (this.user && this.user.role === "admin" ? "" : "demo");
-      const url = key ? `/api/admin/facilities?admin_key=${encodeURIComponent(key)}` : "/api/admin/facilities";
+      const key = adminKey || this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
+      const effectiveStart = startTs != null ? startTs : (this.adminFacCurrentStartTs != null ? this.adminFacCurrentStartTs : null);
+      const effectiveEnd = endTs != null ? endTs : (this.adminFacCurrentEndTs != null ? this.adminFacCurrentEndTs : null);
+
+      const params = [];
+      if (key) params.push("admin_key=" + encodeURIComponent(key));
+      if (effectiveStart != null && effectiveStart > 0) params.push("start_ts=" + effectiveStart);
+      if (effectiveEnd != null && effectiveEnd > 0) params.push("end_ts=" + effectiveEnd);
+      const queryString = params.length > 0 ? "?" + params.join("&") : "";
+      const url = `/api/admin/facilities${queryString}`;
       const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
 
       let data = null;
@@ -7216,7 +7266,7 @@ const MMAAuth = {
       } catch (_e) {}
 
       if (!data || !data.ok) {
-        data = await this.fetchSupabaseDirectFacilities();
+        data = await this.fetchSupabaseDirectFacilities(effectiveStart, effectiveEnd);
       }
 
       if (data && data.ok && Array.isArray(data.facilities)) {
@@ -7579,15 +7629,7 @@ const MMAAuth = {
 
     // Daily Chart with period support
     this.adminStatsRaw = stats;
-    this.adminPeriod = this.adminPeriod || "30d";
-    const numDays = this.adminPeriod === "7d" ? 7 : (this.adminPeriod === "180d" ? 180 : 30);
-    const pBtns = document.querySelectorAll(".adminPeriodBtn");
-    pBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === this.adminPeriod));
-    const titleEl = document.getElementById("adminChartTitle");
-    if (titleEl) {
-      titleEl.textContent = `최근 ${numDays === 30 ? "30일(1달)" : (numDays === 180 ? "6개월" : "7일")} 접속 추이 (페이지뷰 및 순 방문자)`;
-    }
-    this.renderAdminDailyChart(stats.daily, numDays);
+    this.renderAdminDailyChart(stats.daily);
 
     // Devices
     if (devContainer && stats.devices) {
@@ -7627,37 +7669,185 @@ const MMAAuth = {
     }
   },
 
-  changeAdminPeriod(periodKey) {
+  getPeriodRange(periodKey) {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    if (periodKey === "1d") {
+      // 오늘 1일 (00:00:00 ~ 23:59:59)
+    } else if (periodKey === "7d") {
+      start.setDate(start.getDate() - 6);
+    } else if (periodKey === "30d") {
+      start.setDate(start.getDate() - 29);
+    } else if (periodKey === "90d") {
+      start.setDate(start.getDate() - 89);
+    } else if (periodKey === "180d") {
+      start.setDate(start.getDate() - 179);
+    } else if (periodKey === "365d") {
+      start.setDate(start.getDate() - 364);
+    } else if (periodKey === "all") {
+      return {
+        startTs: 0,
+        endTs: end.getTime(),
+        startDateStr: "",
+        endDateStr: ""
+      };
+    }
+
+    const pad = (n) => String(n).padStart(2, "0");
+    const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    return {
+      startTs: start.getTime(),
+      endTs: end.getTime(),
+      startDateStr: fmt(start),
+      endDateStr: fmt(end)
+    };
+  },
+
+  async changeAdminPeriod(periodKey) {
     this.adminPeriod = periodKey;
     const btns = document.querySelectorAll(".adminPeriodBtn");
     btns.forEach(b => b.classList.toggle("active", b.getAttribute("data-period") === periodKey));
 
-    const numDays = periodKey === "7d" ? 7 : (periodKey === "180d" ? 180 : 30);
+    const range = this.getPeriodRange(periodKey);
+    const sInput = document.getElementById("adminAnalyticsStartDate");
+    const eInput = document.getElementById("adminAnalyticsEndDate");
+    if (sInput && range.startDateStr) sInput.value = range.startDateStr;
+    if (eInput && range.endDateStr) eInput.value = range.endDateStr;
+
+    const labelMap = {
+      "1d": "오늘(1일)",
+      "7d": "최근 7일",
+      "30d": "최근 30일(1달)",
+      "90d": "최근 3개월",
+      "180d": "최근 6개월",
+      "365d": "최근 1년"
+    };
     const titleEl = document.getElementById("adminChartTitle");
     if (titleEl) {
-      titleEl.textContent = `최근 ${numDays === 30 ? "30일(1달)" : (numDays === 180 ? "6개월" : "7일")} 접속 추이 (페이지뷰 및 순 방문자)`;
+      titleEl.textContent = `${labelMap[periodKey] || "선택 기간"} 접속 추이 (페이지뷰 및 순 방문자)`;
     }
 
-    if (this.adminStatsRaw && this.adminStatsRaw.daily) {
-      this.renderAdminDailyChart(this.adminStatsRaw.daily, numDays);
+    await this.loadAdminAnalyticsStats(range.startTs, range.endTs);
+  },
+
+  async applyAdminAnalyticsCustomDate() {
+    const sInput = document.getElementById("adminAnalyticsStartDate");
+    const eInput = document.getElementById("adminAnalyticsEndDate");
+    if (!sInput || !eInput || !sInput.value || !eInput.value) {
+      alert("시작일과 종료일을 모두 선택해 주세요.");
+      return;
+    }
+    const startD = new Date(sInput.value + "T00:00:00");
+    const endD = new Date(eInput.value + "T23:59:59.999");
+    if (startD.getTime() > endD.getTime()) {
+      alert("시작일은 종료일보다 이전이어야 합니다.");
+      return;
+    }
+
+    const btns = document.querySelectorAll(".adminPeriodBtn");
+    btns.forEach(b => b.classList.remove("active"));
+    this.adminPeriod = "custom";
+
+    const titleEl = document.getElementById("adminChartTitle");
+    if (titleEl) {
+      titleEl.textContent = `${sInput.value} ~ ${eInput.value} 접속 추이 (페이지뷰 및 순 방문자)`;
+    }
+
+    await this.loadAdminAnalyticsStats(startD.getTime(), endD.getTime());
+  },
+
+  async loadAdminAnalyticsStats(startTs, endTs) {
+    let stats = null;
+    try {
+      const key = this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
+      let url = `/api/admin/stats?start_ts=${startTs}&end_ts=${endTs}`;
+      if (key) url += `&admin_key=${encodeURIComponent(key)}`;
+      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.ok && json.stats) {
+          stats = json.stats;
+        }
+      }
+    } catch (_e) {}
+
+    if (!stats) {
+      stats = await this.fetchSupabaseDirectStats(startTs, endTs);
+    }
+
+    if (stats) {
+      this.renderAdminStats(stats);
     }
   },
 
-  renderAdminDailyChart(dailyData = [], numDays = 30) {
+  async changeAdminFacPeriod(periodKey) {
+    this.adminFacPeriod = periodKey;
+    const btns = document.querySelectorAll(".adminFacPeriodBtn");
+    btns.forEach(b => b.classList.toggle("active", b.getAttribute("data-fac-period") === periodKey));
+
+    const range = this.getPeriodRange(periodKey);
+    const sInput = document.getElementById("adminFacStartDate");
+    const eInput = document.getElementById("adminFacEndDate");
+    if (sInput) sInput.value = range.startDateStr;
+    if (eInput) eInput.value = range.endDateStr;
+
+    this.adminFacCurrentStartTs = range.startTs;
+    this.adminFacCurrentEndTs = range.endTs;
+    await this.fetchAdminFacilities("", range.startTs, range.endTs);
+  },
+
+  async applyAdminFacCustomDate() {
+    const sInput = document.getElementById("adminFacStartDate");
+    const eInput = document.getElementById("adminFacEndDate");
+    if (!sInput || !eInput || !sInput.value || !eInput.value) {
+      alert("시작일과 종료일을 모두 선택해 주세요.");
+      return;
+    }
+    const startD = new Date(sInput.value + "T00:00:00");
+    const endD = new Date(eInput.value + "T23:59:59.999");
+    if (startD.getTime() > endD.getTime()) {
+      alert("시작일은 종료일보다 이전이어야 합니다.");
+      return;
+    }
+
+    const btns = document.querySelectorAll(".adminFacPeriodBtn");
+    btns.forEach(b => b.classList.remove("active"));
+    this.adminFacPeriod = "custom";
+
+    this.adminFacCurrentStartTs = startD.getTime();
+    this.adminFacCurrentEndTs = endD.getTime();
+    await this.fetchAdminFacilities("", startD.getTime(), endD.getTime());
+  },
+
+  renderAdminDailyChart(dailyData = [], numDays = null) {
     const chartContainer = document.getElementById("adminDailyChartContainer");
     if (!chartContainer || !Array.isArray(dailyData)) return;
 
-    const daysCount = Number(numDays) || 30;
-    const sliced = dailyData.slice(-daysCount);
-    const maxPv = Math.max(...sliced.map((d) => d.pv), 10);
+    const sliced = (numDays != null && numDays > 0) ? dailyData.slice(-numDays) : dailyData;
+    const maxPv = Math.max(...sliced.map((d) => d.pv || 0), 10);
     const todayStr = new Date().toISOString().slice(5, 10).replace("-", ".");
+    const count = sliced.length;
+    let minWidth = "28px";
+    if (count <= 3) minWidth = "60px";
+    else if (count <= 7) minWidth = "48px";
+    else if (count <= 14) minWidth = "36px";
+    else if (count <= 31) minWidth = "28px";
+    else if (count <= 90) minWidth = "22px";
+    else minWidth = "18px";
+
     chartContainer.innerHTML = sliced
       .map((d, idx) => {
         const isToday = idx === sliced.length - 1 || d.date === todayStr;
-        const heightPercent = Math.max(8, Math.round((d.pv / maxPv) * 100));
+        const pvVal = d.pv || 0;
+        const heightPercent = Math.max(8, Math.round((pvVal / maxPv) * 100));
         return `
-          <div class="adminChartBarCol ${isToday ? 'today' : ''}" style="${daysCount === 180 ? 'min-width: 24px;' : ''}">
-            <span class="adminChartBarVal">${d.pv > 0 ? d.pv : ''}</span>
+          <div class="adminChartBarCol ${isToday ? 'today' : ''}" style="min-width: ${minWidth};">
+            <span class="adminChartBarVal">${pvVal > 0 ? pvVal : ''}</span>
             <div class="adminChartBarPv" style="height: ${heightPercent}%;"></div>
             <span class="adminChartBarLabel">${d.date}${isToday ? '<br><b style="color:#d97706;">오늘</b>' : ''}</span>
           </div>
