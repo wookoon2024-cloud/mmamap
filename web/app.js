@@ -7728,7 +7728,7 @@ const MMAAuth = {
     };
     const titleEl = document.getElementById("adminChartTitle");
     if (titleEl) {
-      titleEl.textContent = `${labelMap[periodKey] || "선택 기간"} 접속 추이 (페이지뷰 및 순 방문자)`;
+      titleEl.textContent = `${labelMap[periodKey] || "선택 기간"} 접속 추이 (페이지뷰 · 순방문자)`;
     }
 
     await this.loadAdminAnalyticsStats(range.startTs, range.endTs);
@@ -7754,7 +7754,7 @@ const MMAAuth = {
 
     const titleEl = document.getElementById("adminChartTitle");
     if (titleEl) {
-      titleEl.textContent = `${sInput.value} ~ ${eInput.value} 접속 추이 (페이지뷰 및 순 방문자)`;
+      titleEl.textContent = `${sInput.value} ~ ${eInput.value} 접속 추이 (페이지뷰 · 순방문자)`;
     }
 
     await this.loadAdminAnalyticsStats(startD.getTime(), endD.getTime());

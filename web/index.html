@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" />
-    <link rel="stylesheet" href="./styles.css?v=64.4" />
+    <link rel="stylesheet" href="./styles.css?v=64.5" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   </head>
   <body>
@@ -639,9 +639,9 @@
 
           <!-- Period Filter & Chart -->
           <div class="adminStatsCard">
-            <div class="adminStatsCardHead" style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <h4 id="adminChartTitle">최근 30일 접속 추이 (페이지뷰 및 순 방문자)</h4>
+            <div class="adminStatsCardHead">
+              <div style="flex-shrink: 0; min-width: 250px;">
+                <h4 id="adminChartTitle">최근 30일 접속 추이 (페이지뷰 · 순방문자)</h4>
                 <span class="adminStatsCardSub">실시간 집계 데이터</span>
               </div>
               <div class="adminPeriodWrap">
@@ -775,21 +775,21 @@
         <!-- TAB 3: Store-level Analytics & Stats (가맹점별 통계) -->
         <div id="adminTabFacilities" class="adminTabContent hidden">
           <!-- Date Range Control Bar for Facilities -->
-          <div class="adminFacDateBar" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 15px;">📅</span>
-              <strong style="font-size: 13.5px; color: #1e293b;">조회 기간 설정</strong>
-              <span style="font-size: 12px; color: #64748b;">(기간별 가맹점 조회수 · QR스캔 · 좋아요 · 찜 집계)</span>
+          <div class="adminFacDateBar">
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;">
+              <span style="font-size: 14px;">📅</span>
+              <strong style="font-size: 13px; color: #1e293b;">조회 기간</strong>
+              <span style="font-size: 11.5px; color: #64748b;">(가맹점 지표 집계)</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: nowrap;">
               <div class="periodBtnGroup">
-                <button type="button" class="adminFacPeriodBtn" data-period="1d" onclick="window.MMAAuth.changeAdminFacPeriod('1d')">1일</button>
-                <button type="button" class="adminFacPeriodBtn" data-period="7d" onclick="window.MMAAuth.changeAdminFacPeriod('7d')">7일</button>
-                <button type="button" class="adminFacPeriodBtn" data-period="30d" onclick="window.MMAAuth.changeAdminFacPeriod('30d')">30일</button>
-                <button type="button" class="adminFacPeriodBtn" data-period="90d" onclick="window.MMAAuth.changeAdminFacPeriod('90d')">3개월</button>
-                <button type="button" class="adminFacPeriodBtn" data-period="180d" onclick="window.MMAAuth.changeAdminFacPeriod('180d')">6개월</button>
-                <button type="button" class="adminFacPeriodBtn" data-period="365d" onclick="window.MMAAuth.changeAdminFacPeriod('365d')">1년</button>
-                <button type="button" class="adminFacPeriodBtn active" data-period="all" onclick="window.MMAAuth.changeAdminFacPeriod('all')">전체</button>
+                <button type="button" class="adminFacPeriodBtn" data-fac-period="1d" onclick="window.MMAAuth.changeAdminFacPeriod('1d')">1일</button>
+                <button type="button" class="adminFacPeriodBtn" data-fac-period="7d" onclick="window.MMAAuth.changeAdminFacPeriod('7d')">7일</button>
+                <button type="button" class="adminFacPeriodBtn" data-fac-period="30d" onclick="window.MMAAuth.changeAdminFacPeriod('30d')">30일</button>
+                <button type="button" class="adminFacPeriodBtn" data-fac-period="90d" onclick="window.MMAAuth.changeAdminFacPeriod('90d')">3개월</button>
+                <button type="button" class="adminFacPeriodBtn" data-fac-period="180d" onclick="window.MMAAuth.changeAdminFacPeriod('180d')">6개월</button>
+                <button type="button" class="adminFacPeriodBtn" data-fac-period="365d" onclick="window.MMAAuth.changeAdminFacPeriod('365d')">1년</button>
+                <button type="button" class="adminFacPeriodBtn active" data-fac-period="all" onclick="window.MMAAuth.changeAdminFacPeriod('all')">전체</button>
               </div>
               <div class="adminCustomDateRange">
                 <input type="date" id="adminFacStartDate" class="adminDateInput" />
@@ -1180,6 +1180,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./supabase-client.js?v=160"></script>
-    <script src="./app.js?v=182.0"></script>
+    <script src="./app.js?v=182.1"></script>
   </body>
 </html>
