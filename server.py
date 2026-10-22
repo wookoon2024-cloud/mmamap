@@ -1671,8 +1671,29 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 })
                 cur_date += datetime.timedelta(days=1)
 
-            # 5. Device Breakdown
-            dev_rows = conn.execute("SELECT device_type, COUNT(*) AS cnt FROM page_visits GROUP BY device_type").fetchall()
+            # Period-specific WHERE clause for devices, paths, recent logs
+            pv_where = ""
+            pv_params = []
+            if start_ts and end_ts:
+                try:
+                    s_ts = int(start_ts)
+                    e_ts = int(end_ts)
+                    pv_where = "WHERE visited_at >= ? AND visited_at <= ?"
+                    pv_params = [s_ts, e_ts]
+                except Exception:
+                    pass
+            elif days_param:
+                try:
+                    num_d = min(365, max(1, int(days_param)))
+                    s_ts = int((now - datetime.timedelta(days=num_d - 1)).replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000)
+                    e_ts = int(now.timestamp() * 1000)
+                    pv_where = "WHERE visited_at >= ? AND visited_at <= ?"
+                    pv_params = [s_ts, e_ts]
+                except Exception:
+                    pass
+
+            # 5. Device Breakdown (filtered by period)
+            dev_rows = conn.execute(f"SELECT device_type, COUNT(*) AS cnt FROM page_visits {pv_where} GROUP BY device_type", pv_params).fetchall()
             device_breakdown = {"mobile": 0, "desktop": 0, "tablet": 0}
             for r in dev_rows:
                 dev = str(r["device_type"] or "desktop").lower()
@@ -1693,18 +1714,21 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                     user_counts[role] += c
 
             # 7. Total QR Scans
-            qr_total_row = conn.execute("SELECT COUNT(*) AS cnt FROM qr_scan_events").fetchone()
+            qr_where = pv_where.replace("visited_at", "created_at") if pv_where else ""
+            qr_total_row = conn.execute(f"SELECT COUNT(*) AS cnt FROM qr_scan_events {qr_where}", pv_params).fetchone()
             total_qr_scans = int(qr_total_row["cnt"] or 0) if qr_total_row else 0
 
-            # 8. Top Visited Paths
+            # 8. Top Visited Paths (filtered by period)
             top_paths_rows = conn.execute(
-                "SELECT path, COUNT(*) AS cnt FROM page_visits GROUP BY path ORDER BY cnt DESC LIMIT 10"
+                f"SELECT path, COUNT(*) AS cnt FROM page_visits {pv_where} GROUP BY path ORDER BY cnt DESC LIMIT 10",
+                pv_params
             ).fetchall()
             top_paths = [{"path": str(r["path"] or "/"), "count": int(r["cnt"] or 0)} for r in top_paths_rows]
 
-            # 9. Recent 10 Page Visits
+            # 9. Recent Page Visits (filtered by period)
             recent_rows = conn.execute(
-                "SELECT visited_at, path, referrer, device_type, user_role FROM page_visits ORDER BY visited_at DESC LIMIT 10"
+                f"SELECT visited_at, path, referrer, device_type, user_role FROM page_visits {pv_where} ORDER BY visited_at DESC LIMIT 15",
+                pv_params
             ).fetchall()
             recent_visits = [
                 {
@@ -1717,6 +1741,16 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 for r in recent_rows
             ]
 
+            # Period-specific total PV and UV
+            if pv_where:
+                period_pv_row = conn.execute(f"SELECT COUNT(*) AS cnt FROM page_visits {pv_where}", pv_params).fetchone()
+                period_pv = int(period_pv_row["cnt"] or 0) if period_pv_row else 0
+                period_uv_row = conn.execute(f"SELECT COUNT(DISTINCT ip_hash) AS cnt FROM page_visits {pv_where}", pv_params).fetchone()
+                period_uv = int(period_uv_row["cnt"] or 0) if period_uv_row else 0
+            else:
+                period_pv = total_pv
+                period_uv = total_uv
+
         finally:
             conn.close()
 
@@ -1725,6 +1759,8 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             "stats": {
                 "totalPageviews": total_pv,
                 "totalUniqueVisitors": total_uv,
+                "periodPageviews": period_pv,
+                "periodUniqueVisitors": period_uv,
                 "todayPageviews": today_pv,
                 "todayUniqueVisitors": today_uv,
                 "monthPageviews": month_pv,

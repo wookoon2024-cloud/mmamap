@@ -6844,8 +6844,17 @@ const MMAAuth = {
         this.renderAdminMembersTable();
       }
 
-      // 4. Recent 10 logs for table
-      const logRes = await fetch(`${url}/page_visits?select=*&order=visited_at.desc&limit=10`, { headers });
+      // 4. Recent logs for table (filtered by period)
+      let logUrl = `${url}/page_visits?select=*`;
+      if (startTs != null && startTs > 0 && endTs != null && endTs > 0) {
+        logUrl += `&and=(visited_at.gte.${startTs},visited_at.lte.${endTs})`;
+      } else if (startTs != null && startTs > 0) {
+        logUrl += `&visited_at=gte.${startTs}`;
+      } else if (endTs != null && endTs > 0) {
+        logUrl += `&visited_at=lte.${endTs}`;
+      }
+      logUrl += `&order=visited_at.desc&limit=15`;
+      const logRes = await fetch(logUrl, { headers });
       const recentLogs = (await logRes.json()) || [];
 
       // 5. Recent 1000 real logs for device / path stats, today/month & 30-day chart
@@ -7021,6 +7030,8 @@ const MMAAuth = {
       return {
         totalPageviews: totalPv,
         totalUniqueVisitors: totalUv,
+        periodPageviews: totalPv,
+        periodUniqueVisitors: totalUv,
         todayPageviews: todayPv,
         todayUniqueVisitors: todayUv,
         monthPageviews: monthPv,
@@ -7680,6 +7691,24 @@ const MMAAuth = {
   renderAdminStats(stats) {
     const totalPv = document.getElementById("adminTotalPv");
     const totalUv = document.getElementById("adminTotalUv");
+    const totalPvLabel = document.getElementById("adminTotalPvLabel");
+    if (totalPvLabel) {
+      const labelMap = {
+        "1d": "금일(1일) 페이지뷰",
+        "7d": "최근 7일 페이지뷰",
+        "30d": "최근 30일 페이지뷰",
+        "90d": "최근 3개월 페이지뷰",
+        "180d": "최근 6개월 페이지뷰",
+        "365d": "최근 1년 페이지뷰"
+      };
+      if (this.adminPeriod && labelMap[this.adminPeriod]) {
+        totalPvLabel.textContent = labelMap[this.adminPeriod];
+      } else if (this.adminPeriod === "custom") {
+        totalPvLabel.textContent = "선택 기간 페이지뷰";
+      } else {
+        totalPvLabel.textContent = "총 누적 페이지뷰";
+      }
+    }
     const todayPv = document.getElementById("adminTodayPv");
     const todayUv = document.getElementById("adminTodayUv");
     const monthPv = document.getElementById("adminMonthPv");
@@ -7691,8 +7720,10 @@ const MMAAuth = {
     const pathContainer = document.getElementById("adminTopPathsList");
     const tableBody = document.getElementById("adminRecentVisitsBody");
 
-    if (totalPv) totalPv.innerHTML = `${(stats.totalPageviews || 0).toLocaleString()}<small>PV</small>`;
-    if (totalUv) totalUv.textContent = `순 방문자 ${(stats.totalUniqueVisitors || 0).toLocaleString()} UV`;
+    const effectivePv = (stats.periodPageviews != null) ? stats.periodPageviews : (stats.totalPageviews || 0);
+    const effectiveUv = (stats.periodUniqueVisitors != null) ? stats.periodUniqueVisitors : (stats.totalUniqueVisitors || 0);
+    if (totalPv) totalPv.innerHTML = `${effectivePv.toLocaleString()}<small>PV</small>`;
+    if (totalUv) totalUv.textContent = `순 방문자 ${effectiveUv.toLocaleString()} UV`;
     if (todayPv) todayPv.innerHTML = `${(stats.todayPageviews || 0).toLocaleString()}<small>PV</small>`;
     if (todayUv) todayUv.textContent = `순 방문자 ${(stats.todayUniqueVisitors || 0).toLocaleString()} UV`;
     if (monthPv) monthPv.innerHTML = `${(stats.monthPageviews || 0).toLocaleString()}<small>PV</small>`;
@@ -7719,27 +7750,35 @@ const MMAAuth = {
     }
 
     // Top Paths
-    if (pathContainer && stats.topPaths) {
-      pathContainer.innerHTML = stats.topPaths
-        .map((p) => `<div class="adminPathItem"><strong>${this.escapeHtml(p.path)}</strong><span>${p.count}회</span></div>`)
-        .join("");
+    if (pathContainer) {
+      if (Array.isArray(stats.topPaths) && stats.topPaths.length > 0) {
+        pathContainer.innerHTML = stats.topPaths
+          .map((p) => `<div class="adminPathItem"><strong>${this.escapeHtml(p.path)}</strong><span>${p.count}회</span></div>`)
+          .join("");
+      } else {
+        pathContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #94a3b8; font-size: 13px;">선택한 기간에 접속 경로 기록이 없습니다.</div>`;
+      }
     }
 
     // Recent visits table
-    if (tableBody && stats.recentVisits) {
-      tableBody.innerHTML = stats.recentVisits
-        .map(
-          (v) => `
-          <tr>
-            <td>${this.escapeHtml(v.time)}</td>
-            <td><code>${this.escapeHtml(v.path)}</code></td>
-            <td>${this.escapeHtml(v.referrer)}</td>
-            <td>${this.escapeHtml(v.device)}</td>
-            <td><span class="adminBadge">${this.escapeHtml(v.role)}</span></td>
-          </tr>
-        `
-        )
-        .join("");
+    if (tableBody) {
+      if (Array.isArray(stats.recentVisits) && stats.recentVisits.length > 0) {
+        tableBody.innerHTML = stats.recentVisits
+          .map(
+            (v) => `
+            <tr>
+              <td>${this.escapeHtml(v.time)}</td>
+              <td><code>${this.escapeHtml(v.path)}</code></td>
+              <td>${this.escapeHtml(v.referrer)}</td>
+              <td>${this.escapeHtml(v.device)}</td>
+              <td><span class="adminBadge">${this.escapeHtml(v.role)}</span></td>
+            </tr>
+          `
+          )
+          .join("");
+      } else {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;">선택하신 기간에 기록된 접속 내역이 없습니다.</td></tr>`;
+      }
     }
   },
 
