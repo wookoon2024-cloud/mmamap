@@ -610,10 +610,23 @@ async function bootstrap() {
     try {
       existing = String(localStorage.getItem(LS_CLIENT_TOKEN_KEY) || sessionStorage.getItem(LS_CLIENT_TOKEN_KEY) || "").trim();
     } catch (_e) {}
+    if (!existing) {
+      try {
+        const match = document.cookie.match(/(?:^|;\s*)mma_client_token=([^;]+)/);
+        if (match && match[1]) existing = decodeURIComponent(match[1]).trim();
+      } catch (_e) {}
+    }
     if (existing) {
       try {
         localStorage.setItem(LS_CLIENT_TOKEN_KEY, existing);
         sessionStorage.setItem(LS_CLIENT_TOKEN_KEY, existing);
+      } catch (_e) {}
+      try {
+        const maxAge = 60 * 60 * 24 * 365;
+        if (window.location.hostname.includes("mmasv.kr")) {
+          document.cookie = `mma_client_token=${encodeURIComponent(existing)}; Domain=.mmasv.kr; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+        }
+        document.cookie = `mma_client_token=${encodeURIComponent(existing)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
       } catch (_e) {}
       return existing;
     }
@@ -621,6 +634,13 @@ async function bootstrap() {
     try {
       localStorage.setItem(LS_CLIENT_TOKEN_KEY, created);
       sessionStorage.setItem(LS_CLIENT_TOKEN_KEY, created);
+    } catch (_e) {}
+    try {
+      const maxAge = 60 * 60 * 24 * 365;
+      if (window.location.hostname.includes("mmasv.kr")) {
+        document.cookie = `mma_client_token=${encodeURIComponent(created)}; Domain=.mmasv.kr; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+      }
+      document.cookie = `mma_client_token=${encodeURIComponent(created)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
     } catch (_e) {}
     return created;
   };
@@ -999,16 +1019,40 @@ async function bootstrap() {
 
   let isIntroDismissed = false;
 
-  const closeIntroPopup = async (saveDismiss = false) => {
-    if (saveDismiss && introNeverCheckEl?.checked) {
-      isIntroDismissed = true;
+  const checkIntroDismissed = () => {
+    if (isIntroDismissed) return true;
+    try {
+      if (localStorage.getItem(LS_INTRO_DISMISS_KEY) === "true") return true;
+      if (localStorage.getItem("mma_intro_dismissed") === "true") return true;
+      if (sessionStorage.getItem(LS_INTRO_DISMISS_KEY) === "true") return true;
+      if (sessionStorage.getItem("mma_intro_session_dismissed") === "true") return true;
+    } catch (_e) {}
+    try {
+      if (/(?:^|;\s*)mma_intro_dismissed=1/.test(document.cookie)) return true;
+    } catch (_e) {}
+    return false;
+  };
+
+  const setIntroDismissedPermanent = (dismissed = true) => {
+    isIntroDismissed = dismissed;
+    if (dismissed) {
       try {
         localStorage.setItem(LS_INTRO_DISMISS_KEY, "true");
+        localStorage.setItem("mma_intro_dismissed", "true");
+        sessionStorage.setItem(LS_INTRO_DISMISS_KEY, "true");
+        sessionStorage.setItem("mma_intro_session_dismissed", "true");
+      } catch (_e) {}
+      try {
+        const maxAge = 60 * 60 * 24 * 365;
+        if (window.location.hostname.includes("mmasv.kr")) {
+          document.cookie = `mma_intro_dismissed=1; Domain=.mmasv.kr; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+        }
+        document.cookie = `mma_intro_dismissed=1; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
       } catch (_e) {}
       try {
         const url = getSupabaseRestUrl();
         const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
-        await fetch(`${url}/client_preferences`, {
+        fetch(`${url}/client_preferences`, {
           method: "POST",
           headers: {
             "apikey": key,
@@ -1021,21 +1065,43 @@ async function bootstrap() {
             intro_dismissed: true,
             updated_at: new Date().toISOString()
           })
-        });
+        }).catch(() => {});
+      } catch (_e) {}
+    } else {
+      try {
+        localStorage.removeItem(LS_INTRO_DISMISS_KEY);
+        localStorage.removeItem("mma_intro_dismissed");
+        sessionStorage.removeItem(LS_INTRO_DISMISS_KEY);
+        sessionStorage.removeItem("mma_intro_session_dismissed");
+      } catch (_e) {}
+      try {
+        if (window.location.hostname.includes("mmasv.kr")) {
+          document.cookie = "mma_intro_dismissed=; Domain=.mmasv.kr; Path=/; Max-Age=0";
+        }
+        document.cookie = "mma_intro_dismissed=; Path=/; Max-Age=0";
       } catch (_e) {}
     }
+  };
+
+  const closeIntroPopup = async (forceDismiss = false) => {
+    if (forceDismiss || (introNeverCheckEl && introNeverCheckEl.checked)) {
+      setIntroDismissedPermanent(true);
+    }
+    try {
+      sessionStorage.setItem("mma_intro_session_dismissed", "true");
+    } catch (_e) {}
     if (introPopupEl) introPopupEl.classList.add("hidden");
     if (introBackdropEl) introBackdropEl.classList.add("hidden");
   };
 
   const openIntroPopup = async () => {
-    try {
-      if (localStorage.getItem(LS_INTRO_DISMISS_KEY) === "true") {
-        isIntroDismissed = true;
-        return;
-      }
-    } catch (_e) {}
-    if (isIntroDismissed) return;
+    if (checkIntroDismissed()) {
+      isIntroDismissed = true;
+      if (introPopupEl) introPopupEl.classList.add("hidden");
+      if (introBackdropEl) introBackdropEl.classList.add("hidden");
+      return;
+    }
+
     try {
       const url = getSupabaseRestUrl();
       const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
@@ -1045,12 +1111,13 @@ async function bootstrap() {
       if (res.ok) {
         const rows = await res.json();
         if (Array.isArray(rows) && rows.length > 0 && rows[0].intro_dismissed) {
-          isIntroDismissed = true;
-          try { localStorage.setItem(LS_INTRO_DISMISS_KEY, "true"); } catch (_e) {}
+          setIntroDismissedPermanent(true);
           return;
         }
       }
     } catch (_e) {}
+
+    if (checkIntroDismissed()) return;
 
     if (introNeverCheckEl) introNeverCheckEl.checked = false;
     if (introPopupEl) introPopupEl.classList.remove("hidden");
@@ -5175,8 +5242,15 @@ async function bootstrap() {
   if (hubPanelEl) hubPanelEl.addEventListener("click", (e) => e.stopPropagation());
   if (introPopupEl) introPopupEl.addEventListener("click", (e) => e.stopPropagation());
   if (introBackdropEl) introBackdropEl.addEventListener("click", () => closeIntroPopup(false));
-  if (introCloseBtnEl) introCloseBtnEl.addEventListener("click", () => closeIntroPopup(true));
-  if (introConfirmBtnEl) introConfirmBtnEl.addEventListener("click", () => closeIntroPopup(true));
+  if (introCloseBtnEl) introCloseBtnEl.addEventListener("click", () => closeIntroPopup(false));
+  if (introConfirmBtnEl) introConfirmBtnEl.addEventListener("click", () => closeIntroPopup(false));
+  if (introNeverCheckEl) {
+    introNeverCheckEl.addEventListener("change", (e) => {
+      if (e.target && e.target.checked) {
+        setIntroDismissedPermanent(true);
+      }
+    });
+  }
   if (hubNavEl) {
     hubNavEl.addEventListener("click", (e) => e.stopPropagation());
     hubNavEl.addEventListener("mouseleave", (e) => {
