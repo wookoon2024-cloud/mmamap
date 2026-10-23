@@ -1739,7 +1739,7 @@ async function bootstrap() {
       ? point.audiences.map(getAudienceDisplayName).join(", ")
       : "예비군, 복무중인 사람, 병역명문가";
 
-    const origin = window.location.origin || "http://localhost:8080";
+    const origin = window.location.origin || "https://www.mmasv.kr";
     const landingUrl = `${origin}/mobile_landing.html?id=${encodeURIComponent(point.facilityId || point.title)}`;
     const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(landingUrl)}`;
 

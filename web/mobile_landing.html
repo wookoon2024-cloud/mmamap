@@ -349,7 +349,7 @@
 
     async function init() {
       const urlParams = new URLSearchParams(window.location.search);
-      const facilityId = urlParams.get("facility_id") || "nara_3218";
+      const facilityId = urlParams.get("facility_id") || urlParams.get("id") || urlParams.get("fid") || "nara_3218";
       const srcParam = urlParams.get("src") || urlParams.get("source") || "poster";
 
       // 1) QR 스캔 = 이 매장 '직접' 통계 (best-effort, same origin)

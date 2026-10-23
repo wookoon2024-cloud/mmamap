@@ -220,7 +220,7 @@ def draw_door_hanger(store):
     draw.rounded_rectangle([qr_card_x1, qr_card_y1, qr_card_x2, qr_card_y2], radius=16, fill="#FFFFFF", outline="#E2E8F0", width=2)
     
     facility_id = store['facility_id']
-    landing_url = f"https://mmamap-seven.vercel.app/mobile_landing.html?id={facility_id}"
+    landing_url = f"https://www.mmasv.kr/mobile_landing.html?facility_id={facility_id}&src=door_hanger"
     qr_api_url = f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={requests.utils.quote(landing_url)}"
     
     qr_w, qr_h = 160, 160
