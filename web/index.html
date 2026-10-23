@@ -751,12 +751,22 @@
 
           <!-- Feedbacks & Comments Table -->
           <div class="adminStatsCard" style="padding: 0; overflow: hidden;">
-            <div class="adminStatsCardHead" style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; margin-bottom: 0;">
-              <h4 style="display: flex; align-items: center; gap: 6px;">
-                이용자 응원 및 의견 목록
-                <span id="adminFbListBadge" class="adminTabBadge" style="font-size: 12px;">0건</span>
-              </h4>
-              <span class="adminStatsCardSub">100% 익명으로 접수된 소중한 이용 소감입니다</span>
+            <div class="adminStatsCardHead" style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h4 style="display: flex; align-items: center; gap: 6px; margin: 0 0 2px 0;">
+                  이용자 응원 및 의견 목록
+                  <span id="adminFbListBadge" class="adminTabBadge" style="font-size: 12px;">0건</span>
+                </h4>
+                <span class="adminStatsCardSub">100% 익명으로 접수된 소중한 이용 소감입니다</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px;" onclick="window.MMAAuth.testOpenSurveyWidget()" title="설문 팝업 다시 띄우기">
+                  💬 설문 팝업 테스트 참여
+                </button>
+                <button type="button" class="adminRefreshBtn" style="padding: 6px 12px; font-size: 12px;" onclick="window.MMAAuth.fetchAdminFeedbacks()" title="새로고침">
+                  🔄 피드백 새로고침
+                </button>
+              </div>
             </div>
             <div class="adminRecentTableWrap" style="max-height: 480px; overflow-y: auto;">
               <table class="adminRecentTable">
@@ -1307,6 +1317,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./supabase-client.js?v=160"></script>
-    <script src="./app.js?v=183.0"></script>
+    <script src="./app.js?v=183.1"></script>
   </body>
 </html>

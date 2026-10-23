@@ -8036,6 +8036,7 @@ const MMAAuth = {
       if (this.currentAdminTab === "facilities") {
         await this.fetchAdminFacilities();
       }
+      await this.fetchAdminFeedbacks();
     } catch (err) {
       console.error("[Refresh Admin Stats Err]", err);
     } finally {
@@ -9827,6 +9828,36 @@ const MMAAuth = {
     }
   },
 
+  initSurveyWidget() {
+    const card = document.getElementById("surveyFloatingCard");
+    const fab = document.getElementById("surveyFabBtn");
+    if (!card && !fab) return;
+
+    const isCompleted = localStorage.getItem("mma_survey_completed_v1") === "true";
+    if (isCompleted && (!this.user || this.user.role !== "admin")) {
+      return;
+    }
+
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      if (fab) fab.classList.remove("hidden");
+    } else {
+      setTimeout(() => {
+        const stillCompleted = localStorage.getItem("mma_survey_completed_v1") === "true";
+        if (stillCompleted && (!this.user || this.user.role !== "admin")) return;
+        if (card && card.classList.contains("hidden")) {
+          card.classList.remove("hidden");
+        }
+      }, 3500);
+    }
+  },
+
+  testOpenSurveyWidget() {
+    localStorage.removeItem("mma_survey_completed_v1");
+    this.closeAdminDashboardModal();
+    this.openSurveyWidget();
+  },
+
   async submitSurveyFeedback(e) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -9852,8 +9883,8 @@ const MMAAuth = {
     }
 
     try {
-      const clientToken = (typeof clientToken !== "undefined" ? clientToken : "") || localStorage.getItem("mma_map_client_token_v1") || "";
-      const visitorHash = clientToken ? ('USR-' + clientToken.substring(0, 8).toUpperCase()) : '';
+      const token = localStorage.getItem("mma_map_client_token_v1") || "";
+      const visitorHash = token ? ('USR-' + token.substring(0, 8).toUpperCase()) : '';
 
       const res = await fetch("/api/feedback/submit", {
         method: "POST",
@@ -9878,8 +9909,10 @@ const MMAAuth = {
         if (fab) fab.classList.add("hidden");
 
         alert("소중한 의견 감사합니다! 여러분의 의견을 바탕으로 더 편리하고 유익한 군필지도를 만들어가겠습니다.");
+        // Refresh admin data if admin modal is open
+        this.fetchAdminFeedbacks();
       } else {
-        alert("전송 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+        alert("전송 중 문제가 발생했습니다: " + ((data && data.error) || "다시 시도해 주세요."));
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = "소중한 의견 보내기";
@@ -9887,17 +9920,23 @@ const MMAAuth = {
       }
     } catch (err) {
       console.error("[Survey Feedback Submit Error]", err);
-      localStorage.setItem("mma_survey_completed_v1", "true");
-      this.closeSurveyWidget();
-      alert("소중한 의견 감사합니다! 더 나은 군필지도가 되겠습니다.");
+      alert("전송 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "소중한 의견 보내기";
+      }
     }
   },
 
   async fetchAdminFeedbacks(adminKey = "") {
     try {
-      const key = adminKey || this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
-      const url = `/api/admin/feedbacks${key ? `?admin_key=${encodeURIComponent(key)}` : ""}`;
-      const res = await fetch(url);
+      const key = adminKey || this.lastAdminKey || (this.user && this.user.role === "admin" ? "mmamap_admin_2026" : "demo");
+      const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
+      const params = [];
+      if (key) params.push(`admin_key=${encodeURIComponent(key)}`);
+      if (this.token) params.push(`token=${encodeURIComponent(this.token)}`);
+      const url = `/api/admin/feedbacks${params.length ? `?${params.join("&")}` : ""}`;
+      const res = await fetch(url, { headers });
       const data = await res.json();
 
       if (!data || !data.ok) return;
