@@ -8174,14 +8174,18 @@ const MMAAuth = {
       const directQrList = Array.isArray(qrList) ? qrList.filter(q => Number(q.is_indirect) !== 1) : [];
       const indirectQrList = Array.isArray(qrList) ? qrList.filter(q => Number(q.is_indirect) === 1) : [];
 
-      const totalDirectScans = directQrList.length + totalPv;
-      const todayDirectScans = directQrList.filter(q => (Number(q.created_at) || 0) >= startOfTodayMs).length + todayPv;
-      const monthDirectScans = directQrList.filter(q => (Number(q.created_at) || 0) >= startOfMonthMs).length + monthPv;
+      const directQrScans = directQrList.length;
+      const todayDirectQr = directQrList.filter(q => (Number(q.created_at) || 0) >= startOfTodayMs).length;
+      const monthDirectQr = directQrList.filter(q => (Number(q.created_at) || 0) >= startOfMonthMs).length;
+
+      const totalViews = totalPv;
+      const todayViews = todayPv;
+      const monthViews = monthPv;
 
       const totalIndirect = indirectQrList.length;
       const todayIndirect = indirectQrList.filter(q => (Number(q.created_at) || 0) >= startOfTodayMs).length;
       const monthIndirect = indirectQrList.filter(q => (Number(q.created_at) || 0) >= startOfMonthMs).length;
-      const totalReach = totalDirectScans + totalIndirect;
+      const totalReach = totalViews + directQrScans + totalIndirect;
 
       // 3. Comments and QA from Supabase
       let totalComments = 0;
@@ -8256,14 +8260,14 @@ const MMAAuth = {
         }
       }
 
-      // 5. Daily Stacked Chart for selected periodDays
+      // 5. Daily Stacked Chart for selected periodDays (Views + QR + Indirect)
       const dailyMap = {};
       for (let i = numDays - 1; i >= 0; i--) {
         const d = new Date(startOfTodayMs - i * 86400000);
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
         const dateKey = `${m}.${day}`;
-        dailyMap[dateKey] = { date: dateKey, count: 0, directCount: 0, indirectCount: 0 };
+        dailyMap[dateKey] = { date: dateKey, count: 0, viewCount: 0, qrCount: 0, indirectCount: 0 };
       }
 
       if (Array.isArray(pvList)) {
@@ -8273,7 +8277,7 @@ const MMAAuth = {
             const d = new Date(vTime);
             const key = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
             if (dailyMap[key]) {
-              dailyMap[key].directCount++;
+              dailyMap[key].viewCount++;
               dailyMap[key].count++;
             }
           }
@@ -8290,7 +8294,7 @@ const MMAAuth = {
               if (Number(q.is_indirect) === 1) {
                 dailyMap[key].indirectCount++;
               } else {
-                dailyMap[key].directCount++;
+                dailyMap[key].qrCount++;
               }
               dailyMap[key].count++;
             }
@@ -8341,12 +8345,18 @@ const MMAAuth = {
         storePhone,
         periodDays: numDays,
         stats: {
-          totalScans: totalDirectScans,
+          totalViews,
+          todayViews,
+          monthViews,
+          totalQrScans: directQrScans,
+          todayQrScans: todayDirectQr,
+          monthQrScans: monthDirectQr,
+          totalScans: totalViews + directQrScans,
           indirectExposures: totalIndirect,
           totalMutualReach: totalReach,
-          todayScans: todayDirectScans,
+          todayScans: todayViews + todayDirectQr,
           todayIndirect,
-          monthScans: monthDirectScans,
+          monthScans: monthViews + monthDirectQr,
           monthIndirect,
           totalLikes,
           totalFavorites: totalFavs,
@@ -8410,7 +8420,7 @@ const MMAAuth = {
     const numDays = periodKey === "7d" ? 7 : (periodKey === "180d" ? 180 : 30);
     const titleEl = document.getElementById("merchantChartTitle");
     if (titleEl) {
-      titleEl.textContent = `최근 ${numDays === 30 ? "1달" : (numDays === 180 ? "6개월" : "7일")} 직접 방문 & 이웃 팜플렛 노출 추이`;
+      titleEl.textContent = `최근 ${numDays === 30 ? "1달" : (numDays === 180 ? "6개월" : "7일")} 매장 상세 조회 & 상생 노출 추이`;
     }
 
     const fid = this.currentStatsFacilityId || this.user?.merchantFacilityId || "nara_3218";
@@ -8424,8 +8434,12 @@ const MMAAuth = {
     const storeTitle = document.getElementById("merchantStoreTitle");
     const storeCat = document.getElementById("merchantStoreCategory");
     const storeAddr = document.getElementById("merchantStoreAddress");
+    const viewsEl = document.getElementById("kpiTotalViews");
+    const qrScansEl = document.getElementById("kpiTotalQrScans");
     const totalEl = document.getElementById("kpiTotalScans");
     const indirectEl = document.getElementById("kpiIndirectExposures");
+    const viewsSub = document.getElementById("kpiViewsSub");
+    const qrSub = document.getElementById("kpiQrSub");
     const directSub = document.getElementById("kpiDirectSub");
     const indirectSub = document.getElementById("kpiIndirectSub");
     const chartContainer = document.getElementById("dailyChartContainer");
@@ -8437,6 +8451,8 @@ const MMAAuth = {
     if (storeCat) storeCat.textContent = data.storeCategory || "가맹점";
     if (storeAddr) storeAddr.textContent = data.storeAddress || "대한민국";
 
+    const viewsVal = Number(stats.totalViews) || 0;
+    const qrScansVal = Number(stats.totalQrScans) || 0;
     const totalScansVal = Number(stats.totalScans) || 0;
     const likesVal = Number(stats.totalLikes) || 0;
     const favsVal = Number(stats.totalFavorites) || 0;
@@ -8445,8 +8461,13 @@ const MMAAuth = {
     const indirectVal = Number(stats.indirectExposures) || 0;
 
     // Tab 1 KPI Cards
+    if (viewsEl) viewsEl.innerHTML = `${viewsVal.toLocaleString()}<small>회</small>`;
+    if (qrScansEl) qrScansEl.innerHTML = `${qrScansVal.toLocaleString()}<small>회</small>`;
     if (totalEl) totalEl.innerHTML = `${totalScansVal.toLocaleString()}<small>회</small>`;
     if (indirectEl) indirectEl.innerHTML = `${indirectVal.toLocaleString()}<small>회</small>`;
+
+    if (viewsSub) viewsSub.textContent = `모바일/PC 지도 열람 (오늘 ${(Number(stats.todayViews) || 0).toLocaleString()}회)`;
+    if (qrSub) qrSub.textContent = `현장 인쇄물 QR 유입 (오늘 ${(Number(stats.todayQrScans) || 0).toLocaleString()}회)`;
     if (directSub) directSub.textContent = `오늘 ${(Number(stats.todayScans) || 0).toLocaleString()}회`;
     if (indirectSub) indirectSub.textContent = `상생 연계 노출 (오늘 ${(Number(stats.todayIndirect) || 0).toLocaleString()}회)`;
 
@@ -8456,23 +8477,25 @@ const MMAAuth = {
 
     const titleEl = document.getElementById("merchantChartTitle");
     if (titleEl) {
-      titleEl.textContent = `최근 ${periodDays === 30 ? "1달" : (periodDays === 180 ? "6개월" : "7일")} 직접 방문 & 이웃 팜플렛 노출 추이`;
+      titleEl.textContent = `최근 ${periodDays === 30 ? "1달" : (periodDays === 180 ? "6개월" : "7일")} 매장 상세 조회 & 상생 노출 추이`;
     }
 
-    // Render Daily Stacked Chart (Direct vs Indirect)
+    // Render Daily Stacked Chart (Views + QR + Indirect)
     if (chartContainer && Array.isArray(stats.daily)) {
       const maxCount = Math.max(...stats.daily.map((d) => d.count || 0), 1);
       chartContainer.innerHTML = stats.daily
         .map((d) => {
-          const directPct = d.count > 0 ? Math.round(((d.directCount || 0) / d.count) * 100) : 0;
-          const indirectPct = d.count > 0 ? Math.round(((d.indirectCount || 0) / d.count) * 100) : 0;
+          const viewPct = d.count > 0 ? Math.round(((d.viewCount || 0) / d.count) * 100) : 0;
+          const qrPct = d.count > 0 ? Math.round(((d.qrCount || 0) / d.count) * 100) : 0;
+          const indirectPct = d.count > 0 ? Math.max(0, 100 - viewPct - qrPct) : 0;
           const barHeightPct = d.count > 0 ? Math.max(12, Math.round((d.count / maxCount) * 100)) : 6;
           return `
             <div class="chartBarCol" style="${periodDays === 180 ? 'min-width: 24px;' : ''}">
               <span class="chartBarValue">${d.count > 0 ? d.count : 0}</span>
-              <div style="display: flex; flex-direction: column-reverse; width: 100%; max-width: 18px; height: ${barHeightPct}%;">
-                <div style="background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); height: ${directPct}%; border-radius: 0 0 3px 3px;"></div>
-                <div style="background: linear-gradient(180deg, #34d399 0%, #10b981 100%); height: ${indirectPct}%; border-radius: 3px 3px 0 0;"></div>
+              <div style="display: flex; flex-direction: column-reverse; width: 100%; max-width: 18px; height: ${barHeightPct}%; border-radius: 3px; overflow: hidden;">
+                <div title="매장 상세 조회: ${d.viewCount || 0}회" style="background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); height: ${viewPct}%;"></div>
+                <div title="홍보물 QR 스캔: ${d.qrCount || 0}회" style="background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%); height: ${qrPct}%;"></div>
+                <div title="이웃 팜플렛 노출: ${d.indirectCount || 0}회" style="background: linear-gradient(180deg, #34d399 0%, #10b981 100%); height: ${indirectPct}%;"></div>
               </div>
               <span class="chartBarLabel">${d.date}</span>
             </div>

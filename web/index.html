@@ -287,12 +287,17 @@
             </div>
           </div>
 
-          <!-- Quick KPI Cards (Only 2 cards: Direct Scans & Indirect Exposures) -->
-          <div class="statsKpiGrid" style="grid-template-columns: repeat(2, 1fr); gap: 14px;">
+          <!-- Quick KPI Cards (3 cards: Page Views, QR Scans, Indirect Exposures) -->
+          <div class="statsKpiGrid" style="grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div class="kpiCard">
-              <span class="kpiLabel">직접 QR 방문</span>
-              <strong id="kpiTotalScans" class="kpiValue">0<small>회</small></strong>
-              <span id="kpiDirectSub" class="kpiSub">오늘 0회</span>
+              <span class="kpiLabel">매장 상세 조회수</span>
+              <strong id="kpiTotalViews" class="kpiValue">0<small>회</small></strong>
+              <span id="kpiViewsSub" class="kpiSub">모바일/PC 지도 열람 (오늘 0회)</span>
+            </div>
+            <div class="kpiCard" style="border-color: #ddd6fe; background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%);">
+              <span class="kpiLabel" style="color: #6d28d9;">홍보물 QR 스캔수</span>
+              <strong id="kpiTotalQrScans" class="kpiValue" style="color: #7c3aed;">0<small>회</small></strong>
+              <span id="kpiQrSub" class="kpiSub">현장 인쇄물 QR 유입 (오늘 0회)</span>
             </div>
             <div class="kpiCard highlight" style="border-color: #a7f3d0; background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);">
               <span class="kpiLabel" style="color: #059669;">이웃 팜플렛 노출</span>
@@ -304,12 +309,13 @@
           <!-- Daily Chart -->
           <div class="statsCard" style="margin-top: 14px;">
             <div class="statsCardHead">
-              <h4 id="merchantChartTitle">최근 7일 직접 방문 & 이웃 팜플렛 노출 추이</h4>
-              <span class="statsCardSub">청년 장병 방문 & 상생 파급 효과</span>
+              <h4 id="merchantChartTitle">최근 7일 매장 상세 조회 & 상생 노출 추이</h4>
+              <span class="statsCardSub">모바일 · PC 지도 열람 및 이웃 팜플렛 상생 노출</span>
             </div>
             <div id="dailyChartContainer" class="dailyChartContainer"></div>
-            <div style="display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: #64748b; justify-content: flex-end;">
-              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: #2563eb; border-radius: 2px; display: inline-block;"></span> 직접 QR 스캔</span>
+            <div style="display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: #64748b; justify-content: flex-end; flex-wrap: wrap;">
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: #2563eb; border-radius: 2px; display: inline-block;"></span> 매장 상세 조회 (모바일/PC)</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: #7c3aed; border-radius: 2px; display: inline-block;"></span> 홍보물 QR 스캔</span>
               <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: #10b981; border-radius: 2px; display: inline-block;"></span> 이웃 팜플렛 상생 노출</span>
             </div>
           </div>
@@ -1180,6 +1186,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./supabase-client.js?v=160"></script>
-    <script src="./app.js?v=182.7"></script>
+    <script src="./app.js?v=182.8"></script>
   </body>
 </html>
