@@ -9983,16 +9983,16 @@ const MMAAuth = {
       if (dCountEl) dCountEl.textContent = `PC ${pcCnt}건`;
 
       const standardOptions = [
-        { label: "🎖️ 군 복무·전역 후 혜택 찾기가 정말 편리해요", key: "군 복무·전역 후 혜택 찾기가 정말 편리해요", color: "#2563eb" },
-        { label: "🏷️ 주변 상생가게(할인 매장) 정보가 실속있고 유용해요", key: "주변 상생가게(할인 매장) 정보가 실속있고 유용해요", color: "#059669" },
-        { label: "⚡ 지도와 매장 검색이 빠르고 깔끔해요", key: "지도와 매장 검색이 빠르고 깔끔해요", color: "#d97706" },
-        { label: "👏 군 장병·청년을 위한 좋은 취지라 진심으로 응원해요", key: "군 장병·청년을 위한 좋은 취지라 진심으로 응원해요", color: "#7c3aed" }
+        { label: "🎖️ 군 복무·전역 후 혜택 찾기가 정말 편리해요", keys: ["군 복무·전역 후 혜택 찾기가 정말 편리해요", "군 복무·전역 후 혜택 찾기가 편리해요"], color: "#2563eb" },
+        { label: "🏷️ 주변 상생가게 할인 정보가 실속있고 유용해요", keys: ["주변 상생가게 할인 정보가 실속있고 유용해요", "주변 상생가게(할인 매장) 정보가 실속있고 유용해요"], color: "#059669" },
+        { label: "⚡ 지도와 매장 검색이 빠르고 깔끔해요", keys: ["지도와 매장 검색이 빠르고 깔끔해요"], color: "#d97706" },
+        { label: "👏 군 장병·청년을 위한 좋은 취지라 응원해요", keys: ["군 장병·청년을 위한 좋은 취지라 응원해요", "군 장병·청년을 위한 좋은 취지라 진심으로 응원해요"], color: "#7c3aed" }
       ];
 
       const optContainer = document.getElementById("adminFbOptionsContainer");
       if (optContainer) {
         optContainer.innerHTML = standardOptions.map(opt => {
-          const cnt = optionsCount[opt.key] || 0;
+          const cnt = opt.keys.reduce((sum, k) => sum + (optionsCount[k] || 0), 0);
           const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
           return `
             <div>
