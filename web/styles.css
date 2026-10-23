@@ -8603,6 +8603,11 @@ button:active {
   }
 
   .surveyFabBtn {
-    bottom: 84px;
+    bottom: 120px !important;
+    right: 12px !important;
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3) !important;
   }
 }
