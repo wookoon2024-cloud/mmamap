@@ -1003,6 +1003,9 @@ async function bootstrap() {
     if (saveDismiss && introNeverCheckEl?.checked) {
       isIntroDismissed = true;
       try {
+        localStorage.setItem(LS_INTRO_DISMISS_KEY, "true");
+      } catch (_e) {}
+      try {
         const url = getSupabaseRestUrl();
         const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
         await fetch(`${url}/client_preferences`, {
@@ -1026,6 +1029,12 @@ async function bootstrap() {
   };
 
   const openIntroPopup = async () => {
+    try {
+      if (localStorage.getItem(LS_INTRO_DISMISS_KEY) === "true") {
+        isIntroDismissed = true;
+        return;
+      }
+    } catch (_e) {}
     if (isIntroDismissed) return;
     try {
       const url = getSupabaseRestUrl();
@@ -1037,6 +1046,7 @@ async function bootstrap() {
         const rows = await res.json();
         if (Array.isArray(rows) && rows.length > 0 && rows[0].intro_dismissed) {
           isIntroDismissed = true;
+          try { localStorage.setItem(LS_INTRO_DISMISS_KEY, "true"); } catch (_e) {}
           return;
         }
       }
