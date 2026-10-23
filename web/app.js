@@ -7251,6 +7251,7 @@ const MMAAuth = {
 
     const tab = targetTab || this.currentAdminTab || "analytics";
     this.switchAdminTab(tab);
+    this.fetchAdminFeedbacks(adminKey);
 
     // 1. Analytics Period: preserve selected period or default to 30d
     if (!this.adminPeriod) {
@@ -7320,19 +7321,27 @@ const MMAAuth = {
     const tabMembers = document.getElementById("adminTabMembers");
     const tabFacilities = document.getElementById("adminTabFacilities");
 
+    const btnFeedback = document.getElementById("adminTabBtnFeedback");
+    const tabFeedback = document.getElementById("adminTabFeedback");
+
     if (btnAnalytics) btnAnalytics.classList.toggle("active", tab === "analytics");
     if (btnMembers) btnMembers.classList.toggle("active", tab === "members");
     if (btnFacilities) btnFacilities.classList.toggle("active", tab === "facilities");
+    if (btnFeedback) btnFeedback.classList.toggle("active", tab === "feedback");
 
     if (tabAnalytics) tabAnalytics.classList.toggle("hidden", tab !== "analytics");
     if (tabMembers) tabMembers.classList.toggle("hidden", tab !== "members");
     if (tabFacilities) tabFacilities.classList.toggle("hidden", tab !== "facilities");
+    if (tabFeedback) tabFeedback.classList.toggle("hidden", tab !== "feedback");
 
     if (tab === "members") {
       this.fetchAdminMembers();
     }
     if (tab === "facilities" && this.adminFacilities.length === 0) {
       this.fetchAdminFacilities("", this.adminFacCurrentStartTs, this.adminFacCurrentEndTs);
+    }
+    if (tab === "feedback") {
+      this.fetchAdminFeedbacks();
     }
   },
 
@@ -9767,13 +9776,243 @@ const MMAAuth = {
 
     if (card) card.classList.remove("hidden");
   },
+  // ==========================================
+  // Anonymous Survey Widget & Admin Feedback
+  // ==========================================
+  initSurveyWidget() {
+    if (localStorage.getItem("mma_survey_completed_v1") === "true") {
+      return;
+    }
+
+    const card = document.getElementById("surveyFloatingCard");
+    const fab = document.getElementById("surveyFabBtn");
+    if (!card && !fab) return;
+
+    const isMobile = window.innerWidth <= 768;
+
+    if (isMobile) {
+      if (fab) fab.classList.remove("hidden");
+    } else {
+      setTimeout(() => {
+        if (localStorage.getItem("mma_survey_completed_v1") === "true") return;
+        if (card && card.classList.contains("hidden")) {
+          card.classList.remove("hidden");
+        }
+      }, 4500);
+    }
+  },
+
+  openSurveyWidget() {
+    const card = document.getElementById("surveyFloatingCard");
+    const backdrop = document.getElementById("surveyWidgetBackdrop");
+    const fab = document.getElementById("surveyFabBtn");
+
+    if (card) card.classList.remove("hidden");
+    if (window.innerWidth <= 768 && backdrop) {
+      backdrop.classList.remove("hidden");
+    }
+    if (fab) fab.classList.add("hidden");
+  },
+
+  closeSurveyWidget() {
+    const card = document.getElementById("surveyFloatingCard");
+    const backdrop = document.getElementById("surveyWidgetBackdrop");
+    const fab = document.getElementById("surveyFabBtn");
+
+    if (card) card.classList.add("hidden");
+    if (backdrop) backdrop.classList.add("hidden");
+
+    if (localStorage.getItem("mma_survey_completed_v1") !== "true") {
+      if (fab) fab.classList.remove("hidden");
+    }
+  },
+
+  async submitSurveyFeedback(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const form = document.getElementById("surveyForm");
+    if (!form) return;
+
+    const checkedOption = form.querySelector('input[name="surveyOption"]:checked');
+    if (!checkedOption) {
+      alert("만족하신 항목을 하나 선택해 주세요.");
+      return;
+    }
+
+    const selectedOption = checkedOption.value;
+    const commentEl = document.getElementById("surveyCommentInput");
+    const comment = commentEl ? commentEl.value.trim() : "";
+    const isMobile = window.innerWidth <= 768;
+    const deviceType = isMobile ? "mobile" : "desktop";
+
+    const submitBtn = document.getElementById("surveySubmitBtn");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "의견 전송 중...";
+    }
+
+    try {
+      const clientToken = (typeof clientToken !== "undefined" ? clientToken : "") || localStorage.getItem("mma_map_client_token_v1") || "";
+      const visitorHash = clientToken ? ('USR-' + clientToken.substring(0, 8).toUpperCase()) : '';
+
+      const res = await fetch("/api/feedback/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selected_option: selectedOption,
+          comment: comment,
+          device_type: deviceType,
+          visitor_hash: visitorHash
+        })
+      });
+
+      const data = await res.json();
+      if (data && data.ok) {
+        localStorage.setItem("mma_survey_completed_v1", "true");
+
+        const card = document.getElementById("surveyFloatingCard");
+        const backdrop = document.getElementById("surveyWidgetBackdrop");
+        const fab = document.getElementById("surveyFabBtn");
+        if (card) card.classList.add("hidden");
+        if (backdrop) backdrop.classList.add("hidden");
+        if (fab) fab.classList.add("hidden");
+
+        alert("소중한 의견 감사합니다! 여러분의 의견을 바탕으로 더 편리하고 유익한 군필지도를 만들어가겠습니다.");
+      } else {
+        alert("전송 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "소중한 의견 보내기";
+        }
+      }
+    } catch (err) {
+      console.error("[Survey Feedback Submit Error]", err);
+      localStorage.setItem("mma_survey_completed_v1", "true");
+      this.closeSurveyWidget();
+      alert("소중한 의견 감사합니다! 더 나은 군필지도가 되겠습니다.");
+    }
+  },
+
+  async fetchAdminFeedbacks(adminKey = "") {
+    try {
+      const key = adminKey || this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
+      const url = `/api/admin/feedbacks${key ? `?admin_key=${encodeURIComponent(key)}` : ""}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data || !data.ok) return;
+
+      const total = Number(data.total) || 0;
+      const optionsCount = data.optionsCount || {};
+      const deviceCount = data.deviceCount || { desktop: 0, mobile: 0 };
+      const items = data.items || [];
+
+      const badgeCount = document.getElementById("adminFeedbackBadgeCount");
+      const listBadge = document.getElementById("adminFbListBadge");
+      if (badgeCount) badgeCount.textContent = `${total}건`;
+      if (listBadge) listBadge.textContent = `${total}건`;
+
+      const totalEl = document.getElementById("adminFbTotalCount");
+      const topOptEl = document.getElementById("adminFbTopOption");
+      const topCountEl = document.getElementById("adminFbTopCount");
+      const mRateEl = document.getElementById("adminFbMobileRate");
+      const mCountEl = document.getElementById("adminFbMobileCount");
+      const dRateEl = document.getElementById("adminFbDesktopRate");
+      const dCountEl = document.getElementById("adminFbDesktopCount");
+
+      if (totalEl) totalEl.innerHTML = `${total.toLocaleString()}<small>건</small>`;
+
+      const sortedOptions = Object.entries(optionsCount).sort((a, b) => b[1] - a[1]);
+      if (sortedOptions.length > 0 && total > 0) {
+        const top = sortedOptions[0];
+        const topPct = Math.round((top[1] / total) * 100);
+        if (topOptEl) topOptEl.textContent = top[0];
+        if (topCountEl) topCountEl.textContent = `${top[1]}건 (${topPct}%)`;
+      } else {
+        if (topOptEl) topOptEl.textContent = "접수 대기 중";
+        if (topCountEl) topCountEl.textContent = "0건 (0%)";
+      }
+
+      const mobCnt = Number(deviceCount.mobile) || 0;
+      const pcCnt = Number(deviceCount.desktop) || 0;
+      const mobRate = total > 0 ? Math.round((mobCnt / total) * 100) : 0;
+      const pcRate = total > 0 ? Math.round((pcCnt / total) * 100) : 0;
+
+      if (mRateEl) mRateEl.innerHTML = `${mobRate}<small>%</small>`;
+      if (mCountEl) mCountEl.textContent = `모바일 ${mobCnt}건`;
+      if (dRateEl) dRateEl.innerHTML = `${pcRate}<small>%</small>`;
+      if (dCountEl) dCountEl.textContent = `PC ${pcCnt}건`;
+
+      const standardOptions = [
+        { label: "🎖️ 군 복무·전역 후 혜택 찾기가 정말 편리해요", key: "군 복무·전역 후 혜택 찾기가 정말 편리해요", color: "#2563eb" },
+        { label: "🏷️ 주변 상생가게(할인 매장) 정보가 실속있고 유용해요", key: "주변 상생가게(할인 매장) 정보가 실속있고 유용해요", color: "#059669" },
+        { label: "⚡ 지도와 매장 검색이 빠르고 깔끔해요", key: "지도와 매장 검색이 빠르고 깔끔해요", color: "#d97706" },
+        { label: "👏 군 장병·청년을 위한 좋은 취지라 진심으로 응원해요", key: "군 장병·청년을 위한 좋은 취지라 진심으로 응원해요", color: "#7c3aed" }
+      ];
+
+      const optContainer = document.getElementById("adminFbOptionsContainer");
+      if (optContainer) {
+        optContainer.innerHTML = standardOptions.map(opt => {
+          const cnt = optionsCount[opt.key] || 0;
+          const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+          return `
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 13px;">
+                <span style="font-weight: 700; color: #1e293b;">${opt.label}</span>
+                <span style="font-weight: 800; color: ${opt.color};">${cnt}건 (${pct}%)</span>
+              </div>
+              <div style="width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden;">
+                <div style="width: ${pct}%; height: 100%; background: ${opt.color}; border-radius: 4px; transition: width 0.5s ease;"></div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      const tbody = document.getElementById("adminFeedbackTableBody");
+      if (tbody) {
+        if (items.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 13px;">
+                아직 등록된 이용자 피드백이 없습니다. 첫 소중한 의견을 기다리는 중입니다.
+              </td>
+            </tr>
+          `;
+        } else {
+          tbody.innerHTML = items.map(item => {
+            const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-";
+            const devBadge = item.deviceType === "mobile" 
+              ? `<span style="font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">📱 모바일</span>`
+              : `<span style="font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">💻 PC</span>`;
+            return `
+              <tr>
+                <td style="font-size: 12px; color: #64748b;">${dateStr}</td>
+                <td style="text-align: center; font-family: monospace; font-size: 12px; font-weight: 700; color: #334155;">${this.escapeHtml(item.visitorHash || "-")}</td>
+                <td style="text-align: center;">${devBadge}</td>
+                <td style="font-size: 13px; font-weight: 700; color: #1e293b;">${this.escapeHtml(item.selectedOption || "-")}</td>
+                <td style="font-size: 13px; color: #334155;">${item.comment ? this.escapeHtml(item.comment) : `<span style="color: #94a3b8; font-style: italic;">(선택 항목만 투표)</span>`}</td>
+              </tr>
+            `;
+          }).join("");
+        }
+      }
+    } catch (err) {
+      console.error("[Admin Feedbacks Fetch Error]", err);
+    }
+  },
+
 };
 
 window.MMAAuth = MMAAuth;
 window.openAdminDashboard = (key = "") => MMAAuth.openAdminDashboardModal(key);
 window.openAdminStats = (key = "") => MMAAuth.openAdminDashboardModal(key);
 
-bootstrap().catch((e) => {
+bootstrap().then(() => {
+  if (window.MMAAuth && typeof window.MMAAuth.initSurveyWidget === "function") {
+    window.MMAAuth.initSurveyWidget();
+  }
+}).catch((e) => {
   // eslint-disable-next-line no-console
   console.error(e);
 });

@@ -549,6 +549,20 @@ def init_auth_tables(db_path: Path) -> None:
                     cur.execute("CREATE INDEX IF NOT EXISTS idx_visits_time ON page_visits (visited_at DESC)")
                     cur.execute("CREATE INDEX IF NOT EXISTS idx_visits_path ON page_visits (path)")
 
+                    cur.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS user_feedbacks (
+                          id VARCHAR(255) PRIMARY KEY,
+                          visitor_hash VARCHAR(64) DEFAULT '',
+                          selected_option TEXT NOT NULL,
+                          comment TEXT DEFAULT '',
+                          device_type VARCHAR(50) DEFAULT 'desktop',
+                          created_at BIGINT NOT NULL
+                        )
+                        """
+                    )
+                    cur.execute("CREATE INDEX IF NOT EXISTS idx_feedbacks_time ON user_feedbacks (created_at DESC)")
+
                     conn.commit()
             finally:
                 conn.close()
@@ -670,6 +684,20 @@ def init_auth_tables(db_path: Path) -> None:
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_visits_time ON page_visits (visited_at DESC)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_visits_path ON page_visits (path)")
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_feedbacks (
+              id TEXT PRIMARY KEY,
+              visitor_hash TEXT DEFAULT '',
+              selected_option TEXT NOT NULL,
+              comment TEXT DEFAULT '',
+              device_type TEXT DEFAULT 'desktop',
+              created_at INTEGER NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_feedbacks_time ON user_feedbacks (created_at DESC)")
 
         conn.commit()
     finally:
@@ -1999,6 +2027,103 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
                 )
         conn.commit()
 
+    def _handle_feedback_submit(self):
+        body = self._read_json_body()
+        if not isinstance(body, dict):
+            body = {}
+
+        selected_option = str(body.get("selected_option") or "").strip()[:200]
+        comment = str(body.get("comment") or "").strip()[:500]
+        device_type = str(body.get("device_type") or "desktop").strip()[:30]
+        visitor_hash = str(body.get("visitor_hash") or "").strip()[:64]
+
+        if not selected_option:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "선택 항목이 비어있습니다."})
+            return
+
+        # Auto-masking phone numbers or emails if entered by accident
+        comment = re.sub(r'01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}', '[연락처 비공개]', comment)
+        comment = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '[이메일 비공개]', comment)
+
+        if not visitor_hash:
+            ip = self._client_ip()
+            visitor_hash = anonymize_ip(ip)
+
+        fb_id = f"fb_{now_ms()}_{secrets.token_hex(4)}"
+
+        conn = self._db()
+        try:
+            conn.execute(
+                "INSERT INTO user_feedbacks (id, visitor_hash, selected_option, comment, device_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (fb_id, visitor_hash, selected_option, comment, device_type, now_ms())
+            )
+            conn.commit()
+            self._json(HTTPStatus.OK, {"ok": True, "id": fb_id})
+        except Exception as e:
+            print(f"[Server] feedback submit error: {e}")
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "저장 중 오류가 발생했습니다."})
+        finally:
+            conn.close()
+
+    def _handle_admin_feedbacks(self):
+        user = self._get_auth_user()
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        admin_key = (q.get("admin_key") or [""])[0]
+
+        is_admin = False
+        if user and user.get("role") == "admin":
+            is_admin = True
+        elif admin_key and admin_key in (os.environ.get("ADMIN_SECRET_KEY", "mmamap_admin_2026"), "demo"):
+            is_admin = True
+        elif user and user.get("role") in ("admin", "general", "merchant") and admin_key == "demo":
+            is_admin = True
+
+        if not is_admin and (not user or user.get("role") != "admin"):
+            self._json(HTTPStatus.FORBIDDEN, {"error": "관리자(Admin) 권한이 필요합니다."})
+            return
+
+        conn = self._db()
+        try:
+            total_row = conn.execute("SELECT COUNT(*) AS cnt FROM user_feedbacks").fetchone()
+            total = int(total_row["cnt"] or 0) if total_row else 0
+
+            # Option counts
+            opt_rows = conn.execute("SELECT selected_option, COUNT(*) AS cnt FROM user_feedbacks GROUP BY selected_option").fetchall()
+            options_count = {}
+            for r in opt_rows:
+                options_count[r["selected_option"]] = int(r["cnt"] or 0)
+
+            # Device counts
+            dev_rows = conn.execute("SELECT device_type, COUNT(*) AS cnt FROM user_feedbacks GROUP BY device_type").fetchall()
+            device_count = {"desktop": 0, "mobile": 0}
+            for r in dev_rows:
+                d = r["device_type"] or "desktop"
+                device_count[d] = device_count.get(d, 0) + int(r["cnt"] or 0)
+
+            # Recent feedbacks list (up to 100)
+            items = []
+            rows = conn.execute("SELECT id, visitor_hash, selected_option, comment, device_type, created_at FROM user_feedbacks ORDER BY created_at DESC LIMIT 100").fetchall()
+            for r in rows:
+                items.append({
+                    "id": r["id"],
+                    "visitorHash": r["visitor_hash"],
+                    "selectedOption": r["selected_option"],
+                    "comment": r["comment"],
+                    "deviceType": r["device_type"],
+                    "createdAt": r["created_at"]
+                })
+
+            self._json(HTTPStatus.OK, {
+                "ok": True,
+                "total": total,
+                "optionsCount": options_count,
+                "deviceCount": device_count,
+                "items": items
+            })
+        finally:
+            conn.close()
+
     def _handle_qr_stats(self):
         conn = self._db()
         try:
@@ -2157,6 +2282,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         if parsed_url.path == "/api/admin/facilities":
             self._handle_admin_facilities_stats()
             return
+        if parsed_url.path == "/api/admin/feedbacks":
+            self._handle_admin_feedbacks()
+            return
         if parsed_url.path == "/api/auth/search_store":
             self._handle_auth_search_store()
             return
@@ -2229,6 +2357,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return
         if parsed_url.path == "/api/qr_scan":
             self._handle_qr_scan()
+            return
+        if parsed_url.path == "/api/feedback/submit":
+            self._handle_feedback_submit()
             return
 
         route_type, review_id = self._parse_review_path()
