@@ -446,16 +446,21 @@ async function bootstrap() {
   const defaultZoom = 14;
 
   let koreaPlaces = [];
+  let facilities = [];
   try {
-    fetch("./data/korea_places.json?v=2")
-      .then(r => r.ok ? r.json() : [])
-      .then(list => { koreaPlaces = list; window.koreaPlaces = list; })
-      .catch(() => {});
+    const [kpRes, res] = await Promise.all([
+      fetch("./data/korea_places.json?v=2").catch(() => null),
+      fetch(DATA_URL).catch(() => null)
+    ]);
+    if (kpRes && kpRes.ok) {
+      koreaPlaces = await kpRes.json();
+      window.koreaPlaces = koreaPlaces;
+    }
+    if (res && res.ok) {
+      const data = await res.json();
+      facilities = Array.isArray(data.facilities) ? data.facilities : [];
+    }
   } catch (_e) {}
-
-  const res = await fetch(DATA_URL);
-  const data = await res.json();
-  const facilities = Array.isArray(data.facilities) ? data.facilities : [];
 
   const points = [];
   window.points = points;
@@ -5691,20 +5696,29 @@ async function bootstrap() {
     } catch (_e) {}
   };
 
+  const navigateMapTo = (lat, lng, targetZoom = 13) => {
+    if (!map || !window.naver || !naver.maps) return;
+    const targetPos = new naver.maps.LatLng(lat, lng);
+    if (typeof map.morph === "function") {
+      map.morph(targetPos, targetZoom);
+    } else {
+      map.setCenter(targetPos);
+      map.setZoom(targetZoom);
+    }
+  };
+
   const goToPlaceLocation = (place) => {
     if (!place || !place.lat || !place.lng || !map) return;
     if (selectedFacilityId) hideDetailPanelOnly();
     selectedRegion = "";
     if (regionSelectEl) regionSelectEl.value = "";
 
-    const pos = new naver.maps.LatLng(place.lat, place.lng);
-    map.panTo(pos);
-    if (map.getZoom() < 14) {
-      map.setZoom(14);
-    }
+    const targetZoom = Math.max(map.getZoom(), 14);
+    navigateMapTo(place.lat, place.lng, targetZoom);
     showSearchLocationMarker(place.lat, place.lng, place.name, place.sub);
     renderVisibleMarkers();
-    setTimeout(() => renderVisibleMarkers(), 150);
+    setTimeout(() => renderVisibleMarkers(), 200);
+    setTimeout(() => renderVisibleMarkers(), 500);
 
     const icon = place.type === "island" ? "🏝️" : (place.type === "station" ? "🚊" : "📍");
     if (typeof showToast === "function") {
@@ -5904,9 +5918,10 @@ async function bootstrap() {
       selectedRegion = "";
       if (regionSelectEl) regionSelectEl.value = "";
 
-      map.panTo(new naver.maps.LatLng(districtMatch.lat, districtMatch.lng));
-      map.setZoom(13);
+      navigateMapTo(districtMatch.lat, districtMatch.lng, 13);
       renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 200);
+      setTimeout(() => renderVisibleMarkers(), 500);
       showSearchLocationMarker(districtMatch.lat, districtMatch.lng, districtMatch.name, districtMatch.fullName);
       if (typeof showToast === "function") {
         showToast(`📍 <strong>${districtMatch.fullName}</strong> 지역으로 이동했습니다. (${districtMatch.count}개 가맹점)`);
@@ -5939,8 +5954,9 @@ async function bootstrap() {
       if (regionSelectEl) regionSelectEl.value = "";
       const avgLat = titleMatches.reduce((sum, p) => sum + p.lat, 0) / titleMatches.length;
       const avgLng = titleMatches.reduce((sum, p) => sum + p.lng, 0) / titleMatches.length;
-      map.panTo(new naver.maps.LatLng(avgLat, avgLng));
+      navigateMapTo(avgLat, avgLng, Math.max(map.getZoom(), 14));
       renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 200);
       if (typeof showToast === "function") {
         showToast(`🔍 <strong>${escapeHtml(query)}</strong> 검색 결과 (${titleMatches.length}개 매장)`);
       }
@@ -5979,8 +5995,9 @@ async function bootstrap() {
       if (regionSelectEl) regionSelectEl.value = "";
       const avgLat = generalMatches.reduce((sum, p) => sum + p.lat, 0) / generalMatches.length;
       const avgLng = generalMatches.reduce((sum, p) => sum + p.lng, 0) / generalMatches.length;
-      map.panTo(new naver.maps.LatLng(avgLat, avgLng));
+      navigateMapTo(avgLat, avgLng, Math.max(map.getZoom(), 14));
       renderVisibleMarkers();
+      setTimeout(() => renderVisibleMarkers(), 200);
       return;
     }
 
@@ -6008,10 +6025,10 @@ async function bootstrap() {
         if (status === naver.maps.Service.Status.OK && response.v2 && response.v2.addresses.length > 0) {
           if (selectedFacilityId) hideDetailPanelOnly();
           const address = response.v2.addresses[0];
-          const pos = new naver.maps.LatLng(address.y, address.x);
-          map.panTo(pos);
-          if (map.getZoom() < 14) map.setZoom(14);
+          const targetZoom = Math.max(map.getZoom(), 14);
+          navigateMapTo(address.y, address.x, targetZoom);
           renderVisibleMarkers();
+          setTimeout(() => renderVisibleMarkers(), 200);
           showSearchLocationMarker(address.y, address.x, query, address.roadAddress || address.jibunAddress);
           if (typeof showToast === "function") {
             showToast(`📍 <strong>${escapeHtml(query)}</strong> 주소 위치로 이동했습니다.`);
@@ -6129,9 +6146,10 @@ async function bootstrap() {
           if (selectedFacilityId) hideDetailPanelOnly();
           selectedRegion = "";
           if (regionSelectEl) regionSelectEl.value = "";
-          map.panTo(new naver.maps.LatLng(lat, lng));
-          map.setZoom(13);
+          navigateMapTo(lat, lng, 13);
           renderVisibleMarkers();
+          setTimeout(() => renderVisibleMarkers(), 200);
+          setTimeout(() => renderVisibleMarkers(), 500);
           showSearchLocationMarker(lat, lng, name, fullName);
           if (sidebarSearchInput) sidebarSearchInput.value = name;
         } else if (kind === "place") {
@@ -6164,8 +6182,8 @@ async function bootstrap() {
     sidebarSearchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        if (sidebarSearchDropdown) sidebarSearchDropdown.classList.add("hidden");
         performKeywordSearch(e.target.value.trim());
-        scheduleRender();
       } else if (e.key === "Escape") {
         if (sidebarSearchDropdown) sidebarSearchDropdown.classList.add("hidden");
       }
