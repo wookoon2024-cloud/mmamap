@@ -447,7 +447,7 @@ async function bootstrap() {
 
   let koreaPlaces = [];
   try {
-    fetch("./data/korea_places.json?v=1")
+    fetch("./data/korea_places.json?v=2")
       .then(r => r.ok ? r.json() : [])
       .then(list => { koreaPlaces = list; window.koreaPlaces = list; })
       .catch(() => {});
@@ -5725,36 +5725,43 @@ async function bootstrap() {
 
   const findDistrictMatch = (query) => {
     if (!query || query.trim().length < 2) return null;
-    const q = query.trim().toLowerCase();
-    const cleanQ = q.replace(/(특별시|광역시|특별자치시|특별자치도)$/, "").replace(/(시|군|구|도)$/, "").trim();
+    const raw = query.trim();
+    const norm = raw.replace(/\s+/g, "").toLowerCase();
 
-    // Check store addresses for matching district
-    const matchingStores = points.filter(p => {
-      const addr = (p.address || "").toLowerCase();
-      return addr.includes(q) || (cleanQ.length >= 2 && addr.includes(cleanQ));
+    if (!Array.isArray(koreaPlaces) || koreaPlaces.length === 0) return null;
+
+    const districts = koreaPlaces.filter(p => p.type === "district");
+
+    // 1. Exact match on district name (e.g. "강동구", "수원시", "해운대구", "강남구") or fullName
+    let match = districts.find(d => {
+      const dName = (d.name || "").replace(/\s+/g, "").toLowerCase();
+      const dFull = (d.fullName || "").replace(/\s+/g, "").toLowerCase();
+      return norm === dName || norm === dFull;
     });
 
-    if (matchingStores.length >= 2) {
-      const avgLat = matchingStores.reduce((sum, p) => sum + p.lat, 0) / matchingStores.length;
-      const avgLng = matchingStores.reduce((sum, p) => sum + p.lng, 0) / matchingStores.length;
+    // 2. Suffix match if query without suffix matches (e.g. "강동" -> "강동구", "수원" -> "수원시", "송파" -> "송파구")
+    if (!match && norm.length >= 2) {
+      match = districts.find(d => {
+        const dName = (d.name || "").replace(/\s+/g, "").toLowerCase();
+        return (dName === norm + "구") || (dName === norm + "시") || (dName === norm + "군");
+      });
+    }
 
-      let fullName = query;
-      for (const s of matchingStores) {
-        const addr = s.address || "";
-        const m = addr.match(/^([가-힣]+(?:특별시|광역시|특별자치시|도|시))\s+([가-힣]+(?:시|군|구))/);
-        if (m) {
-          fullName = `${m[1]} ${m[2]}`;
-          break;
-        }
-      }
+    if (match) {
+      // Calculate how many benefit stores are located in this district
+      const targetName = match.name;
+      const storeCount = (Array.isArray(points) ? points : []).filter(p => {
+        const addr = p.address || "";
+        return addr.includes(targetName);
+      }).length;
 
       return {
-        name: query,
-        fullName: fullName || query,
+        name: match.name,
+        fullName: match.fullName || match.name,
         type: "district",
-        count: matchingStores.length,
-        lat: avgLat,
-        lng: avgLng
+        count: storeCount,
+        lat: match.lat,
+        lng: match.lng
       };
     }
     return null;
@@ -5766,7 +5773,8 @@ async function bootstrap() {
     const norm = raw.replace(/\s+/g, "").toLowerCase();
 
     // 1. Exact match on place name (e.g. "오이도" -> island, "오이도역" -> station, "강동구청역" -> station)
-    let match = koreaPlaces.find(p => (p.name || "").replace(/\s+/g, "").toLowerCase() === norm);
+    // Ignore district type here since findDistrictMatch handles it with higher priority
+    let match = koreaPlaces.find(p => p.type !== "district" && (p.name || "").replace(/\s+/g, "").toLowerCase() === norm);
     if (match) return match;
 
     // 2. If query explicitly ends with "역", match station exact name
@@ -5897,7 +5905,7 @@ async function bootstrap() {
       if (regionSelectEl) regionSelectEl.value = "";
 
       map.panTo(new naver.maps.LatLng(districtMatch.lat, districtMatch.lng));
-      if (map.getZoom() < 13) map.setZoom(14);
+      map.setZoom(13);
       renderVisibleMarkers();
       showSearchLocationMarker(districtMatch.lat, districtMatch.lng, districtMatch.name, districtMatch.fullName);
       if (typeof showToast === "function") {
@@ -6049,6 +6057,7 @@ async function bootstrap() {
 
     // 3. Matches from koreaPlaces (지하철역, 섬, 명소 - 차선택)
     const matchedPlaces = (Array.isArray(koreaPlaces) ? koreaPlaces : []).filter(p => {
+      if (p.type === "district") return false;
       const pName = (p.name || "").replace(/\s+/g, "").toLowerCase();
       const pSub = (p.sub || "").toLowerCase();
       return pName.includes(norm) || pSub.includes(norm);
@@ -6121,7 +6130,7 @@ async function bootstrap() {
           selectedRegion = "";
           if (regionSelectEl) regionSelectEl.value = "";
           map.panTo(new naver.maps.LatLng(lat, lng));
-          if (map.getZoom() < 13) map.setZoom(14);
+          map.setZoom(13);
           renderVisibleMarkers();
           showSearchLocationMarker(lat, lng, name, fullName);
           if (sidebarSearchInput) sidebarSearchInput.value = name;
