@@ -969,7 +969,7 @@ async function bootstrap() {
     borderColor: "transparent",
     borderWidth: 0,
     disableAnchor: true,
-    pixelOffset: new naver.maps.Point(0, -36),
+    pixelOffset: new naver.maps.Point(0, -48),
     zIndex: 500,
   });
 
@@ -4110,11 +4110,12 @@ async function bootstrap() {
     const label = toCategoryLabel(category || "");
     const img = categoryImageByLabel[label];
     if (img) {
+      const pinImg = img.replace(/^(\d+)\.png$/, "pin_$1.png");
       return {
-        url: `./img/${img}`,
-        size: new naver.maps.Size(56, 56),
-        scaledSize: new naver.maps.Size(56, 56),
-        anchor: new naver.maps.Point(28, 28),
+        url: `./img/${pinImg}`,
+        size: new naver.maps.Size(36, 47),
+        scaledSize: new naver.maps.Size(36, 47),
+        anchor: new naver.maps.Point(18, 46),
       };
     }
     const color = colorFromText(label);
@@ -5010,8 +5011,8 @@ async function bootstrap() {
         marker.__facilityKey = key;
 
         naver.maps.Event.addListener(marker, "mouseover", () => {
+          marker.setZIndex(100000);
           if (selectedFacilityId) return;
-          marker.setZIndex(50000);
           const sub = [...new Set([v.subtitle, toCategoryLabel(v.category)].filter(Boolean))].join(" · ");
           hoverInfoWindow.setContent(`
             <div style="padding:8px 10px;min-width:160px;font-size:12px;line-height:1.4;">
@@ -5022,7 +5023,12 @@ async function bootstrap() {
           hoverInfoWindow.open(map, marker);
         });
         naver.maps.Event.addListener(marker, "mouseout", () => {
-          if (selectedFacilityId) return;
+          if (selectedFacilityId) {
+            if (marker.__facilityKey !== selectedFacilityId) {
+              marker.setZIndex(baseZIndex);
+            }
+            return;
+          }
           marker.setZIndex(baseZIndex);
           hoverInfoWindow.close();
         });
