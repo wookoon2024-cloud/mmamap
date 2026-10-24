@@ -5316,6 +5316,7 @@ async function bootstrap() {
       .join("")}`;
     regionSelectEl.addEventListener("change", () => {
       selectedRegion = String(regionSelectEl.value || "");
+      clearSearchLocationMarker();
       if (selectedFacilityId) hideDetailPanelOnly();
       if (selectedRegion) moveMapToRegion(selectedRegion);
       renderVisibleMarkers();
@@ -5662,12 +5663,22 @@ async function bootstrap() {
 
   // Search Location Animated Marker on Map
   let searchLocationMarker = null;
-  const showSearchLocationMarker = (lat, lng, title = "", subtitle = "") => {
-    if (!map || !window.naver || !naver.maps) return;
+  let searchLocationTimer = null;
+
+  const clearSearchLocationMarker = () => {
+    if (searchLocationTimer) {
+      clearTimeout(searchLocationTimer);
+      searchLocationTimer = null;
+    }
     if (searchLocationMarker) {
       try { searchLocationMarker.setMap(null); } catch (_e) {}
       searchLocationMarker = null;
     }
+  };
+
+  const showSearchLocationMarker = (lat, lng, title = "", subtitle = "") => {
+    if (!map || !window.naver || !naver.maps) return;
+    clearSearchLocationMarker();
     try {
       const pos = new naver.maps.LatLng(lat, lng);
       const iconHtml = `
@@ -5686,13 +5697,6 @@ async function bootstrap() {
           anchor: new naver.maps.Point(60, 48)
         }
       });
-
-      setTimeout(() => {
-        if (searchLocationMarker) {
-          try { searchLocationMarker.setMap(null); } catch (_e) {}
-          searchLocationMarker = null;
-        }
-      }, 7000);
     } catch (_e) {}
   };
 
@@ -6173,6 +6177,10 @@ async function bootstrap() {
 
   if (sidebarSearchInput) {
     sidebarSearchInput.addEventListener("input", (e) => {
+      const val = (e.target.value || "").trim();
+      if (!val) {
+        clearSearchLocationMarker();
+      }
       clearTimeout(searchDebounceTimer);
       searchDebounceTimer = setTimeout(() => {
         renderSearchSuggestions(e.target.value);
