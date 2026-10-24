@@ -5295,7 +5295,7 @@ async function bootstrap() {
     updateLegendTabUi();
   });
   if (regionSelectEl) {
-    regionSelectEl.innerHTML = `<option value="">전체지역</option>${regionFilters
+    regionSelectEl.innerHTML = `<option value="">전체 관할청</option>${regionFilters
       .map((region) => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`)
       .join("")}`;
     regionSelectEl.addEventListener("change", () => {
@@ -5831,7 +5831,7 @@ async function bootstrap() {
       if (typeof renderRankPanel === "function") renderRankPanel();
       if (typeof renderNewStorePanel === "function") renderNewStorePanel();
       if (typeof showToast === "function") {
-        showToast(`📍 <strong>${query}</strong> (${matchedFilter}) 지역으로 이동했습니다. (${areaStores.length}개 가맹점)`);
+        showToast(`📍 <strong>${query}</strong> (${matchedFilter} 관할청)으로 이동했습니다. (${areaStores.length}개 가맹점)`);
       }
       return;
     }
