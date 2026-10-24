@@ -969,9 +969,11 @@ async function bootstrap() {
     borderColor: "transparent",
     borderWidth: 0,
     disableAnchor: true,
-    pixelOffset: new naver.maps.Point(0, -48),
+    pixelOffset: new naver.maps.Point(0, -52),
     zIndex: 500,
   });
+
+  let topDynamicMarkerZIndex = 200000;
 
   let renderedMarkers = [];
   let activeMarkerMap = new Map();
@@ -5011,9 +5013,10 @@ async function bootstrap() {
         marker.__facilityKey = key;
 
         naver.maps.Event.addListener(marker, "mouseover", () => {
-          marker.setZIndex(100000);
-          if (selectedFacilityId) return;
+          marker.setZIndex(++topDynamicMarkerZIndex);
+          if (selectedFacilityId && selectedFacilityId === marker.__facilityKey) return;
           const sub = [...new Set([v.subtitle, toCategoryLabel(v.category)].filter(Boolean))].join(" · ");
+          hoverInfoWindow.setZIndex(999999);
           hoverInfoWindow.setContent(`
             <div style="padding:8px 10px;min-width:160px;font-size:12px;line-height:1.4;">
               <div style="font-weight:700;color:#1f2d45;">${escapeHtml(v.title)}</div>
@@ -5023,6 +5026,7 @@ async function bootstrap() {
           hoverInfoWindow.open(map, marker);
         });
         naver.maps.Event.addListener(marker, "mouseout", () => {
+          hoverInfoWindow.close();
           if (selectedFacilityId) {
             if (marker.__facilityKey !== selectedFacilityId) {
               marker.setZIndex(baseZIndex);
@@ -5030,12 +5034,13 @@ async function bootstrap() {
             return;
           }
           marker.setZIndex(baseZIndex);
-          hoverInfoWindow.close();
         });
         naver.maps.Event.addListener(marker, "click", () => {
           lastMarkerClickTime = Date.now();
+          hoverInfoWindow.close();
           if (selectedFacilityId && selectedFacilityId !== marker.__facilityKey) hideDetailPanelOnly();
           selectedFacilityId = marker.__facilityKey;
+          marker.setZIndex(++topDynamicMarkerZIndex);
           if (map.getZoom() < 12) {
             map.setZoom(13, true);
             updateZoomLabel();
