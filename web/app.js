@@ -445,6 +445,14 @@ async function bootstrap() {
   const defaultCenter = new naver.maps.LatLng(37.5665, 126.978);
   const defaultZoom = 14;
 
+  let koreaPlaces = [];
+  try {
+    fetch("./data/korea_places.json?v=1")
+      .then(r => r.ok ? r.json() : [])
+      .then(list => { koreaPlaces = list; window.koreaPlaces = list; })
+      .catch(() => {});
+  } catch (_e) {}
+
   const res = await fetch(DATA_URL);
   const data = await res.json();
   const facilities = Array.isArray(data.facilities) ? data.facilities : [];
@@ -5636,10 +5644,96 @@ async function bootstrap() {
     legendBar.classList.add("mobile-collapsed");
   }
 
+  // Search Location Animated Marker on Map
+  let searchLocationMarker = null;
+  const showSearchLocationMarker = (lat, lng, title = "", subtitle = "") => {
+    if (!map || !window.naver || !naver.maps) return;
+    if (searchLocationMarker) {
+      try { searchLocationMarker.setMap(null); } catch (_e) {}
+      searchLocationMarker = null;
+    }
+    try {
+      const pos = new naver.maps.LatLng(lat, lng);
+      const iconHtml = `
+        <div class="searchLocationPinWrap">
+          <div class="searchLocationBadge">${escapeHtml(title)}</div>
+          <div class="searchLocationPin">📍</div>
+          <div class="searchLocationPulse"></div>
+        </div>
+      `;
+      searchLocationMarker = new naver.maps.Marker({
+        position: pos,
+        map: map,
+        zIndex: 99999,
+        icon: {
+          content: iconHtml,
+          anchor: new naver.maps.Point(60, 48)
+        }
+      });
+
+      setTimeout(() => {
+        if (searchLocationMarker) {
+          try { searchLocationMarker.setMap(null); } catch (_e) {}
+          searchLocationMarker = null;
+        }
+      }, 7000);
+    } catch (_e) {}
+  };
+
+  const goToPlaceLocation = (place) => {
+    if (!place || !place.lat || !place.lng || !map) return;
+    if (selectedFacilityId) hideDetailPanelOnly();
+    selectedRegion = "";
+    if (regionSelectEl) regionSelectEl.value = "";
+
+    const pos = new naver.maps.LatLng(place.lat, place.lng);
+    map.panTo(pos);
+    if (map.getZoom() < 14) {
+      map.setZoom(14);
+    }
+    showSearchLocationMarker(place.lat, place.lng, place.name, place.sub);
+    renderVisibleMarkers();
+    setTimeout(() => renderVisibleMarkers(), 150);
+
+    const icon = place.type === "island" ? "🏝️" : (place.type === "station" ? "🚊" : "📍");
+    if (typeof showToast === "function") {
+      const subInfo = place.sub ? ` (${place.sub})` : (place.city ? ` (${place.city})` : "");
+      showToast(`${icon} <strong>${escapeHtml(place.name)}</strong>${escapeHtml(subInfo)} 주변으로 이동했습니다.`);
+    }
+  };
+
+  const findPlaceMatch = (query) => {
+    if (!query || !Array.isArray(koreaPlaces) || koreaPlaces.length === 0) return null;
+    const raw = query.trim();
+    const norm = raw.replace(/\s+/g, "").toLowerCase();
+    const withStation = norm.endsWith("역") ? norm : norm + "역";
+
+    // 1. Exact match on place name (e.g. "오이도" -> island, "오이도역" -> station)
+    let match = koreaPlaces.find(p => (p.name || "").replace(/\s+/g, "").toLowerCase() === norm);
+    if (match) return match;
+
+    // 2. If query didn't end with "역", check if station matches (e.g. "강남" -> "강남역")
+    if (!norm.endsWith("역")) {
+      match = koreaPlaces.find(p => p.type === "station" && (p.name || "").replace(/\s+/g, "").toLowerCase() === withStation);
+      if (match) return match;
+    }
+
+    // 3. Starts with or includes
+    match = koreaPlaces.find(p => {
+      const pNorm = (p.name || "").replace(/\s+/g, "").toLowerCase();
+      return pNorm === norm || pNorm.startsWith(norm) || (norm.length >= 3 && pNorm.includes(norm));
+    });
+    return match || null;
+  };
+
   // Sidebar real-time search box handler
-  const performKeywordSearch = (query) => {
+  const performKeywordSearch = async (query) => {
     if (!query) return;
     const lowerQuery = query.toLowerCase().trim();
+
+    // Hide search suggestions dropdown
+    const searchDropdownEl = document.getElementById("sidebarSearchDropdown");
+    if (searchDropdownEl) searchDropdownEl.classList.add("hidden");
 
     // 1. 100% Exact Store Title Match ONLY (정확히 매장 명칭 전체가 일치할 때만 단일 상점 포커스)
     const exactTitleMatch = points.find((p) => (p.title || "").trim().toLowerCase() === lowerQuery);
@@ -5653,7 +5747,14 @@ async function bootstrap() {
       }
     }
 
-    // 2. Region / Administrative Area Search Priority (지역 우선 탐색)
+    // 2. Subway Station / Island / Famous Landmark Match (지하철역, 섬, 주요 명소 우선 탐색)
+    const placeMatch = findPlaceMatch(lowerQuery);
+    if (placeMatch) {
+      goToPlaceLocation(placeMatch);
+      return;
+    }
+
+    // 3. Region / Administrative Area Search Priority (지역 우선 탐색)
     // "대전시", "서울시", "수원시", "해운대구" 등 지역 명칭일 경우 부분 일치 매장이 아니라 해당 지역으로 먼저 이동
     const cleanArea = lowerQuery
       .replace(/(특별시|광역시|특별자치시|특별자치도)$/, "")
@@ -5709,13 +5810,10 @@ async function bootstrap() {
       "제주특별자치도": ["제주"]
     };
 
-    // 2-1. Check Major Provinces/Metropolitan Cities
+    // 3-1. Check Major Provinces/Metropolitan Cities
     const candidateRegions = MAJOR_REGIONS[lowerQuery] || (cleanArea && MAJOR_REGIONS[cleanArea]);
     if (candidateRegions && candidateRegions.length > 0) {
-      // Find matching filter in regionFilters
       const matchedFilter = candidateRegions.find(r => regionFilters.includes(r)) || candidateRegions[0];
-      
-      // Also filter stores by city address or region
       const searchTarget = cleanArea || lowerQuery;
       const areaStores = points.filter((p) => {
         const addr = (p.address || "").toLowerCase();
@@ -5727,7 +5825,6 @@ async function bootstrap() {
       selectedRegion = matchedFilter;
       if (regionSelectEl) regionSelectEl.value = matchedFilter;
 
-      // Move center smoothly to region center without shrinking/enlarging zoom level
       moveMapToRegion(matchedFilter);
 
       renderVisibleMarkers();
@@ -5739,7 +5836,7 @@ async function bootstrap() {
       return;
     }
 
-    // 2-2. Check City / Gun / Gu (시/군/구/읍/면/동) in Address (e.g. 수원시, 의정부시, 강남구, 해운대구 등)
+    // 3-2. Check City / Gun / Gu (시/군/구/읍/면/동) in Address (e.g. 수원시, 의정부시, 강남구, 해운대구 등)
     if (cleanArea.length >= 2 || lowerQuery.length >= 2) {
       const areaStores = points.filter((p) => {
         const addr = (p.address || "").toLowerCase();
@@ -5751,7 +5848,6 @@ async function bootstrap() {
         selectedRegion = "";
         if (regionSelectEl) regionSelectEl.value = "";
 
-        // Pan to average center of matching area stores without changing zoom level
         const avgLat = areaStores.reduce((sum, p) => sum + p.lat, 0) / areaStores.length;
         const avgLng = areaStores.reduce((sum, p) => sum + p.lng, 0) / areaStores.length;
         map.panTo(new naver.maps.LatLng(avgLat, avgLng));
@@ -5763,8 +5859,8 @@ async function bootstrap() {
       }
     }
 
-    // 3. Store Name / Keyword Search (가게명, 혜택, 업종 검색)
-    // 3-1. Title partial match
+    // 4. Store Name / Keyword Search (가게명, 혜택, 업종 검색)
+    // 4-1. Title partial match
     const titleMatches = points.filter((p) => (p.title || "").toLowerCase().includes(lowerQuery));
     const uniqueTitles = new Set(titleMatches.map(p => (p.title || "").trim()));
     if (titleMatches.length === 1 || (titleMatches.length > 1 && uniqueTitles.size === 1)) {
@@ -5789,7 +5885,7 @@ async function bootstrap() {
       return;
     }
 
-    // 3-2. General multi-field match (Station, Category, Subtitle, Benefit)
+    // 4-2. General multi-field match (Station, Category, Subtitle, Benefit)
     const cleanQuery = lowerQuery.replace(/역$/, "").trim();
     const generalMatches = points.filter((p) => {
       const title = (p.title || "").toLowerCase();
@@ -5826,7 +5922,25 @@ async function bootstrap() {
       return;
     }
 
-    // 4. Fallback to Naver Geocoder if available
+    // 5. Dynamic Place Search fallback via Backend API (/api/search/place)
+    try {
+      const pRes = await fetch(`/api/search/place?q=${encodeURIComponent(query)}`);
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (pData.ok && pData.place && pData.place.lat && pData.place.lng) {
+          goToPlaceLocation({
+            name: pData.place.name || query,
+            type: "place",
+            sub: pData.place.address || "",
+            lat: pData.place.lat,
+            lng: pData.place.lng
+          });
+          return;
+        }
+      }
+    } catch (_e) {}
+
+    // 6. Fallback to Naver Geocoder if available
     if (window.naver && naver.maps && naver.maps.Service && naver.maps.Service.geocode) {
       naver.maps.Service.geocode({ query }, (status, response) => {
         if (status === naver.maps.Service.Status.OK && response.v2 && response.v2.addresses.length > 0) {
@@ -5834,8 +5948,12 @@ async function bootstrap() {
           const address = response.v2.addresses[0];
           const pos = new naver.maps.LatLng(address.y, address.x);
           map.panTo(pos);
+          if (map.getZoom() < 14) map.setZoom(14);
           renderVisibleMarkers();
-          setTimeout(() => renderVisibleMarkers(), 120);
+          showSearchLocationMarker(address.y, address.x, query, address.roadAddress || address.jibunAddress);
+          if (typeof showToast === "function") {
+            showToast(`📍 <strong>${escapeHtml(query)}</strong> 주소 위치로 이동했습니다.`);
+          }
         } else {
           if (typeof showToast === "function") {
             showToast(`검색 결과가 없습니다: '${escapeHtml(query)}'`);
@@ -5849,15 +5967,131 @@ async function bootstrap() {
     }
   };
 
+  // Real-time Autocomplete & Suggestion Handler
   const sidebarSearchInput = document.getElementById("sidebarSearchInput");
+  const sidebarSearchDropdown = document.getElementById("sidebarSearchDropdown");
+  let searchDebounceTimer = null;
+
+  const renderSearchSuggestions = (val) => {
+    if (!sidebarSearchDropdown) return;
+    const q = val.trim().toLowerCase();
+    if (q.length < 2) {
+      sidebarSearchDropdown.innerHTML = "";
+      sidebarSearchDropdown.classList.add("hidden");
+      return;
+    }
+
+    const norm = q.replace(/\s+/g, "");
+    const withStation = norm.endsWith("역") ? norm : norm + "역";
+
+    // 1. Matches from koreaPlaces (Stations, Islands, Landmarks)
+    const matchedPlaces = (Array.isArray(koreaPlaces) ? koreaPlaces : []).filter(p => {
+      const pName = (p.name || "").replace(/\s+/g, "").toLowerCase();
+      const pSub = (p.sub || "").toLowerCase();
+      return pName.includes(norm) || pSub.includes(norm) || (p.type === "station" && pName.includes(withStation));
+    }).slice(0, 4);
+
+    // 2. Matches from points (Participating Stores)
+    const matchedStores = (Array.isArray(points) ? points : []).filter(p => {
+      const title = (p.title || "").toLowerCase();
+      const addr = (p.address || "").toLowerCase();
+      return title.includes(q) || addr.includes(q);
+    }).slice(0, 4);
+
+    if (matchedPlaces.length === 0 && matchedStores.length === 0) {
+      sidebarSearchDropdown.innerHTML = "";
+      sidebarSearchDropdown.classList.add("hidden");
+      return;
+    }
+
+    let html = "";
+    matchedPlaces.forEach(p => {
+      const icon = p.type === "island" ? "🏝️" : (p.type === "station" ? "🚊" : "📍");
+      const typeLabel = p.type === "island" ? "섬 · 해양" : (p.type === "station" ? "지하철역" : "명소");
+      html += `
+        <div class="searchSuggestItem" data-kind="place" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${escapeHtml(p.name)}" data-sub="${escapeHtml(p.sub || '')}" data-type="${p.type}">
+          <span class="suggestIcon">${icon}</span>
+          <div class="suggestText">
+            <strong>${escapeHtml(p.name)} <span style="font-size:10px; font-weight:normal; color:#3b82f6;">[${typeLabel}]</span></strong>
+            <span class="suggestSub">${escapeHtml(p.sub || p.city || '')}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    matchedStores.forEach(s => {
+      const key = getFacilityKey(s);
+      html += `
+        <div class="searchSuggestItem" data-kind="store" data-key="${escapeHtml(key)}">
+          <span class="suggestIcon">🏷️</span>
+          <div class="suggestText">
+            <strong>${escapeHtml(s.title || '')} <span style="font-size:10px; font-weight:normal; color:#10b981;">[할인가게]</span></strong>
+            <span class="suggestSub">${escapeHtml(s.address || s.benefit || '')}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    sidebarSearchDropdown.innerHTML = html;
+    sidebarSearchDropdown.classList.remove("hidden");
+
+    // Hook click events
+    sidebarSearchDropdown.querySelectorAll(".searchSuggestItem").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const kind = item.dataset.kind;
+        if (kind === "place") {
+          goToPlaceLocation({
+            name: item.dataset.name,
+            sub: item.dataset.sub,
+            type: item.dataset.type,
+            lat: parseFloat(item.dataset.lat),
+            lng: parseFloat(item.dataset.lng)
+          });
+          if (sidebarSearchInput) sidebarSearchInput.value = item.dataset.name;
+        } else if (kind === "store") {
+          const key = item.dataset.key;
+          if (key) focusFacility(key);
+          if (sidebarSearchInput) sidebarSearchInput.value = item.querySelector("strong")?.textContent?.split("[")[0]?.trim() || "";
+        }
+        sidebarSearchDropdown.classList.add("hidden");
+      });
+    });
+  };
+
   if (sidebarSearchInput) {
+    sidebarSearchInput.addEventListener("input", (e) => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        renderSearchSuggestions(e.target.value);
+      }, 150);
+    });
+
     sidebarSearchInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
         performKeywordSearch(e.target.value.trim());
         scheduleRender();
+      } else if (e.key === "Escape") {
+        if (sidebarSearchDropdown) sidebarSearchDropdown.classList.add("hidden");
+      }
+    });
+
+    sidebarSearchInput.addEventListener("focus", (e) => {
+      if (e.target.value.trim().length >= 2) {
+        renderSearchSuggestions(e.target.value);
       }
     });
   }
+
+  document.addEventListener("click", (e) => {
+    if (sidebarSearchDropdown && !sidebarSearchDropdown.classList.contains("hidden")) {
+      const wrap = document.querySelector(".sidebarSearchWrap");
+      if (wrap && !wrap.contains(e.target)) {
+        sidebarSearchDropdown.classList.add("hidden");
+      }
+    }
+  });
 
   renderVisibleMarkers();
 

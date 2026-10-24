@@ -2140,6 +2140,47 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             conn.close()
         self._json(HTTPStatus.OK, {"ok": True, "stats": stats})
 
+    def _handle_place_search(self):
+        parsed = urlparse(self.path)
+        q = parse_qs(parsed.query)
+        query = (q.get("q") or [""])[0].strip()
+        if not query:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "query required"})
+            return
+
+        if not hasattr(MMAMapHandler, "_PLACE_CACHE"):
+            MMAMapHandler._PLACE_CACHE = {}
+
+        cached = MMAMapHandler._PLACE_CACHE.get(query.lower())
+        if cached:
+            self._json(HTTPStatus.OK, {"ok": True, "place": cached})
+            return
+
+        try:
+            enc = urllib.parse.quote(query)
+            url = f"https://nominatim.openstreetmap.org/search?q={enc}&format=json&countrycodes=kr&limit=1"
+            req = urllib.request.Request(url, headers={"User-Agent": "MMAMap/1.0 (contact@mmasv.kr)"})
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    if data and len(data) > 0:
+                        item = data[0]
+                        place = {
+                            "name": query,
+                            "lat": float(item.get("lat", 0)),
+                            "lng": float(item.get("lon", 0)),
+                            "address": item.get("display_name", "")
+                        }
+                        if len(MMAMapHandler._PLACE_CACHE) > 2000:
+                            MMAMapHandler._PLACE_CACHE.clear()
+                        MMAMapHandler._PLACE_CACHE[query.lower()] = place
+                        self._json(HTTPStatus.OK, {"ok": True, "place": place})
+                        return
+        except Exception:
+            pass
+
+        self._json(HTTPStatus.OK, {"ok": False, "error": "Not found"})
+
     def _handle_print_poster(self):
         parsed = urlparse(self.path)
         q = parse_qs(parsed.query)
@@ -2266,6 +2307,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return
         if parsed_url.path == "/api/qr_scan":
             self._handle_qr_scan()
+            return
+        if parsed_url.path == "/api/search/place":
+            self._handle_place_search()
             return
         if parsed_url.path == "/api/qr_stats":
             self._handle_qr_stats()

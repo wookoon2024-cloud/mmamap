@@ -5675,6 +5675,7 @@ button:active {
 
 /* Sidebar Search Box styles */
 .sidebarSearchWrap {
+  position: relative !important;
   width: 100% !important;
   padding: 0 0 10px 0 !important;
   border-bottom: 1px solid #f1f5f9 !important;
@@ -5699,6 +5700,129 @@ button:active {
   border-color: #2f6ff2 !important;
   background: #ffffff !important;
   box-shadow: 0 0 0 3px rgba(47, 111, 242, 0.1) !important;
+}
+
+/* Autocomplete Suggestion Dropdown */
+.sidebarSearchDropdown {
+  position: absolute !important;
+  top: calc(100% - 6px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15) !important;
+  max-height: 280px !important;
+  overflow-y: auto !important;
+  z-index: 10000 !important;
+  padding: 4px 0 !important;
+}
+
+.sidebarSearchDropdown.hidden {
+  display: none !important;
+}
+
+.searchSuggestItem {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 9px 12px !important;
+  cursor: pointer !important;
+  border-bottom: 1px solid #f8fafc !important;
+  transition: background 0.15s ease !important;
+}
+
+.searchSuggestItem:last-child {
+  border-bottom: none !important;
+}
+
+.searchSuggestItem:hover, .searchSuggestItem.active {
+  background: #eff6ff !important;
+}
+
+.suggestIcon {
+  font-size: 17px !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+}
+
+.suggestText {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
+
+.suggestText strong {
+  font-size: 13px !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.suggestSub {
+  font-size: 11px !important;
+  color: #64748b !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-top: 1px !important;
+}
+
+/* Search Location Animated Pin on Map */
+.searchLocationPinWrap {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  pointer-events: none !important;
+  animation: searchPinBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  transform: translate(-50%, -100%) !important;
+  position: relative !important;
+  width: 120px !important;
+}
+
+@keyframes searchPinBounce {
+  0% { transform: translate(-50%, -150%); opacity: 0; }
+  60% { transform: translate(-50%, -85%); opacity: 1; }
+  100% { transform: translate(-50%, -100%); }
+}
+
+.searchLocationBadge {
+  background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+  color: #ffffff !important;
+  padding: 4px 10px !important;
+  border-radius: 14px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  white-space: nowrap !important;
+  margin-bottom: 2px !important;
+  border: 1.5px solid #38bdf8 !important;
+  letter-spacing: -0.3px !important;
+  text-align: center !important;
+}
+
+.searchLocationPin {
+  font-size: 28px !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.searchLocationPulse {
+  width: 24px !important;
+  height: 8px !important;
+  background: rgba(56, 189, 248, 0.5) !important;
+  border-radius: 50% !important;
+  margin-top: -3px !important;
+  animation: searchPulse 1.8s infinite !important;
+}
+
+@keyframes searchPulse {
+  0% { transform: scale(0.8); opacity: 0.9; }
+  70% { transform: scale(2.5); opacity: 0; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
 /* Move newStorePanel to the bottom of the sidebar */
