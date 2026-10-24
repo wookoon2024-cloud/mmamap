@@ -5713,28 +5713,77 @@ async function bootstrap() {
     }
   };
 
+  const isAdministrativeAreaQuery = (query) => {
+    if (!query) return false;
+    const q = query.trim();
+    if (/(?:특별시|광역시|특별자치시|특별자치도|시|군|구|읍|면|동)$/.test(q)) {
+      return true;
+    }
+    const PROVINCES = ["서울", "경기", "인천", "대전", "대구", "부산", "울산", "광주", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
+    return PROVINCES.includes(q);
+  };
+
+  const findDistrictMatch = (query) => {
+    if (!query || query.trim().length < 2) return null;
+    const q = query.trim().toLowerCase();
+    const cleanQ = q.replace(/(특별시|광역시|특별자치시|특별자치도)$/, "").replace(/(시|군|구|도)$/, "").trim();
+
+    // Check store addresses for matching district
+    const matchingStores = points.filter(p => {
+      const addr = (p.address || "").toLowerCase();
+      return addr.includes(q) || (cleanQ.length >= 2 && addr.includes(cleanQ));
+    });
+
+    if (matchingStores.length >= 2) {
+      const avgLat = matchingStores.reduce((sum, p) => sum + p.lat, 0) / matchingStores.length;
+      const avgLng = matchingStores.reduce((sum, p) => sum + p.lng, 0) / matchingStores.length;
+
+      let fullName = query;
+      for (const s of matchingStores) {
+        const addr = s.address || "";
+        const m = addr.match(/^([가-힣]+(?:특별시|광역시|특별자치시|도|시))\s+([가-힣]+(?:시|군|구))/);
+        if (m) {
+          fullName = `${m[1]} ${m[2]}`;
+          break;
+        }
+      }
+
+      return {
+        name: query,
+        fullName: fullName || query,
+        type: "district",
+        count: matchingStores.length,
+        lat: avgLat,
+        lng: avgLng
+      };
+    }
+    return null;
+  };
+
   const findPlaceMatch = (query) => {
     if (!query || !Array.isArray(koreaPlaces) || koreaPlaces.length === 0) return null;
     const raw = query.trim();
     const norm = raw.replace(/\s+/g, "").toLowerCase();
-    const withStation = norm.endsWith("역") ? norm : norm + "역";
 
-    // 1. Exact match on place name (e.g. "오이도" -> island, "오이도역" -> station)
+    // 1. Exact match on place name (e.g. "오이도" -> island, "오이도역" -> station, "강동구청역" -> station)
     let match = koreaPlaces.find(p => (p.name || "").replace(/\s+/g, "").toLowerCase() === norm);
     if (match) return match;
 
-    // 2. If query didn't end with "역", check if station matches (e.g. "강남" -> "강남역")
-    if (!norm.endsWith("역")) {
+    // 2. If query explicitly ends with "역", match station exact name
+    if (norm.endsWith("역")) {
+      match = koreaPlaces.find(p => p.type === "station" && (p.name || "").replace(/\s+/g, "").toLowerCase() === norm);
+      if (match) return match;
+    }
+
+    // 3. If query is NOT an administrative area (does not end in 시, 군, 구, 동, 읍, 면),
+    // check if adding "역" matches a station (e.g. "판교" -> "판교역", "수서" -> "수서역")
+    if (!isAdministrativeAreaQuery(raw) && !norm.endsWith("역")) {
+      const withStation = norm + "역";
       match = koreaPlaces.find(p => p.type === "station" && (p.name || "").replace(/\s+/g, "").toLowerCase() === withStation);
       if (match) return match;
     }
 
-    // 3. Starts with or includes
-    match = koreaPlaces.find(p => {
-      const pNorm = (p.name || "").replace(/\s+/g, "").toLowerCase();
-      return pNorm === norm || pNorm.startsWith(norm) || (norm.length >= 3 && pNorm.includes(norm));
-    });
-    return match || null;
+    return null;
   };
 
   // Sidebar real-time search box handler
@@ -5758,15 +5807,8 @@ async function bootstrap() {
       }
     }
 
-    // 2. Subway Station / Island / Famous Landmark Match (지하철역, 섬, 주요 명소 우선 탐색)
-    const placeMatch = findPlaceMatch(lowerQuery);
-    if (placeMatch) {
-      goToPlaceLocation(placeMatch);
-      return;
-    }
-
-    // 3. Region / Administrative Area Search Priority (지역 우선 탐색)
-    // "대전시", "서울시", "수원시", "해운대구" 등 지역 명칭일 경우 부분 일치 매장이 아니라 해당 지역으로 먼저 이동
+    // 2. Region / Administrative Area Search Priority (지역 / 행정구역 최우선 탐색)
+    // "강동구", "수원시", "대전", "서울", "해운대구" 등
     const cleanArea = lowerQuery
       .replace(/(특별시|광역시|특별자치시|특별자치도)$/, "")
       .replace(/(시|군|구|도)$/, "")
@@ -5821,7 +5863,7 @@ async function bootstrap() {
       "제주특별자치도": ["제주"]
     };
 
-    // 3-1. Check Major Provinces/Metropolitan Cities
+    // 2-1. Check Major Provinces/Metros
     const candidateRegions = MAJOR_REGIONS[lowerQuery] || (cleanArea && MAJOR_REGIONS[cleanArea]);
     if (candidateRegions && candidateRegions.length > 0) {
       const matchedFilter = candidateRegions.find(r => regionFilters.includes(r)) || candidateRegions[0];
@@ -5847,27 +5889,28 @@ async function bootstrap() {
       return;
     }
 
-    // 3-2. Check City / Gun / Gu (시/군/구/읍/면/동) in Address (e.g. 수원시, 의정부시, 강남구, 해운대구 등)
-    if (cleanArea.length >= 2 || lowerQuery.length >= 2) {
-      const areaStores = points.filter((p) => {
-        const addr = (p.address || "").toLowerCase();
-        return addr.includes(lowerQuery) || (cleanArea.length >= 2 && addr.includes(cleanArea));
-      });
+    // 2-2. Check City / Gun / Gu (시/군/구/읍/면/동) in Address (e.g. 강동구, 수원시, 의정부시, 해운대구 등)
+    const districtMatch = findDistrictMatch(query);
+    if (districtMatch) {
+      if (selectedFacilityId) hideDetailPanelOnly();
+      selectedRegion = "";
+      if (regionSelectEl) regionSelectEl.value = "";
 
-      if (areaStores.length >= 2) {
-        if (selectedFacilityId) hideDetailPanelOnly();
-        selectedRegion = "";
-        if (regionSelectEl) regionSelectEl.value = "";
-
-        const avgLat = areaStores.reduce((sum, p) => sum + p.lat, 0) / areaStores.length;
-        const avgLng = areaStores.reduce((sum, p) => sum + p.lng, 0) / areaStores.length;
-        map.panTo(new naver.maps.LatLng(avgLat, avgLng));
-        renderVisibleMarkers();
-        if (typeof showToast === "function") {
-          showToast(`📍 <strong>${query}</strong> 지역 검색 결과로 이동했습니다. (${areaStores.length}개 가맹점)`);
-        }
-        return;
+      map.panTo(new naver.maps.LatLng(districtMatch.lat, districtMatch.lng));
+      if (map.getZoom() < 13) map.setZoom(14);
+      renderVisibleMarkers();
+      showSearchLocationMarker(districtMatch.lat, districtMatch.lng, districtMatch.name, districtMatch.fullName);
+      if (typeof showToast === "function") {
+        showToast(`📍 <strong>${districtMatch.fullName}</strong> 지역으로 이동했습니다. (${districtMatch.count}개 가맹점)`);
       }
+      return;
+    }
+
+    // 3. Subway Station / Island / Landmark Match (차선택: 역/섬/명소 검색 - 정확 일치 시)
+    const placeMatch = findPlaceMatch(lowerQuery);
+    if (placeMatch) {
+      goToPlaceLocation(placeMatch);
+      return;
     }
 
     // 4. Store Name / Keyword Search (가게명, 혜택, 업종 검색)
@@ -5993,43 +6036,46 @@ async function bootstrap() {
     }
 
     const norm = q.replace(/\s+/g, "");
-    const withStation = norm.endsWith("역") ? norm : norm + "역";
 
-    // 1. Matches from koreaPlaces (Stations, Islands, Landmarks)
-    const matchedPlaces = (Array.isArray(koreaPlaces) ? koreaPlaces : []).filter(p => {
-      const pName = (p.name || "").replace(/\s+/g, "").toLowerCase();
-      const pSub = (p.sub || "").toLowerCase();
-      return pName.includes(norm) || pSub.includes(norm) || (p.type === "station" && pName.includes(withStation));
-    }).slice(0, 4);
+    // 1. Check District Match first (행정구역 · 지역 최우선)
+    const districtMatch = findDistrictMatch(q);
 
-    // 2. Matches from points (Participating Stores)
+    // 2. Matches from points (가맹점 상호명/주소)
     const matchedStores = (Array.isArray(points) ? points : []).filter(p => {
       const title = (p.title || "").toLowerCase();
       const addr = (p.address || "").toLowerCase();
       return title.includes(q) || addr.includes(q);
     }).slice(0, 4);
 
-    if (matchedPlaces.length === 0 && matchedStores.length === 0) {
+    // 3. Matches from koreaPlaces (지하철역, 섬, 명소 - 차선택)
+    const matchedPlaces = (Array.isArray(koreaPlaces) ? koreaPlaces : []).filter(p => {
+      const pName = (p.name || "").replace(/\s+/g, "").toLowerCase();
+      const pSub = (p.sub || "").toLowerCase();
+      return pName.includes(norm) || pSub.includes(norm);
+    }).slice(0, 3);
+
+    if (!districtMatch && matchedPlaces.length === 0 && matchedStores.length === 0) {
       sidebarSearchDropdown.innerHTML = "";
       sidebarSearchDropdown.classList.add("hidden");
       return;
     }
 
     let html = "";
-    matchedPlaces.forEach(p => {
-      const icon = p.type === "island" ? "🏝️" : (p.type === "station" ? "🚊" : "📍");
-      const typeLabel = p.type === "island" ? "섬 · 해양" : (p.type === "station" ? "지하철역" : "명소");
+
+    // 1) District at TOP
+    if (districtMatch) {
       html += `
-        <div class="searchSuggestItem" data-kind="place" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${escapeHtml(p.name)}" data-sub="${escapeHtml(p.sub || '')}" data-type="${p.type}">
-          <span class="suggestIcon">${icon}</span>
+        <div class="searchSuggestItem" data-kind="district" data-lat="${districtMatch.lat}" data-lng="${districtMatch.lng}" data-name="${escapeHtml(districtMatch.name)}" data-fullname="${escapeHtml(districtMatch.fullName)}">
+          <span class="suggestIcon">📍</span>
           <div class="suggestText">
-            <strong>${escapeHtml(p.name)} <span style="font-size:10px; font-weight:normal; color:#3b82f6;">[${typeLabel}]</span></strong>
-            <span class="suggestSub">${escapeHtml(p.sub || p.city || '')}</span>
+            <strong>${escapeHtml(districtMatch.name)} <span style="font-size:10px; font-weight:normal; color:#2563eb;">[지역 · 행정구역]</span></strong>
+            <span class="suggestSub">${escapeHtml(districtMatch.fullName)} (${districtMatch.count}개 가맹점)</span>
           </div>
         </div>
       `;
-    });
+    }
 
+    // 2) Participating Stores
     matchedStores.forEach(s => {
       const key = getFacilityKey(s);
       html += `
@@ -6043,6 +6089,21 @@ async function bootstrap() {
       `;
     });
 
+    // 3) Places (Stations, Islands, Landmarks - 차선택)
+    matchedPlaces.forEach(p => {
+      const icon = p.type === "island" ? "🏝️" : (p.type === "station" ? "🚊" : "📍");
+      const typeLabel = p.type === "island" ? "섬 · 해양" : (p.type === "station" ? "지하철역" : "명소");
+      html += `
+        <div class="searchSuggestItem" data-kind="place" data-lat="${p.lat}" data-lng="${p.lng}" data-name="${escapeHtml(p.name)}" data-sub="${escapeHtml(p.sub || '')}" data-type="${p.type}">
+          <span class="suggestIcon">${icon}</span>
+          <div class="suggestText">
+            <strong>${escapeHtml(p.name)} <span style="font-size:10px; font-weight:normal; color:#64748b;">[${typeLabel}]</span></strong>
+            <span class="suggestSub">${escapeHtml(p.sub || p.city || '')}</span>
+          </div>
+        </div>
+      `;
+    });
+
     sidebarSearchDropdown.innerHTML = html;
     sidebarSearchDropdown.classList.remove("hidden");
 
@@ -6051,7 +6112,20 @@ async function bootstrap() {
       item.addEventListener("click", (e) => {
         e.stopPropagation();
         const kind = item.dataset.kind;
-        if (kind === "place") {
+        if (kind === "district") {
+          const lat = parseFloat(item.dataset.lat);
+          const lng = parseFloat(item.dataset.lng);
+          const name = item.dataset.name;
+          const fullName = item.dataset.fullname;
+          if (selectedFacilityId) hideDetailPanelOnly();
+          selectedRegion = "";
+          if (regionSelectEl) regionSelectEl.value = "";
+          map.panTo(new naver.maps.LatLng(lat, lng));
+          if (map.getZoom() < 13) map.setZoom(14);
+          renderVisibleMarkers();
+          showSearchLocationMarker(lat, lng, name, fullName);
+          if (sidebarSearchInput) sidebarSearchInput.value = name;
+        } else if (kind === "place") {
           goToPlaceLocation({
             name: item.dataset.name,
             sub: item.dataset.sub,
