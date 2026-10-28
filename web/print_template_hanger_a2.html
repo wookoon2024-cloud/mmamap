@@ -144,7 +144,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      padding: 0 18px 5px;
+      padding: 0 18px;
       height: 62px;
       min-width: 300px;
       border-radius: 999px;
@@ -155,7 +155,15 @@
       letter-spacing: -1px;
     }
     .name-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: #ffffff; flex: 0 0 auto; }
-    .name-pill .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .name-pill .name {
+      flex: 1 1 auto;
+      text-align: center;
+      line-height: 1;
+      transform: translate(-0.5px, -2.5px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     /* benefit board */
     .board {

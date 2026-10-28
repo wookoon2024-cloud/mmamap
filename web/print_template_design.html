@@ -54,7 +54,15 @@
       z-index: 3;
     }
     .name-pill .dot { width: 14px; height: 14px; border-radius: 50%; background: #ffffff; flex: 0 0 auto; }
-    .name-pill .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .name-pill .name {
+      flex: 1 1 auto;
+      text-align: center;
+      line-height: 1;
+      transform: translate(-1px, -3.5px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     /* --- QR (inside the empty white box of the artwork) --- */
     .qr {

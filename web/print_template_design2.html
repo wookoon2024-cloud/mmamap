@@ -30,7 +30,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 18px;
-      padding: 0 22px 6px;
+      padding: 0 22px;
       border-radius: 999px;
       background: #003669;
       color: #ffffff;
@@ -40,7 +40,15 @@
       z-index: 3;
     }
     .name-pill .dot { width: 13px; height: 13px; border-radius: 50%; background: #ffffff; flex: 0 0 auto; }
-    .name-pill .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .name-pill .name {
+      flex: 1 1 auto;
+      text-align: center;
+      line-height: 1;
+      transform: translate(-1px, -3px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     /* top-right QR (inside the empty white box, padded like the sky design) */
     .qr { position: absolute; left: 873px; top: 54px; width: 92px; height: 92px; display: block; z-index: 2; }
