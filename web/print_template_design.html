@@ -120,6 +120,32 @@
       padding-left: 28px;
     }
 
+    /* --- bottom bar (covers the artwork's footer text) --- */
+    .bottom-bar {
+      position: absolute;
+      left: 0;
+      top: 1333px;
+      width: 1000px;
+      height: 81px;
+      background: #003669;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.6px;
+      z-index: 3;
+    }
+    .bottom-bar img {
+      width: 44px;
+      height: 44px;
+      display: block;
+      flex: 0 0 auto;
+    }
+
     @media print {
       html, body { background: #ffffff; }
     }
@@ -141,6 +167,11 @@
       <div class="checks" id="checkList"></div>
       <div class="more" id="moreDots">⋮</div>
       <div class="audience" id="audienceText">혜택대상 : 전국 병역명문가 본인 및 가족, 병무청 직원</div>
+    </div>
+
+    <div class="bottom-bar">
+      <img src="./img/mma_footer_emblem.png" alt="병무청">
+      <span>경기북부병무지청 × 군필지도</span>
     </div>
   </div>
 
