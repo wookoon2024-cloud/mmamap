@@ -10317,7 +10317,7 @@ const MMAAuth = {
 
   async fetchAdminFeedbacks(adminKey = "") {
     try {
-      const key = adminKey || this.lastAdminKey || (this.user && this.user.role === "admin" ? "mmamap_admin_2026" : "demo");
+      const key = adminKey || this.lastAdminKey || (this.user && this.user.role === "admin" ? "" : "demo");
       const headers = this.token ? { Authorization: `Bearer ${this.token}` } : {};
       const params = [];
       if (key) params.push(`admin_key=${encodeURIComponent(key)}`);

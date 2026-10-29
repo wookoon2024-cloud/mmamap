@@ -224,10 +224,11 @@ def verify_password_hash(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(legacy, h)
 
 
-DEFAULT_POSTGRES_DB_URL = "postgresql://mmamap:mmamap_secure_pwd_2026!@127.0.0.1:5432/mmamap"
-
 def get_db_url() -> str:
-    return os.environ.get("DATABASE_URL") or DEFAULT_POSTGRES_DB_URL
+    return os.environ.get("DATABASE_URL", "").strip()
+
+if not get_db_url():
+    print("[Server Env] WARNING: DATABASE_URL is not set. Add it to .env")
 
 def get_sslmode(db_url: str) -> str:
     if "127.0.0.1" in db_url or "localhost" in db_url:
@@ -1679,7 +1680,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         is_admin = False
         if user and user.get("role") == "admin":
             is_admin = True
-        elif admin_key and admin_key in (os.environ.get("ADMIN_SECRET_KEY", "mmamap_admin_2026"), "demo"):
+        elif admin_key and admin_key == os.environ.get("ADMIN_SECRET_KEY", ""):
             is_admin = True
         elif user and user.get("role") in ("admin", "general", "merchant") and admin_key == "demo":
             is_admin = True
@@ -1866,7 +1867,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         is_admin = False
         if user and user.get("role") == "admin":
             is_admin = True
-        elif admin_key and admin_key in (os.environ.get("ADMIN_SECRET_KEY", "mmamap_admin_2026"), "demo"):
+        elif admin_key and admin_key == os.environ.get("ADMIN_SECRET_KEY", ""):
             is_admin = True
         elif user and user.get("role") in ("admin", "general", "merchant") and admin_key == "demo":
             is_admin = True
@@ -1924,7 +1925,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         is_admin = False
         if user and user.get("role") == "admin":
             is_admin = True
-        elif admin_key and admin_key in (os.environ.get("ADMIN_SECRET_KEY", "mmamap_admin_2026"), "demo"):
+        elif admin_key and admin_key == os.environ.get("ADMIN_SECRET_KEY", ""):
             is_admin = True
         elif user and user.get("role") in ("admin", "general", "merchant") and admin_key == "demo":
             is_admin = True
@@ -2127,7 +2128,7 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
         is_admin = False
         if user and user.get("role") == "admin":
             is_admin = True
-        elif admin_key and admin_key in (os.environ.get("ADMIN_SECRET_KEY", "mmamap_admin_2026"), "demo"):
+        elif admin_key and admin_key == os.environ.get("ADMIN_SECRET_KEY", ""):
             is_admin = True
         elif user and user.get("role") in ("admin", "general", "merchant") and admin_key == "demo":
             is_admin = True
@@ -2860,8 +2861,8 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "start and goal coordinates required (lng,lat)"})
             return
 
-        ncp_key_id = os.environ.get("NCP_KEY_ID", "5im3q2kbhw")
-        ncp_key = os.environ.get("NCP_KEY", "L2W5tAOBP1AgfQ5QBsoJWd1HhwffyfCS9TKipJg2")
+        ncp_key_id = os.environ.get("NCP_KEY_ID", "")
+        ncp_key = os.environ.get("NCP_KEY", "")
 
         # 1. Try Naver Directions 5/15 API
         try:
