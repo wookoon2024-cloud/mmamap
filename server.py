@@ -960,6 +960,59 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             conn.close()
         self._json(HTTPStatus.OK, {"ok": True, "message": "이메일 인증이 완료되었습니다."})
 
+    def _handle_send_voice_code(self):
+        """가맹점주 ARS 인증 전화 (솔라피 음성). 키는 서버 .env 의 SOLAPI_API_KEY/SECRET/FROM 만 사용."""
+        api_key = os.environ.get("SOLAPI_API_KEY", "").strip()
+        api_secret = os.environ.get("SOLAPI_API_SECRET", "").strip()
+        sender = os.environ.get("SOLAPI_FROM", "").strip()
+        if not (api_key and api_secret and sender):
+            self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"ok": False, "error": "솔라피 발신 설정이 서버에 등록되지 않았습니다."})
+            return
+        body = self._read_json_body()
+        to = re.sub(r"[^0-9]", "", str(body.get("to", "")))
+        code = str(body.get("code", ""))
+        # 임의 문구 발송에 악용되지 않도록 4자리 인증번호 안내 문구만 서버에서 만든다.
+        if not 8 <= len(to) <= 12:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "유효한 수신 전화번호가 없습니다."})
+            return
+        if not re.fullmatch(r"\d{4}", code):
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "인증번호 형식이 올바르지 않습니다."})
+            return
+        digits = ", ".join(code)
+        text = (
+            f"안녕하세요. 군필지도 가맹점주 인증 안내입니다. 인증번호 4자리는, {digits} 번입니다. "
+            f"다시 말씀드리겠습니다. {digits} 번입니다. 감사합니다."
+        )
+        date = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        salt = secrets.token_hex(16)
+        signature = hmac.new(api_secret.encode(), (date + salt).encode(), hashlib.sha256).hexdigest()
+        payload = {
+            "message": {"to": to, "from": sender, "type": "VOICE", "text": text, "voiceOptions": {"voiceType": "FEMALE"}},
+        }
+        req = urllib.request.Request(
+            "https://api.solapi.com/messages/v4/send",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"HMAC-SHA256 apiKey={api_key}, date={date}, salt={salt}, signature={signature}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                resp.read()
+        except urllib.error.HTTPError as exc:
+            try:
+                err = json.loads(exc.read().decode("utf-8"))
+            except Exception:
+                err = {}
+            self._json(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": err.get("errorMessage") or err.get("message") or f"발송 실패 (코드: {exc.code})"})
+            return
+        except Exception as exc:
+            self._json(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": f"발송 실패: {exc}"})
+            return
+        self._json(HTTPStatus.OK, {"ok": True})
+
     def _handle_auth_send_merchant_code(self):
         body = self._read_json_body()
         facility_id = str(body.get("facility_id", "")).strip()
@@ -2371,6 +2424,9 @@ class MMAMapHandler(SimpleHTTPRequestHandler):
             return
         if parsed_url.path == "/api/auth/verify_email_code":
             self._handle_auth_verify_email_code()
+            return
+        if parsed_url.path == "/api/send_voice_code":
+            self._handle_send_voice_code()
             return
         if parsed_url.path == "/api/auth/send_merchant_code":
             self._handle_auth_send_merchant_code()
