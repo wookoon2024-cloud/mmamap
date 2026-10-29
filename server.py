@@ -57,8 +57,8 @@ load_env_file()
 def send_verification_email(to_email: str, code: str):
     # 1. Try Resend API (HTTPS)
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
-    if not resend_key or not resend_key.startswith("re_"):
-        resend_key = base64.b64decode("cmVfMjZlckFGU0NfSGVydkpIUFg4YmNKVEV1M2lXZEhGckVH").decode("utf-8")
+    if not resend_key.startswith("re_"):
+        resend_key = ""
 
     last_err = ""
     if resend_key:

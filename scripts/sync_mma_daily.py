@@ -33,7 +33,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = BASE_DIR / "web" / "data" / "benefits_map.json"
 
 SUPABASE_URL = "https://mwprznynxyvzxweehynl.supabase.co/rest/v1"
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY") or "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx"
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MMAMap-DailySync/1.0",

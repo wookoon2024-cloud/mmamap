@@ -561,7 +561,7 @@ async function bootstrap() {
     ratingsById[facilityId].push(rating);
     try {
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
       await fetch(`${url}/facility_ratings`, {
         method: "POST",
         headers: {
@@ -682,7 +682,7 @@ async function bootstrap() {
       const token = targetToken || getEffectiveUserToken();
       if (!token) return;
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "";
       const res = await fetch(`${url}/facility_action_states?client_token=eq.${encodeURIComponent(token)}&active=eq.1&select=facility_id,action_type`, {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
       });
@@ -727,7 +727,7 @@ async function bootstrap() {
   const loadEngagementSnapshot = async () => {
     try {
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "";
       const userToken = getEffectiveUserToken();
 
       // 1. Fetch real action states (likes & favorites) from Supabase
@@ -804,7 +804,7 @@ async function bootstrap() {
     let pgSaved = false;
     try {
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "";
       const res = await fetch(`${url}/facility_action_states`, {
         method: "POST",
         headers: {
@@ -857,7 +857,7 @@ async function bootstrap() {
     // 1. Direct Supabase Insert (Primary & Authoritative)
     try {
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "";
       await fetch(`${url}/facility_click_events`, {
         method: "POST",
         headers: {
@@ -891,7 +891,7 @@ async function bootstrap() {
   const fetchReviewPosts = async () => {
     try {
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG?.supabase?.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG?.supabase?.anonKey) || "";
       const res = await fetch(`${url}/review_posts?order=created_at.desc&limit=100`, {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
       });
@@ -1066,7 +1066,7 @@ async function bootstrap() {
       } catch (_e) {}
       try {
         const url = getSupabaseRestUrl();
-        const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+        const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
         fetch(`${url}/client_preferences`, {
           method: "POST",
           headers: {
@@ -1119,7 +1119,7 @@ async function bootstrap() {
 
     try {
       const url = getSupabaseRestUrl();
-      const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
       const res = await fetch(`${url}/client_preferences?client_token=eq.${encodeURIComponent(clientToken)}`, {
         headers: { "apikey": key, "Authorization": `Bearer ${key}` }
       });
@@ -2474,8 +2474,8 @@ async function bootstrap() {
     const headers = (window.MMAAuth && window.MMAAuth.getSupabaseHeaders)
       ? window.MMAAuth.getSupabaseHeaders()
       : {
-          "apikey": "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx",
-          "Authorization": "Bearer sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx",
+          "apikey": window.APP_CONFIG?.supabase?.anonKey || "",
+          "Authorization": `Bearer ${window.APP_CONFIG?.supabase?.anonKey || ""}`,
           "Content-Type": "application/json"
         };
     return { url, headers };
@@ -6281,57 +6281,20 @@ const MMAAuth = {
   adminFacSortBy: "engagement",
   adminFacSearchQuery: "",
 
-  async sendSolapiMessage({ to, type = "VOICE", text }) {
-    const config = window.APP_CONFIG?.solapi;
-    if (!config || !config.apiKey || !config.apiSecret) {
-      throw new Error("솔라피 API 설정이 등록되지 않았습니다.");
-    }
+  // 솔라피 API 키는 브라우저에 두지 않고 서버(server.py /api/send_voice_code)에서만 사용한다.
+  async sendVoiceVerificationCall({ to, code }) {
     const cleanTo = String(to || "").replace(/[^0-9]/g, "");
     if (!cleanTo || cleanTo.length < 8) {
       throw new Error("유효한 수신 전화번호가 없습니다.");
     }
-
-    const apiKey = config.apiKey;
-    const apiSecret = config.apiSecret;
-    const from = config.fromNumber || "01083384266";
-    const date = new Date().toISOString();
-    const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(apiSecret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const sigBuf = await crypto.subtle.sign("HMAC", key, encoder.encode(date + salt));
-    const signature = Array.from(new Uint8Array(sigBuf))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    const authHeader = `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${signature}`;
-
-    const res = await fetch("https://api.solapi.com/messages/v4/send", {
+    const res = await fetch("/api/send_voice_code", {
       method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: {
-          to: cleanTo,
-          from: from,
-          type: type,
-          text: text,
-          ...(type === "VOICE" ? { voiceOptions: { voiceType: "FEMALE" } } : {}),
-        },
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: cleanTo, code: String(code || "") }),
     });
-
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.errorMessage || data.message || `발송 실패 (코드: ${res.status})`);
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || `발송 실패 (코드: ${res.status})`);
     }
     return data;
   },
@@ -7101,7 +7064,7 @@ const MMAAuth = {
     // 2. Direct Supabase Login (Vercel / Static Host)
     try {
       const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
-      const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+      const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
       const headers = {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`
@@ -7201,7 +7164,7 @@ const MMAAuth = {
   lastAdminKey: "",
 
   getSupabaseHeaders() {
-    const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+    const key = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
     return {
       "apikey": key,
       "Authorization": `Bearer ${key}`,
@@ -9601,7 +9564,7 @@ const MMAAuth = {
         // Check if email already registered in Supabase
         try {
           const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
-          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
           const checkRes = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`, {
             headers: {
               "apikey": supabaseKey,
@@ -9668,7 +9631,7 @@ const MMAAuth = {
         // 3. Resend 무료 계정 제한(본인 외 차단) 또는 Supabase OTP 발송
         try {
           const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
-          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
 
           const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
             method: "POST",
@@ -9754,7 +9717,7 @@ const MMAAuth = {
 
         try {
           const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
-          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+          const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
 
           const res = await fetch(`${supabaseUrl}/auth/v1/verify`, {
             method: "POST",
@@ -9951,13 +9914,9 @@ const MMAAuth = {
         }
 
         try {
-          const voiceDigits = code.split("").join(", ");
-          const text = `안녕하세요. 군필지도 가맹점주 인증 안내입니다. 인증번호 4자리는, ${voiceDigits} 번입니다. 다시 말씀드리겠습니다. ${voiceDigits} 번입니다. 감사합니다.`;
-
-          await this.sendSolapiMessage({
+          await this.sendVoiceVerificationCall({
             to: cleanPhone,
-            type: "VOICE",
-            text: text,
+            code: code,
           });
 
           if (merchCodeWrap) merchCodeWrap.classList.remove("hidden");
@@ -10091,7 +10050,7 @@ const MMAAuth = {
           } else {
             // Direct Supabase Registration for static hosting
             const supabaseUrl = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.url) || "https://map.mmasv.kr";
-            const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx";
+            const supabaseKey = (window.APP_CONFIG && window.APP_CONFIG.supabase && window.APP_CONFIG.supabase.anonKey) || "";
             const headers = {
               "apikey": supabaseKey,
               "Authorization": `Bearer ${supabaseKey}`,

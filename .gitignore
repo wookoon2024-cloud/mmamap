@@ -29,3 +29,6 @@ contest_announcement_details.txt
 early_prompts*.txt
 make_doc.py
 
+
+# 로컬 전용 설정 (키 포함) — 배포는 api/config.js + Vercel 환경변수 사용
+web/config.js

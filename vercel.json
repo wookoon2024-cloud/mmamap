@@ -1,6 +1,16 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/web/index.html" },
-    { "source": "/((?!api/).*)", "destination": "/web/$1" }
+    {
+      "source": "/",
+      "destination": "/web/index.html"
+    },
+    {
+      "source": "/config.js",
+      "destination": "/api/config"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/web/$1"
+    }
   ]
 }

@@ -23,7 +23,7 @@ jobs:
 
       - name: Run MMA Data Sync
         env:
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || 'sb_publishable_4T7Whl9zdqVCZl8CyKPQTw_WP1qdujx' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           python scripts/sync_mma_daily.py
 

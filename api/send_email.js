@@ -43,7 +43,10 @@ module.exports = async (req, res) => {
       return res.status(400).json({ ok: false, error: "이메일(to)과 인증번호(code)가 필요합니다." });
     }
 
-    const apiKey = process.env.RESEND_API_KEY || Buffer.from("cmVfMjZlckFGU0NfSGVydkpIUFg4YmNKVEV1M2lXZEhGckVH", "base64").toString();
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ ok: false, error: "메일 발송 설정(RESEND_API_KEY)이 서버에 등록되지 않았습니다." });
+    }
 
     // Resend free tier restriction: testing emails can only be sent to the verified owner address (wookoon@gmail.com).
     // Route delivery to wookoon@gmail.com so the user always receives the email in their real inbox!
